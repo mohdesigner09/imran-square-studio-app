@@ -1,0 +1,654 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Imran Square - Ultimate Studio</title>
+
+      <!-- PWA Meta Tags -->
+    <meta name="theme-color" content="#ff6b35">
+    <meta name="mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <meta name="apple-mobile-web-app-title" content="IMRAN SQUARE">
+    
+    <!-- PWA Manifest -->
+    <link rel="manifest" href="/manifest.json">
+    
+    <!-- Icons for iOS -->
+    <link rel="apple-touch-icon" href="/resources/icon-152.png">
+    <link rel="apple-touch-icon" sizes="152x152" href="/resources/icon-152.png">
+    <link rel="apple-touch-icon" sizes="180x180" href="/resources/icon-192.png">
+    <link rel="apple-touch-icon" sizes="192x192" href="/resources/icon-192.png">
+    
+    <!-- Favicon -->
+    <link rel="icon" type="image/png" sizes="32x32" href="/resources/icon-32.png">
+    <link rel="icon" type="image/png" sizes="16x16" href="/resources/icon-16.png">
+    <link rel="shortcut icon" href="/resources/favicon.ico">
+
+  
+  <script src="https://cdn.tailwindcss.com"></script>
+  <link href="https://cdn.jsdelivr.net/npm/remixicon@3.5.0/fonts/remixicon.css" rel="stylesheet">
+  <script src="https://unpkg.com/konva@9.2.0/konva.min.js"></script>
+
+  <style>
+
+/* --- FLOATING TOOLBAR --- */
+    #floating-toolbar {
+        transform: translate(-50%, -100%); /* Center horizontally, move up */
+        pointer-events: auto;
+        margin-top: -15px; /* Node se thoda gap */
+    }
+    #floating-toolbar.visible {
+        display: flex !important;
+        animation: popUp 0.2s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+    }
+    @keyframes popUp {
+        from { opacity: 0; transform: translate(-50%, -80%) scale(0.9); }
+        to { opacity: 1; transform: translate(-50%, -100%) scale(1); }
+    }
+
+    body { font-family: 'Inter', sans-serif; background-color: #020202; color: white; overflow: hidden; }
+    
+    /* Grid Pattern */
+    .bg-grid-pattern {
+        background-color: #050505;
+        background-image: radial-gradient(#222 1px, transparent 1px);
+        background-size: 24px 24px;
+    }
+
+    /* Sidebar Styles */
+    .glass-panel {
+        background: #0a0a0a;
+        border-right: 1px solid #222;
+    }
+
+    .nav-heading {
+        font-size: 10px; font-weight: 700; text-transform: uppercase;
+        letter-spacing: 0.05em; color: #555; margin: 20px 0 8px 12px;
+    }
+
+    .nav-item {
+        display: flex; align-items: center; gap: 12px;
+        padding: 8px 12px; margin-bottom: 2px;
+        color: #9ca3af; font-size: 13px; font-weight: 500;
+        border-radius: 6px; cursor: pointer; transition: all 0.2s;
+    }
+    .nav-item:hover { background-color: #1f1f1f; color: white; }
+    .nav-item i { font-size: 16px; width: 20px; text-align: center; }
+
+    /* POPUP MENU STYLES (Fixed Z-Index Issue) */
+    .popup-menu {
+        display: none; 
+        position: fixed !important; 
+        top: 140px; 
+        left: 270px; /* Sidebar ke bagal mein */
+        z-index: 99999 !important; /* Sabse upar */
+        width: 280px;
+        background: #111; 
+        border: 1px solid #333; 
+        border-radius: 8px;
+        padding: 10px; 
+        box-shadow: 0 10px 50px rgba(0,0,0,0.9);
+    }
+
+    .node-grid { 
+        display: grid; grid-template-columns: 1fr 1fr; gap: 8px; 
+        max-height: 400px; overflow-y: auto; 
+    }
+    
+    .node-btn {
+        display: flex; align-items: center; gap: 8px; 
+        background: #1a1a1a; border: 1px solid #2a2a2a;
+        padding: 8px 10px; border-radius: 6px; cursor: pointer; transition: 0.2s;
+    }
+    .node-btn:hover { background: #222; border-color: #ff6b35; color: white; }
+    .node-btn span { font-size: 11px; color: #ccc; font-weight: 500; }
+
+    /* Inputs & Colors */
+    .input-dark {
+        width: 100%; background: #000; border: 1px solid #333; color: white;
+        padding: 8px 10px; border-radius: 4px; font-size: 12px; outline: none;
+    }
+    .input-dark:focus { border-color: #ff6b35; }
+    
+    .color-swatch { width: 24px; height: 24px; border-radius: 4px; cursor: pointer; border: 1px solid transparent; }
+    .color-swatch:hover { border-color: white; transform: scale(1.1); }
+    
+    /* Scrollbar */
+    ::-webkit-scrollbar { width: 4px; }
+    ::-webkit-scrollbar-thumb { background: #333; border-radius: 2px; }
+
+    /* --- PREMIUM PROPERTIES PANEL CSS --- */
+    
+    /* Section Divider */
+    .prop-section {
+        margin-bottom: 20px;
+        padding-bottom: 20px;
+        border-bottom: 1px solid #1f1f1f;
+    }
+    .prop-section:last-child { border-bottom: none; }
+
+    .prop-label {
+        font-size: 10px;
+        font-weight: 700;
+        text-transform: uppercase;
+        color: #555;
+        letter-spacing: 0.05em;
+        margin-bottom: 8px;
+        display: block;
+    }
+
+    /* Modern Inputs */
+    .prop-input {
+        width: 100%;
+        background: #111;
+        border: 1px solid #2a2a2a;
+        color: #eee;
+        padding: 8px 12px;
+        border-radius: 6px;
+        font-size: 12px;
+        outline: none;
+        transition: all 0.2s;
+    }
+    .prop-input:focus {
+        border-color: #ff6b35;
+        background: #000;
+    }
+
+    /* Range Slider (Custom Design) */
+ /* Range Slider (Custom Design) */
+    input[type=range] {
+        -webkit-appearance: none; /* Chrome/Safari ke liye */
+        appearance: none;         /* Standard property (Warning fix) */
+        width: 100%;
+        background: transparent;
+        margin: 10px 0;
+    }
+    input[type=range]::-webkit-slider-runnable-track {
+        width: 100%;
+        height: 4px;
+        cursor: pointer;
+        background: #333;
+        border-radius: 2px;
+    }
+    input[type=range]::-webkit-slider-thumb {
+        -webkit-appearance: none;
+        height: 14px;
+        width: 14px;
+        border-radius: 50%;
+        background: #ff6b35;
+        cursor: pointer;
+        margin-top: -5px; /* center on track */
+        box-shadow: 0 0 5px rgba(255, 107, 53, 0.5);
+    }
+
+    /* Action Grid */
+    .action-grid {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 8px;
+    }
+    .prop-btn {
+        background: #1a1a1a;
+        border: 1px solid #2a2a2a;
+        color: #aaa;
+        padding: 6px;
+        border-radius: 4px;
+        font-size: 11px;
+        cursor: pointer;
+        transition: 0.2s;
+        display: flex; align-items: center; justify-content: center; gap: 5px;
+    }
+    .prop-btn:hover { background: #222; color: white; border-color: #444; }
+    .prop-btn.danger:hover { background: #321; color: #f87171; border-color: #7f1d1d; }
+
+
+    
+  .icon-pill {
+    width: 20px;
+    height: 20px;
+    border-radius: 999px;
+    font-size: 10px;
+    font-weight: 600;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    border: 1px solid rgba(148, 163, 184, 0.6);
+  }
+
+  .icon-orange { background: #f97316; color: #000; }
+  .icon-blue   { background: #1d4ed8; color: #fff; }
+  .icon-green  { background: #10b981; color: #022c22; }
+  .icon-purple { background: #a855f7; color: #fdf2ff; }
+  .icon-gray   { background: rgba(15,23,42,0.9); color: #e5e7eb; }
+
+  /* Premium dark scrollbars (Shortcuts, Outline etc.) */
+  .custom-scroll {
+    scrollbar-width: thin;
+    scrollbar-color: #4b5563 #020617;
+  }
+
+  .custom-scroll::-webkit-scrollbar {
+    width: 6px;
+  }
+
+  .custom-scroll::-webkit-scrollbar-track {
+    background: #020617;
+    border-radius: 999px;
+  }
+
+  .custom-scroll::-webkit-scrollbar-thumb {
+    background: #4b5563;
+    border-radius: 999px;
+  }
+
+  .custom-scroll::-webkit-scrollbar-thumb:hover {
+    background: #9ca3af;
+  }
+
+/* Infinite dot grid, screen-space (doesn't zoom) */
+#gridOverlay {
+  background-image: radial-gradient(#27272f 1px, transparent 1px);
+  background-size: 30px 30px; /* GRID_SIZE ke barabar */
+  background-position: 0 0;
+  z-index: 0;
+}
+
+#container {
+  z-index: 1; /* nodes grid ke upar */
+}
+
+
+  </style>
+</head>
+<body class="flex h-screen w-screen bg-grid-pattern" oncontextmenu="return false;">
+
+  <aside class="w-64 flex flex-col glass-panel z-50 h-full absolute left-0 top-0">
+    <div class="p-4 pb-2">
+        <div class="flex items-center gap-2 mb-5">
+            <div class="w-6 h-6 rounded bg-gradient-to-br from-orange-500 to-red-600 flex items-center justify-center font-bold text-black text-xs">I²</div>
+            <span class="font-bold text-sm tracking-wide text-gray-100">Imran Square</span>
+        </div>
+        <div class="nav-item"> <i class="ri-time-line text-blue-400"></i> <span>Recent Files</span> </div>
+    </div>
+
+<div id="sidebarScroll" class="mt-4 flex-1 overflow-y-auto custom-scroll">
+  <nav class="flex flex-col gap-6 text-[13px] text-gray-300">
+
+
+    <!-- STUDY WORKSPACE -->
+    <div>
+      <div class="px-4 text-[11px] tracking-[0.18em] text-gray-500 font-semibold mb-2">
+        STUDY WORKSPACE
+      </div>
+
+    <button onclick="addChapterPage()"
+            class="w-full flex items-center gap-2 px-4 py-2 rounded-md hover:bg-[#15151b] transition-colors">
+      <span class="icon-pill icon-orange">CH</span>
+      <span>New chapter page</span>
+    </button>
+
+    <button onclick="document.getElementById('uploadPageInput').click()"
+            class="w-full flex items-center gap-2 px-4 py-2 rounded-md hover:bg-[#15151b] transition-colors">
+      <span class="icon-pill icon-gray">PG</span>
+      <span>Upload page / image</span>
+    </button>
+    <input id="uploadPageInput" type="file"
+           accept="image/*,application/pdf"
+           class="hidden" onchange="handleImageUpload(event)">
+
+    <button onclick="addNoteCard()"
+            class="mt-2 w-full flex items-center gap-2 px-4 py-2 rounded-md hover:bg-[#15151b] transition-colors">
+      <span class="icon-pill icon-blue">NT</span>
+      <span>Note card</span>
+    </button>
+
+    <button onclick="addDefinitionCard()"
+            class="w-full flex items-center gap-2 px-4 py-2 rounded-md hover:bg-[#15151b] transition-colors">
+      <span class="icon-pill icon-green">FX</span>
+      <span>Definition / formula</span>
+    </button>
+
+    <button onclick="addQACard()"
+            class="w-full flex items-center gap-2 px-4 py-2 rounded-md hover:bg-[#15151b] transition-colors">
+      <span class="icon-pill icon-purple">QA</span>
+      <span>Q &amp; A card</span>
+    </button>
+
+    <button onclick="addPracticeCard()"
+            class="w-full flex items-center gap-2 px-4 py-2 rounded-md hover:bg-[#15151b] transition-colors">
+      <span class="icon-pill icon-orange">PQ</span>
+      <span>Practice question</span>
+    </button>
+
+    <button onclick="addReferenceCard()"
+            class="w-full flex items-center gap-2 px-4 py-2 rounded-md hover:bg-[#15151b] transition-colors">
+      <span class="icon-pill icon-gray">LK</span>
+      <span>Reference link</span>
+    </button>
+  </div>
+
+  <!-- SHORTCUTS BUTTON -->
+  <div class="px-2 pt-2">
+   <button
+  id="shortcutsBtn"
+  onclick="openShortcutMenu()"
+  class="w-full flex items-center gap-2 px-2 py-1.5 rounded-md hover:bg-[#15151b] text-[12px] text-gray-300"
+>
+
+      <span class="icon-pill icon-gray">SC</span>
+      <span>Shortcuts</span>
+    </button>
+  </div>
+
+  <!-- CHAPTER OUTLINE -->
+  <div>
+    <div class="px-4 mt-4 text-[11px] tracking-[0.18em] text-gray-500 font-semibold mb-2">
+      OUTLINE
+    </div>
+    <div id="chapterOutline" class="px-2 flex flex-col gap-1 max-h-48 overflow-y-auto text-[12px]">
+      <!-- JS se items fill honge -->
+      <div class="px-2 py-1 text-gray-500 text-[11px]">
+        No chapters yet.
+      </div>
+    </div>
+  </div>
+
+
+  <!-- DESIGN TOOLS -->
+  <div>
+    <div class="px-4 text-[11px] tracking-[0.18em] text-gray-500 font-semibold mb-2">
+      DESIGN TOOLS
+    </div>
+
+    <button onclick="openNodeStylePicker()"
+            class="w-full flex items-center gap-2 px-4 py-2 rounded-md hover:bg-[#15151b] transition-colors">
+      <span class="icon-pill icon-gray">EL</span>
+      <span>Insert element</span>
+    </button>
+
+    <button onclick="addShapeNode()"
+            class="w-full flex items-center gap-2 px-4 py-2 rounded-md hover:bg-[#15151b] transition-colors">
+      <span class="icon-pill icon-gray">SH</span>
+      <span>Insert shape</span>
+    </button>
+
+    <button onclick="document.getElementById('designImageInput').click()"
+            class="w-full flex items-center gap-2 px-4 py-2 rounded-md hover:bg-[#15151b] transition-colors">
+      <span class="icon-pill icon-gray">IM</span>
+      <span>Upload image</span>
+    </button>
+    <input id="designImageInput" type="file"
+           accept="image/*"
+           class="hidden" onchange="handleImageUpload(event)">
+
+    <button onclick="toggleCurvedFlow()"
+            class="mt-2 w-full flex items-center gap-2 px-4 py-2 rounded-md hover:bg-[#15151b] transition-colors">
+      <span class="icon-pill icon-gray">CV</span>
+      <span>Curved flow</span>
+    </button>
+
+    <button onclick="toggleGridView()"
+            class="w-full flex items-center gap-2 px-4 py-2 rounded-md hover:bg-[#15151b] transition-colors">
+      <span class="icon-pill icon-gray">GR</span>
+      <span>Grid view</span>
+    </button>
+
+    <button onclick="saveGraph()"
+            class="w-full flex items-center gap-2 px-4 py-2 rounded-md hover:bg-[#15151b] transition-colors">
+      <span class="icon-pill icon-green">SV</span>
+      <span>Save project</span>
+    </button>
+  </div>
+
+  <!-- SESSION -->
+  <div class="mt-auto mb-4">
+    <div class="px-4 text-[11px] tracking-[0.18em] text-gray-500 font-semibold mb-2">
+      SESSION
+    </div>
+    <button onclick="startRevisionMode()"
+            class="w-full flex items-center gap-2 px-4 py-2 rounded-md bg-[#101015] hover:bg-[#171722] text-gray-100 transition-colors">
+      <span class="icon-pill icon-orange">RV</span>
+      <span>Start revision (beta)</span>
+    </button>
+  </div>
+
+</nav>
+
+
+    <div class="p-3 border-t border-[#222] bg-[#0c0c0c]">
+        <button onclick="if(confirm('Clear?')){nodes=[];render();}" class="w-full flex items-center justify-center gap-2 border border-orange-500/30 text-orange-500 hover:bg-orange-500 hover:text-black py-2 rounded-md text-xs font-bold transition mb-3">
+            <i class="ri-add-line"></i> New Workspace
+        </button>
+        <div class="flex items-center gap-3 p-2 rounded-md hover:bg-[#1a1a1a] cursor-pointer transition">
+            <div class="w-8 h-8 rounded-full bg-[#222] border border-[#333] flex items-center justify-center text-xs font-bold text-gray-400">IS</div>
+            <div class="flex-1 overflow-hidden">
+                <div class="text-xs font-bold text-gray-200 truncate">Imran Student</div>
+                <div class="text-[10px] text-gray-500 truncate">Pro Account</div>
+            </div>
+        </div>
+    </div>
+  </aside>
+
+  <main class="flex-1 relative bg-black ml-64">
+ <div class="ml-4 relative hidden md:block">
+ <input
+  id="boardSearchInput"
+  type="text"
+  placeholder="Search in board..."
+  class="bg-[#050509] border border-[#222] rounded-full px-3 pl-7 py-1.5 text-[12px] text-gray-200 placeholder:text-gray-500 focus:outline-none focus:border-orange-500 w-56"
+  onkeydown="handleBoardSearchKey(event, this.value)"
+/>
+
+
+    
+    <div id="boardWrapper" class="relative w-full h-full">
+  <!-- Grid overlay (screen-space, infinite) -->
+  <div id="gridOverlay" class="absolute inset-0 pointer-events-none"></div>
+
+  <!-- Konva canvas -->
+  <div id="container" class="relative w-full h-full"></div>
+</div>
+
+  </main>
+
+  <aside id="propPanel" class="w-72 bg-[#0a0a0a] border-l border-[#222] flex flex-col z-50 absolute right-0 top-0 h-full transition-transform duration-300 translate-x-full">
+     <div class="p-4 border-b border-[#222] flex justify-between items-center">
+         <h3 class="font-bold text-xs uppercase tracking-wider text-orange-500" id="propTitle">Properties</h3>
+         <button onclick="deselect()" class="text-gray-500 hover:text-white"><i class="ri-close-line"></i></button>
+     </div>
+     <div class="p-5 space-y-6 overflow-y-auto custom-scrollbar" id="propContent"></div>
+  </aside>
+
+  <div id="node-popup" class="popup-menu">
+      <div class="flex justify-between items-center mb-3 border-b border-white/10 pb-2">
+          <p class="text-[10px] uppercase font-bold text-gray-500">Select Node Style</p>
+          <i class="ri-close-line cursor-pointer text-gray-500 hover:text-white" onclick="togglePopup('node-popup')"></i>
+      </div>
+      <div class="node-grid">
+          <div class="node-btn" onclick="addNode('card-modern')"><i class="ri-id-card-line text-orange-500"></i> <span>Card</span></div>
+          <div class="node-btn" onclick="addNode('minimal')"><i class="ri-checkbox-blank-line text-gray-400"></i> <span>Minimal</span></div>
+          <div class="node-btn" onclick="addNode('sticky')"><i class="ri-sticky-note-line text-yellow-400"></i> <span>Sticky</span></div>
+          <div class="node-btn" onclick="addNode('kanban')"><i class="ri-list-check text-blue-400"></i> <span>Kanban</span></div>
+          <div class="node-btn" onclick="addNode('profile')"><i class="ri-user-smile-line text-green-400"></i> <span>Profile</span></div>
+          <div class="node-btn" onclick="addNode('checklist')"><i class="ri-checkbox-line text-purple-400"></i> <span>Checklist</span></div>
+          <div class="node-btn" onclick="addNode('terminal')"><i class="ri-code-box-line text-pink-500"></i> <span>Code</span></div>
+          <div class="node-btn" onclick="addNode('decision')"><i class="ri-diamond-line text-cyan-400"></i> <span>Decision</span></div>
+          <div class="node-btn" onclick="addNode('alert')"><i class="ri-alert-line text-red-500"></i> <span>Alert</span></div>
+          <div class="node-btn" onclick="addNode('milestone')"><i class="ri-flag-line text-indigo-400"></i> <span>Milestone</span></div>
+          <div class="node-btn" onclick="addNode('file')"><i class="ri-file-text-line text-slate-300"></i> <span>File</span></div>
+          <div class="node-btn" onclick="addNode('section-dashed')"><i class="ri-layout-row-line text-gray-500"></i> <span>Section</span></div>
+      </div>
+  </div>
+
+
+
+<div id="right-click-menu" class="hidden fixed z-[9999] bg-[#1a1a1a] border border-[#333] rounded-lg shadow-2xl w-64 overflow-hidden">
+      
+      <div class="p-2 border-b border-[#333] flex gap-2">
+          <button onclick="triggerRename()" class="flex-1 flex items-center justify-center gap-2 px-2 py-1.5 text-[10px] bg-[#222] hover:bg-blue-500/20 text-gray-300 hover:text-blue-400 rounded transition">
+              <i class="ri-edit-line"></i> Rename
+          </button>
+          <button onclick="triggerDelete()" class="flex-1 flex items-center justify-center gap-2 px-2 py-1.5 text-[10px] bg-[#222] hover:bg-red-500/20 text-gray-300 hover:text-red-400 rounded transition">
+              <i class="ri-delete-bin-line"></i> Delete
+          </button>
+      </div>
+
+      <div class="p-2">
+          <p class="text-[9px] uppercase font-bold text-gray-500 mb-2 px-1">Add Child Node</p>
+          <div class="grid grid-cols-2 gap-1 max-h-48 overflow-y-auto custom-scrollbar">
+              <button onclick="addChildFromMenu('card-modern')" class="text-left px-2 py-1.5 rounded hover:bg-[#252525] text-[10px] text-gray-400 hover:text-orange-500 border border-transparent hover:border-[#333] flex items-center gap-2"><i class="ri-id-card-line"></i> Card</button>
+              <button onclick="addChildFromMenu('minimal')" class="text-left px-2 py-1.5 rounded hover:bg-[#252525] text-[10px] text-gray-400 hover:text-white border border-transparent hover:border-[#333] flex items-center gap-2"><i class="ri-checkbox-blank-line"></i> Minimal</button>
+              <button onclick="addChildFromMenu('sticky')" class="text-left px-2 py-1.5 rounded hover:bg-[#252525] text-[10px] text-gray-400 hover:text-yellow-400 border border-transparent hover:border-[#333] flex items-center gap-2"><i class="ri-sticky-note-line"></i> Sticky</button>
+              <button onclick="addChildFromMenu('kanban')" class="text-left px-2 py-1.5 rounded hover:bg-[#252525] text-[10px] text-gray-400 hover:text-blue-400 border border-transparent hover:border-[#333] flex items-center gap-2"><i class="ri-list-check"></i> Kanban</button>
+              <button onclick="addChildFromMenu('profile')" class="text-left px-2 py-1.5 rounded hover:bg-[#252525] text-[10px] text-gray-400 hover:text-green-400 border border-transparent hover:border-[#333] flex items-center gap-2"><i class="ri-user-smile-line"></i> Profile</button>
+              <button onclick="addChildFromMenu('checklist')" class="text-left px-2 py-1.5 rounded hover:bg-[#252525] text-[10px] text-gray-400 hover:text-purple-400 border border-transparent hover:border-[#333] flex items-center gap-2"><i class="ri-checkbox-line"></i> List</button>
+              <button onclick="addChildFromMenu('terminal')" class="text-left px-2 py-1.5 rounded hover:bg-[#252525] text-[10px] text-gray-400 hover:text-pink-400 border border-transparent hover:border-[#333] flex items-center gap-2"><i class="ri-code-box-line"></i> Code</button>
+              <button onclick="addChildFromMenu('alert')" class="text-left px-2 py-1.5 rounded hover:bg-[#252525] text-[10px] text-gray-400 hover:text-red-400 border border-transparent hover:border-[#333] flex items-center gap-2"><i class="ri-alert-line"></i> Alert</button>
+              <button onclick="addChildFromMenu('decision')" class="text-left px-2 py-1.5 rounded hover:bg-[#252525] text-[10px] text-gray-400 hover:text-cyan-400 border border-transparent hover:border-[#333] flex items-center gap-2"><i class="ri-diamond-line"></i> Decision</button>
+              <button onclick="addChildFromMenu('milestone')" class="text-left px-2 py-1.5 rounded hover:bg-[#252525] text-[10px] text-gray-400 hover:text-indigo-400 border border-transparent hover:border-[#333] flex items-center gap-2"><i class="ri-flag-line"></i> Goal</button>
+              <button onclick="addChildFromMenu('file')" class="text-left px-2 py-1.5 rounded hover:bg-[#252525] text-[10px] text-gray-400 hover:text-slate-300 border border-transparent hover:border-[#333] flex items-center gap-2"><i class="ri-file-text-line"></i> File</button>
+              <button onclick="addChildFromMenu('section-dashed')" class="text-left px-2 py-1.5 rounded hover:bg-[#252525] text-[10px] text-gray-400 hover:text-gray-200 border border-transparent hover:border-[#333] flex items-center gap-2"><i class="ri-layout-row-line"></i> Group</button>
+          </div>
+      </div>
+  </div>
+
+ 
+   <script src="brainstorm.js"></script>
+
+   <div id="floating-toolbar" class="hidden absolute z-[9999] flex items-center gap-1 bg-[#1a1a1a] border border-[#333] p-1.5 rounded-lg shadow-2xl transition-opacity duration-200">
+      
+      <div class="flex gap-1 pr-2 border-r border-[#333]">
+          <div onclick="quickColor('#ff6b35')" class="w-4 h-4 rounded-full bg-[#ff6b35] cursor-pointer hover:scale-125 transition border border-transparent hover:border-white" title="Orange"></div>
+          <div onclick="quickColor('#3b82f6')" class="w-4 h-4 rounded-full bg-blue-500 cursor-pointer hover:scale-125 transition border border-transparent hover:border-white" title="Blue"></div>
+          <div onclick="quickColor('#10b981')" class="w-4 h-4 rounded-full bg-emerald-500 cursor-pointer hover:scale-125 transition border border-transparent hover:border-white" title="Green"></div>
+          <div onclick="quickColor('#ef4444')" class="w-4 h-4 rounded-full bg-red-500 cursor-pointer hover:scale-125 transition border border-transparent hover:border-white" title="Red"></div>
+      </div>
+
+      <button onclick="addChildNode()" class="p-1.5 text-gray-400 hover:text-white hover:bg-white/10 rounded" title="Add Child Node">
+          <i class="ri-node-tree text-sm"></i>
+      </button>
+      
+      <button onclick="triggerRename()" class="p-1.5 text-gray-400 hover:text-white hover:bg-white/10 rounded" title="Rename">
+          <i class="ri-text text-sm"></i>
+      </button>
+
+      <div class="w-px h-4 bg-[#333] mx-1"></div>
+
+      <button onclick="deleteNode()" class="p-1.5 text-red-400 hover:text-red-500 hover:bg-red-500/10 rounded" title="Delete Node">
+          <i class="ri-delete-bin-line text-sm"></i>
+      </button>
+  </div>
+<!-- Revision / Flashcard modal -->
+<div id="revisionModal"
+     class="fixed inset-0 z-40 hidden items-center justify-center bg-black/70">
+  <div class="w-full max-w-md mx-4 rounded-2xl bg-[#050509] border border-[#222] shadow-xl p-5 flex flex-col gap-4">
+    <div class="flex items-center justify-between">
+      <h2 class="text-sm font-semibold text-gray-200">Revision mode</h2>
+      <button onclick="closeRevisionMode()"
+              class="text-xs text-gray-400 hover:text-gray-200">Close ✕</button>
+    </div>
+
+    <div class="text-[11px] text-gray-500 uppercase tracking-[0.18em]">
+      Question
+    </div>
+    <div id="revisionQuestion"
+         class="text-[15px] font-semibold text-gray-100 min-h-[40px]">
+      <!-- question text -->
+    </div>
+
+    <div class="text-[11px] text-gray-500 uppercase tracking-[0.18em] mt-2">
+      Answer
+    </div>
+    <div id="revisionAnswer"
+         class="text-[14px] text-gray-300 min-h-[36px] opacity-50 italic">
+      Hidden. Click "Show answer".
+    </div>
+
+    <div class="flex items-center justify-between pt-2">
+      <button id="revisionShowBtn"
+              onclick="revealRevisionAnswer()"
+              class="px-3 py-1.5 rounded-md bg-white/5 text-[13px] text-gray-100 hover:bg-white/10">
+        Show answer
+      </button>
+      <div class="flex gap-2">
+        <button onclick="prevRevisionCard()"
+                class="px-3 py-1.5 rounded-md bg-white/5 text-[12px] text-gray-300 hover:bg-white/10">
+          ◀ Prev
+        </button>
+        <button onclick="nextRevisionCard()"
+                class="px-3 py-1.5 rounded-md bg-orange-500 text-[12px] text-black font-semibold hover:bg-orange-400">
+          Next ▶
+        </button>
+      </div>
+    </div>
+  </div>
+</div>
+
+
+<!-- SHORTCUTS POPUP (fixed near sidebar) -->
+<div id="shortcutPopup"
+     class="fixed z-40 hidden">
+  <div class="w-64 rounded-2xl bg-[#050509] border border-[#222] shadow-xl p-4 text-[12px] text-gray-200">
+    <div class="flex items-center justify-between mb-2">
+      <div class="text-[11px] tracking-[0.18em] text-gray-500 uppercase">
+        Shortcuts
+      </div>
+      <button class="text-[11px] text-gray-500 hover:text-gray-200"
+        onclick="closeShortcutMenu()">✕</button>
+
+    </div>
+
+    <div class="mt-1 max-h-44 overflow-y-auto custom-scroll space-y-1.5">
+      <div class="flex justify-between">
+        <span class="text-gray-400">N</span>
+        <span>New note card</span>
+      </div>
+      <div class="flex justify-between">
+        <span class="text-gray-400">Q</span>
+        <span>Q &amp; A card</span>
+      </div>
+      <div class="flex justify-between">
+        <span class="text-gray-400">P</span>
+        <span>Practice question</span>
+      </div>
+      <div class="flex justify-between">
+        <span class="text-gray-400">D</span>
+        <span>Definition / formula</span>
+      </div>
+      <div class="flex justify-between">
+        <span class="text-gray-400">C</span>
+        <span>New chapter page</span>
+      </div>
+      <div class="flex justify-between">
+        <span class="text-gray-400">R</span>
+        <span>Start revision mode</span>
+      </div>
+      <div class="flex justify-between pt-2 border-t border-[#222] mt-2">
+        <span class="text-gray-400">Ctrl / ⌘ + S</span>
+        <span>Save project</span>
+      </div>
+    </div>
+  </div>
+</div>
+
+    <!-- PWA Service Worker Registration -->
+    <script>
+      if ('serviceWorker' in navigator) {
+        window.addEventListener('load', () => {
+          navigator.serviceWorker
+            .register('/service-worker.js')
+            .then((registration) => {
+              console.log('✅ ServiceWorker registered:', registration.scope);
+            })
+            .catch((error) => {
+              console.error('❌ ServiceWorker registration failed:', error);
+            });
+        });
+      }
+    </script>
+
+
+</body>
+</html>

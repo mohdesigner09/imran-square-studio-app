@@ -1,0 +1,726 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Neural Core - IMRAN SQUARE</title>
+
+      <!-- PWA Meta Tags -->
+    <meta name="theme-color" content="#ff6b35">
+    <meta name="mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <meta name="apple-mobile-web-app-title" content="IMRAN SQUARE">
+    
+    <!-- PWA Manifest -->
+    <link rel="manifest" href="/manifest.json">
+    
+    <!-- Icons for iOS -->
+    <link rel="apple-touch-icon" href="/resources/icon-152.png">
+    <link rel="apple-touch-icon" sizes="152x152" href="/resources/icon-152.png">
+    <link rel="apple-touch-icon" sizes="180x180" href="/resources/icon-192.png">
+    <link rel="apple-touch-icon" sizes="192x192" href="/resources/icon-192.png">
+    
+    <!-- Favicon -->
+    <link rel="icon" type="image/png" sizes="32x32" href="/resources/icon-32.png">
+    <link rel="icon" type="image/png" sizes="16x16" href="/resources/icon-16.png">
+    <link rel="shortcut icon" href="/resources/favicon.ico">
+
+
+  <link rel="icon" href="data:,">
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/animejs/3.2.1/anime.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+  <link
+    href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600&family=Playfair+Display:wght@700;900&family=JetBrains+Mono:wght@400&display=swap"
+    rel="stylesheet">
+  <style>
+    :root {
+      --bg-color: #0a0a0a;
+      --sidebar-bg: #000000;
+      --accent: #ff6b35;
+      --border: #222;
+    }
+
+    body {
+      background: var(--bg-color);
+      color: white;
+      font-family: 'Inter', sans-serif;
+      overflow: hidden;
+    }
+
+    .hero-bg {
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      background: radial-gradient(circle at 50% 30%, #151515 0%, #000000 100%);
+      z-index: -2;
+    }
+
+    .film-grain {
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      pointer-events: none;
+      opacity: 0.03;
+      z-index: -1;
+    }
+
+    .sidebar {
+      background: var(--sidebar-bg);
+      border-right: 1px solid var(--border);
+      width: 260px;
+      display: flex;
+      flex-direction: column;
+      z-index: 50;
+    }
+
+    .new-chat-btn {
+      background: #1a1a1a;
+      border: 1px solid #333;
+      color: #eee;
+      transition: all 0.2s;
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      padding: 10px 16px;
+      border-radius: 8px;
+      font-size: 0.9rem;
+      width: 100%;
+    }
+
+    .new-chat-btn:hover {
+      border-color: var(--accent);
+      color: var(--accent);
+    }
+
+    .history-item {
+      position: relative;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      gap: 8px;
+      padding: 12px 16px;
+      margin-bottom: 4px;
+      cursor: pointer;
+      border-radius: 8px;
+      transition: all 0.2s ease;
+      background: transparent;
+    }
+
+    .history-item:hover {
+      background: rgba(249, 115, 22, 0.08);
+    }
+
+    .history-item.active {
+      background: rgba(249, 115, 22, 0.15);
+      border-left: 3px solid #F97316;
+      padding-left: 13px;
+    }
+
+    .chat-title {
+      flex: 1;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+      cursor: pointer;
+      font-size: 14px;
+      color: #e5e5e5;
+    }
+
+    .delete-chat-btn {
+      background: transparent;
+      border: none;
+      cursor: pointer;
+      padding: 4px 6px;
+      font-size: 16px;
+      opacity: 0;
+      transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+      transform: scale(0.8);
+    }
+
+    .history-item:hover .delete-chat-btn {
+      opacity: 0.6;
+      transform: scale(1);
+    }
+
+    .delete-chat-btn:hover {
+      opacity: 1 !important;
+      background: rgba(239, 68, 68, 0.2);
+      transform: scale(1.1) !important;
+    }
+
+    .history-item.active .chat-title {
+      color: #F97316;
+      font-weight: 500;
+    }
+
+    .main-content {
+      flex: 1;
+      position: relative;
+      display: flex;
+      flex-direction: column;
+      height: 100vh;
+    }
+
+    .hero-container {
+      position: absolute;
+      top: 45%;
+      left: 50%;
+      transform: translate(-50%, -50%);
+      width: 100%;
+      max-width: 750px;
+      text-align: center;
+      transition: all 0.5s cubic-bezier(0.4, 0, 0.2, 1);
+      z-index: 10;
+    }
+
+    .hero-logo-wrapper {
+      font-family: 'Playfair Display', serif;
+      font-size: 4rem;
+      font-weight: 900;
+      letter-spacing: 0.05em;
+      color: #ffffff;
+      margin-bottom: 40px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 1rem;
+    }
+
+    .hero-logo-wrapper .accent {
+      color: var(--accent);
+    }
+
+    .hero-logo-wrapper sup {
+      font-size: 0.5em;
+      color: var(--accent);
+      vertical-align: top;
+      position: relative;
+      top: -0.2em;
+    }
+
+    .hero-input-box {
+      background: #141414;
+      border: 1px solid #333;
+      border-radius: 16px;
+      padding: 16px 20px;
+      text-align: left;
+      position: relative;
+      box-shadow: 0 10px 40px -10px rgba(0, 0, 0, 0.8);
+      transition: all 0.3s ease;
+    }
+
+    .hero-input-box:focus-within {
+      border-color: var(--accent);
+      box-shadow: 0 0 0 2px rgba(255, 107, 53, 0.1);
+    }
+
+    .hero-textarea {
+      width: 100%;
+      background: transparent;
+      border: none;
+      outline: none;
+      color: white;
+      font-size: 1.1rem;
+      resize: none;
+      min-height: 28px;
+      max-height: 160px;
+      overflow-y: auto !important;
+      transition: min-height 0.2s;
+      scrollbar-width: thin;
+      scrollbar-color: #444 #181818;
+    }
+
+    .hero-textarea::placeholder {
+      color: #555;
+    }
+
+    .hero-textarea::-webkit-scrollbar {
+      width: 8px;
+      background: transparent;
+    }
+
+    .hero-textarea::-webkit-scrollbar-thumb {
+      background: #444;
+      border-radius: 8px;
+      border: 2px solid #181818;
+    }
+
+    .hero-textarea::-webkit-scrollbar-thumb:hover {
+      background: #666;
+    }
+
+    .input-footer {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-top: 12px;
+      padding-top: 12px;
+      border-top: 1px solid #222;
+    }
+
+    .suggestions {
+      display: flex;
+      justify-content: center;
+      gap: 10px;
+      margin-top: 20px;
+      flex-wrap: wrap;
+    }
+
+    .pill {
+      background: #141414;
+      border: 1px solid #2a2a2a;
+      padding: 8px 16px;
+      border-radius: 20px;
+      font-size: 0.8rem;
+      color: #888;
+      cursor: pointer;
+      transition: 0.2s;
+      display: flex;
+      align-items: center;
+      gap: 6px;
+    }
+
+    .pill:hover {
+      border-color: var(--accent);
+      color: white;
+      transform: translateY(-2px);
+    }
+
+    .chat-interface {
+      display: none;
+      flex-direction: column;
+      height: 100%;
+      opacity: 0;
+      transition: opacity 0.5s ease;
+    }
+
+    .messages-area {
+      flex: 1;
+      overflow-y: auto;
+      padding: 20px;
+      width: 100%;
+      max-width: 800px;
+      margin: 0 auto;
+      padding-bottom: 120px;
+    }
+
+    .msg-row {
+      display: flex;
+      margin-bottom: 24px;
+      width: 100%;
+      gap: 12px;
+      animation: slideIn 0.3s ease;
+    }
+
+    .msg-row.user {
+      justify-content: flex-end;
+    }
+
+    .msg-row.ai {
+      justify-content: flex-start;
+    }
+
+    .bottom-input-container {
+      position: absolute;
+      bottom: 20px;
+      left: 50%;
+      transform: translateX(-50%);
+      width: 90%;
+      max-width: 750px;
+      z-index: 50;
+    }
+
+    .mode-active .hero-container {
+      opacity: 0;
+      pointer-events: none;
+      transform: translate(-50%, -60%);
+    }
+
+    .mode-active .chat-interface {
+      display: flex;
+      opacity: 1;
+    }
+
+    @keyframes slideIn {
+      from {
+        transform: translateX(400px);
+        opacity: 0;
+      }
+
+      to {
+        transform: translateX(0);
+        opacity: 1;
+      }
+    }
+
+    .typing-dots {
+      display: inline-flex;
+      gap: 4px;
+    }
+
+    .typing-dots span {
+      width: 6px;
+      height: 6px;
+      background: var(--accent);
+      border-radius: 50%;
+      animation: bounce 1.4s infinite ease-in-out;
+    }
+
+    .typing-dots span:nth-child(1) {
+      animation-delay: -0.32s;
+    }
+
+    .typing-dots span:nth-child(2) {
+      animation-delay: -0.16s;
+    }
+
+    @keyframes bounce {
+
+      0%,
+      80%,
+      100% {
+        transform: scale(0);
+      }
+
+      40% {
+        transform: scale(1);
+      }
+    }
+
+    .msg-row.ai:hover .ai-actions {
+      display: flex !important;
+    }
+
+    .action-btn:hover svg {
+      stroke: #fff !important;
+    }
+
+    .action-btn.regen-btn:hover svg {
+      stroke: #F97316 !important;
+    }
+
+    .action-btn.regen-btn:active {
+      transform: rotate(180deg);
+      transition: transform 0.4s ease;
+    }
+
+    .dropdown-item:hover {
+      background: #3c4043 !important;
+    }
+
+    .more-dropdown.active {
+      display: block !important;
+    }
+
+    .copy-btn.copied svg {
+      stroke: #4ade80;
+    }
+
+    /* Custom Scrollbar - Messages Area */
+    .messages-area {
+      scrollbar-width: thin;
+      scrollbar-color: #2a2a2a transparent;
+    }
+
+    .messages-area::-webkit-scrollbar {
+      width: 4px;
+      position: absolute;
+      right: 0;
+    }
+
+    .messages-area::-webkit-scrollbar-track {
+      background: transparent;
+    }
+
+    .messages-area::-webkit-scrollbar-thumb {
+      background: #2a2a2a;
+      border-radius: 2px;
+    }
+
+    .messages-area::-webkit-scrollbar-thumb:hover {
+      background: #3a3a3a;
+    }
+
+    /* Custom Scrollbar - Sidebar Chat List */
+    .sidebar-scrollable {
+      scrollbar-width: thin;
+      scrollbar-color: #2a2a2a transparent;
+    }
+
+    .sidebar-scrollable::-webkit-scrollbar {
+      width: 4px;
+    }
+
+    .sidebar-scrollable::-webkit-scrollbar-track {
+      background: transparent;
+    }
+
+    .sidebar-scrollable::-webkit-scrollbar-thumb {
+      background: #2a2a2a;
+      border-radius: 2px;
+    }
+
+    .sidebar-scrollable::-webkit-scrollbar-thumb:hover {
+      background: #3a3a3a;
+    }
+
+    body {
+      background: #0f0a08 !important;
+    }
+
+    body::before {
+      content: '';
+      position: fixed;
+      width: 100vw;
+      height: 100vh;
+      background:
+        radial-gradient(circle at 30% 40%, rgba(249, 115, 22, 0.05) 0%, transparent 60%),
+        radial-gradient(circle at 70% 60%, rgba(234, 88, 12, 0.04) 0%, transparent 60%);
+      animation: verySubtle 20s ease-in-out infinite;
+      z-index: 0;
+      filter: blur(40px);
+    }
+
+    @keyframes verySubtle {
+
+      0%,
+      100% {
+        opacity: 0.3;
+      }
+
+      50% {
+        opacity: 0.5;
+      }
+    }
+
+    .chat-container::before {
+      content: '';
+      position: fixed;
+      width: 100vw;
+      height: 100vh;
+      background-image:
+        radial-gradient(circle, rgba(249, 115, 22, 0.15) 1.5px, transparent 1.5px);
+      background-size: 150px 150px;
+      animation: gentleDrift 60s linear infinite;
+      z-index: 1;
+      opacity: 0.15;
+    }
+
+    @keyframes gentleDrift {
+      0% {
+        background-position: 0 0;
+      }
+
+      100% {
+        background-position: 150px 150px;
+      }
+    }
+
+    .chat-container>* {
+      z-index: 10 !important;
+    }
+
+    /* Chat sidebar context menu */
+    .chat-item {
+      position: relative;
+    }
+
+    .chat-menu {
+      position: fixed;
+      /* left ko sidebar ke bilkul baad rakho: sidebar width ≈ 260px */
+      left: 260px;
+      top: 0;
+      transform: translateY(var(--chat-menu-y, 0));
+      background: #111111;
+      border: 1px solid #2a2a2a;
+      border-radius: 12px;
+      padding: 8px 0;
+      min-width: 200px;
+      box-shadow:
+        0 18px 45px rgba(0, 0, 0, 0.8),
+        0 0 0 1px rgba(255, 255, 255, 0.02);
+      z-index: 120;
+    }
+
+    .chat-menu-item {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      width: 100%;
+      padding: 6px 14px;
+      font-size: 13px;
+      color: #e5e5e5;
+      background: transparent;
+      border: none;
+      cursor: pointer;
+    }
+
+    .chat-menu-item span.label {
+      flex: 1;
+    }
+
+    .chat-menu-item svg {
+      width: 15px;
+      height: 15px;
+      color: #9ca3af;
+    }
+
+    .chat-menu-item:hover {
+      background: #1f1f1f;
+    }
+
+    .chat-menu-item.destructive {
+      color: #f97373;
+    }
+
+    .chat-menu-item.destructive svg {
+      color: #f97373;
+    }
+
+    .chat-menu-separator {
+      height: 1px;
+      background: #262626;
+      margin: 4px 0;
+    }
+  </style>
+</head>
+<body>
+  <div class="hero-bg"></div>
+  <div class="flex h-screen">
+    <aside class="sidebar hidden md:flex p-4">
+      <div class="mb-6">
+        <button class="new-chat-btn" id="newChatBtn">
+          <span class="text-xl">+</span>
+          <span class="font-medium">New Chat</span>
+        </button>
+      </div>
+      <div class="flex-1 overflow-y-auto space-y-1 mb-4 sidebar-scrollable" id="chatHistoryContainer">
+        <div class="text-xs text-gray-500 font-bold uppercase mb-2 px-2">Recent</div>
+      </div>
+      <div class="border-t border-[#222] pt-4">
+        <a href="ai-tools.html"
+          class="flex items-center gap-3 p-2 rounded-lg hover:bg-[#1a1a1a] transition cursor-pointer">
+          <div
+            class="w-8 h-8 rounded-full bg-gradient-to-tr from-orange-600 to-orange-400 flex items-center justify-center text-xs font-bold">
+            I²</div>
+          <div class="text-sm">
+            <div class="font-medium text-white">Back to Hub</div>
+            <div class="text-xs text-gray-500">Imran Square</div>
+          </div>
+        </a>
+      </div>
+   </aside>
+<main class="main-content relative" id="mainWrapper">
+  <div class="hero-container" id="heroSection">
+    <div class="hero-logo-wrapper">
+      IMRAN<sup>2</sup> <span class="accent">+</span> AI
+    </div>
+
+    <!-- HERO HEADER + MENU -->
+    <div class="flex items-center justify-between gap-2 mb-4">
+      <div class="text-sm text-gray-400">
+        New chat
+      </div>
+      <button id="heroChatMenuBtn"
+              class="p-1 rounded-md hover:bg-[#1f1f1f] text-gray-400"
+              title="More options">
+        <svg class="w-4 h-4" fill="currentColor" viewBox="0 0 20 20">
+          <path d="M6 10a2 2 0 11-4 0 2 2 0 014 0zm6 0a 2 2 0 11-4 0 2 2 0 014 0zm6 0a 2 2 0 11-4 0 2 2 0 014 0z" />
+        </svg>
+      </button>
+    </div>
+
+    <div class="hero-input-box">
+      <textarea id="heroInput" class="hero-textarea" placeholder="Ask me anything..." rows="1"></textarea>
+      <div class="input-footer">
+        <div class="text-xs text-gray-500 font-mono">Powered by Imran Square</div>
+        <button id="heroSendBtn"
+          class="w-8 h-8 bg-orange-500 rounded-lg flex items-center justify-center text-black hover:scale-105 transition">
+          <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 12h14M12 5l7 7-7 7"></path>
+          </svg>
+        </button>
+      </div>
+    </div>
+
+    <!-- HERO DROPDOWN -->
+<div id="heroChatMenu"
+     class="hidden absolute top-32 left-1/2 -translate-x-1/2 bg-[#111] rounded-xl shadow-lg py-2 w-56 z-30">
+  <button class="w-full text-left px-3 py-2 text-sm text-gray-200 hover:bg-[#181818]">Rename</button>
+  <button class="w-full text-left px-3 py-2 text-sm text-gray-200 hover:bg-[#181818]">Delete</button>
+</div>
+    <div class="suggestions">
+      <div class="pill" onclick="activateChat('Tell me a story')">✦ Story</div>
+      <div class="pill" onclick="activateChat('Explain quantum physics')">🎥 Physics</div>
+      <div class="pill" onclick="activateChat('Write a poem')">✎ Poem</div>
+    </div>
+  </div>
+
+  <div class="chat-interface" id="chatInterface">
+    <div class="messages-area" id="messagesList"></div>
+    <div class="bottom-input-container">
+      <div class="hero-input-box">
+        <textarea id="bottomInput" class="hero-textarea" placeholder="Type your message..." rows="1"></textarea>
+        <div class="input-footer">
+          <div class="flex items-center justify-between gap-2">
+            <!-- yahan sirf left text + modelSelect + send button rahenge, hero menu nahi -->
+
+
+
+                <select id="modelSelect"
+                  class="bg-[#141414] border border-[#333] px-2 py-1 rounded-md text-xs text-white focus:outline-none">
+                  <option value="gemini-2.5-flash">⚡ Gemini 2.5 Flash</option>
+                  <option value="gemini-2.5-pro">🧠 Gemini 2.5 Pro</option>
+                  <option value="perplexity-online">🟣 Perplexity Sonar</option>
+                  <option value="groq-llama-70b">🚀 Groq Llama 70B</option>
+                  <option value="groq-llama-8b">⚡ Groq Llama 8B</option>
+                  <option value="serper-search">🔍 Google Search</option>
+                </select>
+                <button id="downloadChatBtn"
+                  class="bg-[#1a1a1a] border border-[#333] hover:border-orange-500 p-1.5 rounded-md text-white transition"
+                  title="Download Chat">
+                  <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                      d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"></path>
+                  </svg>
+                </button>
+              </div>
+              <div class="text-xs text-gray-500 font-mono">Imran<sup>2</sup> + AI</div>
+              <button id="bottomSendBtn"
+                class="w-8 h-8 bg-orange-500 rounded-lg flex items-center justify-center text-black hover:scale-105 transition">
+                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 12h14M12 5l7 7-7 7">
+                  </path>
+                </svg>
+              </button>
+            </div>
+<button id="newChatBtn" ...>New chat</button>
+
+
+<script src="ai-chat.js"></script>
+
+    <!-- PWA Service Worker Registration -->
+    <script>
+      if ('serviceWorker' in navigator) {
+        window.addEventListener('load', () => {
+          navigator.serviceWorker
+            .register('/service-worker.js')
+            .then((registration) => {
+              console.log('✅ ServiceWorker registered:', registration.scope);
+            })
+            .catch((error) => {
+              console.error('❌ ServiceWorker registration failed:', error);
+            });
+        });
+      }
+    </script>
+
+
+</body>
+</html>

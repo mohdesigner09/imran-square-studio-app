@@ -1,0 +1,54 @@
+{
+  "name": "IMRAN SQUARE - Documentary Studio",
+  "short_name": "IMRAN SQUARE",
+  "description": "Professional media management & AI-powered filmmaking platform",
+  "start_url": "/",
+  "scope": "/",
+  "display": "standalone",
+  "background_color": "#050505",
+  "theme_color": "#ff6b35",
+  "orientation": "portrait-primary",
+  "categories": ["productivity", "entertainment", "photo"],
+  "dir": "ltr",
+  "lang": "en-US",
+  "icons": [
+    {
+      "src": "/resources/icon-192.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "any maskable"
+    },
+    {
+      "src": "/resources/icon-512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any maskable"
+    }
+  ],
+  "shortcuts": [
+    {
+      "name": "New Project",
+      "short_name": "New",
+      "description": "Create a new project",
+      "url": "/index.html?action=new",
+      "icons": [
+        {
+          "src": "/resources/icon-192.png",
+          "sizes": "192x192"
+        }
+      ]
+    },
+    {
+      "name": "AI Chat",
+      "short_name": "Chat",
+      "description": "Open AI assistant",
+      "url": "/ai-chat.html",
+      "icons": [
+        {
+          "src": "/resources/icon-192.png",
+          "sizes": "192x192"
+        }
+      ]
+    }
+  ]
+}

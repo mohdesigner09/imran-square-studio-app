@@ -1,0 +1,1381 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+
+
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Raw Dailies - IMRAN SQUARE</title>
+
+      <!-- PWA Meta Tags -->
+    <meta name="theme-color" content="#ff6b35">
+    <meta name="mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <meta name="apple-mobile-web-app-title" content="IMRAN SQUARE">
+    
+    <!-- PWA Manifest -->
+    <link rel="manifest" href="/manifest.json">
+    
+    <!-- Icons for iOS -->
+    <link rel="apple-touch-icon" href="/resources/icon-152.png">
+    <link rel="apple-touch-icon" sizes="152x152" href="/resources/icon-152.png">
+    <link rel="apple-touch-icon" sizes="180x180" href="/resources/icon-192.png">
+    <link rel="apple-touch-icon" sizes="192x192" href="/resources/icon-192.png">
+    
+    <!-- Favicon -->
+    <link rel="icon" type="image/png" sizes="32x32" href="/resources/icon-32.png">
+    <link rel="icon" type="image/png" sizes="16x16" href="/resources/icon-16.png">
+    <link rel="shortcut icon" href="/resources/favicon.ico">
+
+
+
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/animejs/3.2.1/anime.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/Sortable/1.14.0/Sortable.min.js"></script>
+  <script src="https://accounts.google.com/gsi/client" async defer></script>
+  <script src="https://apis.google.com/js/api.js" async defer></script>
+
+
+  
+
+  <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@400;600;700&family=Inter:wght@300;400;500&family=JetBrains+Mono:wght@400&display=swap" rel="stylesheet">
+
+  <style>
+
+    
+    :root { --primary-dark: #050505; --accent-orange: #ff6b35; }
+    body { background: var(--primary-dark); color: white; font-family: 'Inter', sans-serif; overflow-x: hidden; }
+    .font-display { font-family: 'Playfair Display', serif; }
+
+    .hero-bg { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: radial-gradient(circle at 50% 30%, #151515 0%, #000000 100%); z-index: -2; }
+    .hero-bg::after { content: ''; position: absolute; inset: 0; background: url('resources/hero-film-studio.png') center/cover; opacity: 0.15; mix-blend-mode: overlay; z-index: -1; }
+    .film-grain { position: fixed; top: 0; left: 0; width: 100%; height: 100%; pointer-events: none; opacity: 0.04; z-index: 0; }
+
+    .filter-scroll {
+  display: flex;
+  gap: 12px;
+  overflow-x: auto;
+  padding: 6px 0 12px 0;   /* yeh line update */
+  scrollbar-width: none;
+}
+
+    .filter-scroll::-webkit-scrollbar { display: none; }
+.filter-pill {
+  background: rgba(255, 255, 255, 0.05);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  padding: 6px 22px;          /* yeh line change */
+  border-radius: 999px;
+  font-size: 0.8rem;
+  white-space: nowrap;
+  cursor: pointer;
+  transition: transform 0.2s ease, box-shadow 0.2s ease, background 0.2s ease, border-color 0.2s ease, color 0.2s ease;
+  color: #aaa;
+  transform: translateY(0);
+}
+.filter-pill:hover {
+  background: rgba(255, 107, 53, 0.12);
+  border-color: var(--accent-orange);
+  color: #fff;
+  box-shadow: 0 6px 14px rgba(0, 0, 0, 0.6),
+              0 0 14px rgba(255, 107, 53, 0.45);
+  transform: translateY(-1px);
+}
+
+.filter-pill.active {
+  background: var(--accent-orange);
+  color: black;
+  border-color: var(--accent-orange);
+  font-weight: 600;
+  box-shadow: 0 6px 18px rgba(0, 0, 0, 0.7),
+              0 0 18px rgba(255, 107, 53, 0.6);
+  transform: translateY(-1px);
+}
+
+
+
+
+    body.edit-mode .filter-pill { border: 1px dashed var(--accent-orange); cursor: move; }
+    body.edit-mode .filter-pill[contenteditable="true"] { outline: none; background: rgba(255, 107, 53, 0.1); color: var(--accent-orange); }
+
+    .search-container { display: flex; align-items: center; background: transparent; border: 1px solid transparent; border-radius: 12px; transition: 0.4s; overflow: hidden; width: 40px; height: 40px; position: relative; }
+    .search-container.expanded { width: 260px; background: #1a1a1a; border-color: rgba(255, 255, 255, 0.1); box-shadow: 0 4px 20px rgba(0,0,0,0.5); }
+    .search-input-field { background: transparent; border: none; color: white; outline: none; width: 100%; padding-left: 45px; padding-right: 10px; font-size: 0.9rem; opacity: 0; transition: 0.3s; }
+    .search-container.expanded .search-input-field { opacity: 1; }
+    .search-trigger-icon { position: absolute; left: 10px; top: 50%; transform: translateY(-50%); color: #888; cursor: pointer; z-index: 10; }
+    .search-container.expanded .search-trigger-icon { color: var(--accent-orange); }
+
+    .video-card {
+  background: #111;
+  border-radius: 12px;
+  overflow: hidden;
+  position: relative;
+  transition: 0.3s;
+  border: 1px solid rgba(255,255,255,0.1);
+  cursor: pointer;
+}
+
+/* Long thumbnails – widescreen */
+.video-card-long {
+  aspect-ratio: 16/9;
+}
+
+/* Shorts thumbnails – vertical, roughly 2x height of long row */
+.video-card-short {
+  aspect-ratio: 9/16;
+}
+
+body.edit-mode .video-card {
+  border-color: rgba(249, 115, 22, 0.7);
+}
+
+body:not(.edit-mode) .video-card .delete-btn {
+  display: none;
+}
+
+body.edit-mode .video-card-title[contenteditable="true"] {
+  outline: none;
+  border-bottom: 1px dashed rgba(255,255,255,0.3);
+}
+
+
+    .video-card:hover { transform: scale(1.03); border-color: var(--accent-orange); z-index: 10; box-shadow: 0 15px 40px rgba(0,0,0,0.9); }
+    .video-overlay { position: absolute; inset: 0; background: rgba(0,0,0,0.4); display: flex; align-items: center; justify-content: center; opacity: 0; transition: 0.3s; backdrop-filter: blur(2px); }
+    .video-card:hover .video-overlay { opacity: 1; }
+    .play-icon { width: 50px; height: 50px; border-radius: 50%; background: var(--accent-orange); display: flex; align-items: center; justify-content: center; box-shadow: 0 0 20px var(--accent-orange); transform: scale(0.8); transition: 0.3s; }
+    .video-card:hover .play-icon { transform: scale(1); }
+
+    .delete-btn { display: none !important; }
+    body.edit-mode .delete-btn { display: flex !important; }
+    body.edit-mode .video-card { border: 1px dashed var(--accent-orange); cursor: move; }
+    body.edit-mode .video-overlay { pointer-events: none; }
+
+    [contenteditable="true"] { border-bottom: 1px dashed var(--accent-orange); outline: none; color: var(--accent-orange); }
+
+    #theaterModal { transition: opacity 0.4s ease; }
+    #theaterModal.active { display: flex; opacity: 1; }
+
+    #uploadWrapper { position: relative; z-index: 50; }
+    #uploadQueue { position: absolute; top: 110%; right: 0; width: 220px; display: flex; flex-direction: column; gap: 6px; }
+    .upload-item { background: rgba(10, 10, 10, 0.95); border: 1px solid rgba(255, 255, 255, 0.1); border-left: 2px solid var(--accent-orange); padding: 8px 10px; border-radius: 6px; box-shadow: 0 8 15px rgba(0,0,0,0.8); transition: all 0.3s ease; animation: slideDown 0.2s ease-out; }
+    .upload-item.success { border-left-color: #22c55e; }
+    @keyframes slideDown { from { opacity: 0; transform: translateY(-10px); } to { opacity: 1; transform: translateY(0); } }
+
+    .nav-bottom { background: rgba(26, 26, 26, 0.95); backdrop-filter: blur(10px); border-top: 1px solid #2a2a2a; }
+    .nav-item.active { color: var(--accent-orange); }
+
+    #formatToggle button {
+  transition: all 0.25s ease;
+  border-radius: 999px;
+}
+
+#formatToggle button.active-format {
+  background: var(--accent-orange);
+  color: #000;
+  box-shadow: 0 0 14px rgba(255, 107, 53, 0.5);
+}
+
+/* GRID LAYOUT FOR LONG / SHORTS */
+#footageGrid.grid-long {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+}
+
+#footageGrid.grid-shorts {
+  display: grid;
+  grid-template-columns: repeat(6, minmax(0, 1fr));
+}
+
+
+/* Ultra Premium Speed Control */
+.speed-wrapper {
+  display: inline-block;
+  position: relative;
+}
+
+#playbackSpeed {
+  appearance: none;
+  background: transparent;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='10' height='10' viewBox='0 0 10 10'%3E%3Cpath fill='%23fb923c' d='M5 7L1 3h8z'/%3E%3C/svg%3E");
+  background-repeat: no-repeat;
+  background-position: right 0.5rem center;
+  background-size: 10px;
+  border: 1px solid rgba(251, 146, 60, 0.2);
+  color: #fb923c;
+  min-width: 85px;
+  position: relative;
+  overflow: hidden;
+  transition: all 0.2s ease;
+}
+
+#playbackSpeed:hover {
+  background: rgba(251, 146, 60, 0.1);
+  border-color: rgba(251, 146, 60, 0.8);
+  box-shadow: 0 0 16px rgba(251, 146, 60, 0.4), 0 4px 12px rgba(0, 0, 0, 0.3);
+  transform: translateY(-1px);
+}
+
+#playbackSpeed:active {
+  transform: translateY(0);
+  box-shadow: 0 0 20px rgba(251, 146, 60, 0.6);
+}
+
+#playbackSpeed:focus {
+  background: rgba(251, 146, 60, 0.15);
+  border-color: #fb923c;
+  box-shadow: 0 0 20px rgba(251, 146, 60, 0.6);
+  outline: none;
+}
+
+/* Dark dropdown options */
+#playbackSpeed option {
+  background: #0a0a0a;
+  color: #fb923c;
+  padding: 10px;
+  font-weight: 500;
+}
+
+#playbackSpeed option:hover {
+  background: #1a1a1a;
+}
+
+/* Ripple effect animation */
+@keyframes ripple {
+  0% {
+    transform: scale(0);
+    opacity: 0.8;
+  }
+  100% {
+    transform: scale(4);
+    opacity: 0;
+  }
+}
+
+.speed-wrapper::after {
+  content: '';
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  width: 20px;
+  height: 20px;
+  background: radial-gradient(circle, rgba(251, 146, 60, 0.6) 0%, transparent 70%);
+  border-radius: 50%;
+  transform: translate(-50%, -50%) scale(0);
+  pointer-events: none;
+  opacity: 0;
+}
+
+.speed-wrapper.ripple-active::after {
+  animation: ripple 0.6s ease-out;
+}
+
+body:not(.owner-mode) .delete-btn {
+  display: none;        /* card delete button hide */
+}
+
+body:not(.owner-mode) .owner-only {
+  display: none;        /* jo bhi future owner-only controls honge */
+}
+
+
+  </style>
+</head>
+<body>
+  <div class="hero-bg"></div>
+  <canvas class="film-grain" id="filmGrain"></canvas>
+
+  <div class="p-6 pb-24 max-w-7xl mx-auto min-h-screen flex flex-col">
+
+    <!-- TOP ROW -->
+<div class="flex items-center justify-between mb-6">
+  <div class="flex items-center gap-4">
+    <!-- Bigger back button next to title -->
+    <button
+      onclick="goBackToFootageVault()"
+      class="h-10 w-10 rounded-full border border-white/15 flex items-center justify-center
+             text-gray-300 hover:text-white hover:bg-white/10 transition">
+      <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+              d="M15 19l-7-7 7-7"></path>
+      </svg>
+    </button>
+
+    <div>
+      <h1 class="font-display text-3xl font-bold text-white tracking-wide">
+        <span id="rawProjectTitle">Loading...</span> · Raw Dailies
+      </h1>
+      <p class="text-[10px] text-orange-600 tracking-[0.2em] uppercase mt-1 font-bold">
+        Camera Roll & Set Feed
+      </p>
+    </div>
+  </div>
+
+  <button onclick="openUploadModal()"
+          class="px-4 py-2 rounded-full border border-orange-500/60 text-xs text-orange-400 hover:bg-orange-500/10">
+    + Add Raw Footage
+  </button>
+</div>
+
+
+
+    <!-- SEARCH + EDIT + UPLOAD -->
+    <div class="flex items-center justify-between mb-4">
+      <div class="flex items-center gap-3">
+        <div class="search-container" id="searchContainer">
+          <div class="search-trigger-icon" onclick="toggleSearch()">
+            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                    d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"></path>
+            </svg>
+          </div>
+          <input type="text" id="videoSearchInput" class="search-input-field" placeholder="Search...">
+        </div>
+
+        <button id="editModeToggle"
+  class="w-10 h-10 flex items-center justify-center rounded-xl bg-[#1a1a1a] border border-white/10 hover:border-orange-500 text-gray-400 hover:text-orange-500 transition">
+          <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                  d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z"></path>
+          </svg>
+        </button>
+      </div>
+
+      <div id="uploadWrapper">
+        <button onclick="openUploadModal()" class="flex items-center gap-2 bg-gradient-to-r from-orange-600 to-orange-500 text-black font-bold border border-orange-500 px-4 py-2 rounded-lg hover:scale-105 transition text-sm h-10 shadow-lg shadow-orange-500/20">
+          <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                  d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12"></path>
+          </svg>
+          <span class="hidden md:inline">Upload</span>
+        </button>
+        <div id="uploadQueue"></div>
+      </div>
+    </div>
+<!-- FILTERS -->
+<div class="mt-3 mb-8">
+  <div class="filters-shell">
+    <div class="filter-scroll no-scrollbar" id="filterContainer">
+      <button class="filter-pill active">All</button>
+      <button class="filter-pill">Today’s</button>
+      <button class="filter-pill">Last Week</button>
+      <button class="filter-pill">Last Month</button>
+      <button class="filter-pill">Last Year</button>
+      <button class="filter-pill">BTS</button>
+    </div>
+  </div>
+</div>
+
+<!-- EDIT MODE HINT -->
+<p id="editHint" class="mt-1 mb-4 text-[11px] text-orange-400 hidden">
+  Edit mode: Drag cards to reorder, double-click title to rename, use Delete to remove.
+</p>
+
+<!-- FORMAT TOGGLE -->
+<div class="mt-3 mb-6 flex">
+  <div class="inline-flex bg-black/40 border border-white/10 rounded-full px-1 py-1 text-[11px]" id="formatToggle">
+    <button class="px-3 py-1 rounded-full active-format" data-format="shorts">Shorts</button>
+    <button class="px-3 py-1 rounded-full" data-format="long">Long</button>
+  </div>
+</div>
+
+
+
+
+
+
+
+    
+    <!-- GRID -->
+<div class="grid gap-6" id="footageGrid"></div>
+  </div>
+<!-- THEATER MODAL -->
+<div id="theaterModal" class="fixed inset-0 bg-black/95 z-[60] hidden items-center justify-center p-4 backdrop-blur-md opacity-0">
+  <div class="relative w-full max-w-5xl bg-black border border-white/10 rounded-xl overflow-hidden shadow-2xl inner-shell">
+    
+    <!-- CLOSE -->
+    <button onclick="closeTheater()" class="absolute top-4 right-4 z-20 text-white/50 hover:text-white bg-black/50 p-2 rounded-full hover:bg-red-500/20 transition">
+      <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+              d="M6 18L18 6M6 6l12 12"></path>
+      </svg>
+    </button>
+
+    <!-- PREV / NEXT ARROWS -->
+    <button onclick="goTheaterPrev()"
+      class="absolute left-3 top-1/2 -translate-y-1/2 z-20 w-10 h-10 rounded-full bg-black/60 border border-white/20 flex items-center justify-center text-white hover:bg-white/10 transition">
+      ‹
+    </button>
+
+    <button onclick="goTheaterNext()"
+      class="absolute right-3 top-1/2 -translate-y-1/2 z-20 w-10 h-10 rounded-full bg-black/60 border border-white/20 flex items-center justify-center text-white hover:bg-white/10 transition">
+      ›
+    </button>
+
+    <!-- PLAYER -->
+    <div class="aspect-video bg-black flex items-center justify-center" id="playerContainer"></div>
+
+    <!-- METADATA STRIP (speed dropdown yahan add karo) -->
+    <div class="p-4 border-t border-white/10 flex justify-between items-center bg-[#0f0f0f]">
+      <div>
+        <h3 class="text-lg font-display font-bold text-white" id="playerTitle">Video Title</h3>
+        <p id="playerMeta" class="text-[11px] text-gray-400 mt-1">Meta info</p>
+      </div>
+      <div class="flex items-center gap-2 text-[10px] uppercase tracking-[0.16em]">
+        <span id="playerFormatBadge" class="px-2 py-1 rounded-full border border-orange-500/40 text-orange-400">LONG</span>
+        <span id="playerResBadge" class="px-2 py-1 rounded-full border border-white/20 text-gray-200">1920×1080</span>
+        
+        <!-- Speed Control -->
+     <!-- Speed Control (Premium) -->
+<select id="playbackSpeed"
+        class="speed-select bg-gradient-to-br from-orange-600/20 to-orange-500/10 border border-orange-500/40 text-xs font-medium text-orange-300 rounded-lg px-3 py-1.5 hover:border-orange-500/80 hover:bg-orange-500/20 focus:border-orange-500 focus:outline-none focus:ring-2 focus:ring-orange-500/30 transition-all duration-200 cursor-pointer">
+  <option value="0.5">0.5×</option>
+  <option value="1" selected>1×</option>
+  <option value="1.5">1.5×</option>
+  <option value="2">2×</option>
+</select>
+
+      </div>
+    </div>
+  </div>
+</div>
+
+
+
+  <!-- UPLOAD MODAL -->
+  <div id="uploadFootageModal" class="hidden fixed inset-0 bg-black/90 backdrop-blur-sm z-50 flex items-center justify-center p-4">
+    <div class="bg-gradient-to-br from-zinc-900 to-black border border-orange-500/30 rounded-2xl max-w-lg w-full p-6 relative">
+      <button onclick="closeUploadModal()" class="absolute top-4 right-4 text-gray-400 hover:text-white">
+        <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                d="M6 18L18 6M6 6l12 12"></path>
+        </svg>
+      </button>
+
+      <!-- Step 1 -->
+      <div id="uploadStep1">
+        <h2 class="text-2xl font-display font-bold text-orange-500 mb-4">Upload Raw Footage</h2>
+        <p class="text-sm text-gray-400 mb-6">Select a video file to send to the studio</p>
+
+        <input type="file" id="footageFileInput" accept="video/*" class="hidden">
+        <div onclick="document.getElementById('footageFileInput').click()"
+             class="border-2 border-dashed border-orange-500/30 rounded-xl p-8 text-center cursor-pointer hover:border-orange-500/60 hover:bg-white/5 transition">
+          <svg class="w-16 h-16 mx-auto mb-4 text-orange-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                  d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12"></path>
+          </svg>
+          <p class="text-gray-300 font-medium">Click to choose video</p>
+          <p class="text-xs text-gray-500 mt-2">Recommended: up to 10 GB</p>
+        </div>
+
+        <div id="filePreview" class="hidden mt-4 p-4 bg-black/50 rounded-lg">
+        <div class="flex items-center justify-between mb-3">
+            <div class="w-24 h-24 bg-zinc-800 rounded-lg overflow-hidden flex-shrink-0">
+              <img id="previewThumbnail" class="w-full h-full object-cover" />
+            </div>
+            <div class="flex-1 min-w-0">
+              <p id="previewFileName" class="text-white font-medium truncate"></p>
+              <p id="previewFileSize" class="text-xs text-gray-400"></p>
+              <p id="previewDuration" class="text-xs text-orange-500"></p>
+              <input
+  type="text"
+  id="previewTitleInput"
+  class="mt-2 w-full bg-black/40 border border-white/10 rounded-md px-2 py-1 text-sm text-white focus:border-orange-500 focus:outline-none"
+  placeholder="Enter clip title..."
+>
+
+            </div>
+          </div>
+          <button onclick="sendToStudio()" class="w-full mt-4 bg-orange-500 hover:bg-orange-600 text-white font-bold py-3 rounded-lg transition">
+            Send to Studio
+          </button>
+        </div>
+      </div>
+
+      <!-- Step 2 -->
+      <div id="uploadStep2" class="hidden text-center">
+        <div class="w-20 h-20 mx-auto mb-4 relative">
+          <svg class="animate-spin text-orange-500" fill="none" viewBox="0 0 24 24">
+            ircle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+            <path class="opacity-75" fill="currentColor"
+                  d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+          </svg>
+        </div>
+        <h3 class="text-xl font-bold text-white mb-2">Processing...</h3>
+        <p id="uploadProgressText" class="text-sm text-gray-400">Encrypting footage...</p>
+        <div class="w-full bg-zinc-800 rounded-full h-2 mt-4">
+          <div id="uploadProgressBar" class="bg-orange-500 h-2 rounded-full transition-all duration-300" style="width: 0%"></div>
+        </div>
+      </div>
+
+        <!-- Step 3: Success (hidden initially) -->
+    <div id="uploadStep3" class="hidden text-center">
+      <div class="w-20 h-20 mx-auto mb-4 bg-green-500/20 rounded-full flex items-center justify-center">
+        <svg class="w-10 h-10 text-green-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path>
+        </svg>
+      </div>
+      <h3 class="text-xl font-bold text-white mb-2">Footage Received!</h3>
+      <p class="text-sm text-gray-400 mb-6">Our team will start processing your clip.</p>
+      <button onclick="closeUploadModal()" class="bg-orange-500 hover:bg-orange-600 text-white font-bold py-3 px-6 rounded-lg transition">
+        Back to Raw Dailies
+      </button>
+    </div>
+  </div>
+</div>
+
+<nav class="nav-bottom fixed bottom-0 left-0 right-0 px-4 py-3 z-40">
+  <div class="flex justify-around items-center">
+    <a href="index.html" class="nav-item text-gray-500 flex flex-col items-center space-y-1">
+      <svg class="w-5 h-5" fill="currentColor" viewBox="0 0 24 24"><path d="M3 13h8V3H3v10zm0 8h8v-6H3v6zm10 0h8V11h-8v10zm0-18v6h8V3h-8z"/></svg>
+      <span class="text-xs">Projects</span>
+    </a>
+    <a href="scripts.html" class="nav-item text-gray-500 flex flex-col items-center space-y-1">
+      <svg class="w-5 h-5" fill="currentColor" viewBox="0 0 24 24"><path d="M14,2H6A2,2 0 0,0 4,4V20A2,2 0 0,0 6,22H18A2,2 0 0,0 20,20V8L14,2M18,20H6V4H13V9H18V20Z"/></svg>
+      <span class="text-xs">Scripts</span>
+    </a>
+    <a href="footage.html" class="nav-item text-gray-500 flex flex-col items-center space-y-1">
+      <svg class="w-5 h-5" fill="currentColor" viewBox="0 0 24 24"><path d="M17,10.5V7A1,1 0 0,0 16,6H4A1,1 0 0,0 3,7V17A1,1 0 0,0 4,18H16A1,1 0 0,0 17,17V13.5L21,17.5V6.5L17,10.5Z"/></svg>
+      <span class="text-xs">Footage</span>
+    </a>
+       <a href="ai-tools.html" class="nav-item text-gray-500 flex flex-col items-center space-y-1">
+      <svg class="w-5 h-5" fill="currentColor" viewBox="0 0 24 24"><path d="M12,2A2,2 0 0,1 14,4C14,4.74 13.6,5.39 13,5.73V7H14A7,7 0 0,1 21,14H22A1,1 0 0,1 23,15V18A1,1 0 0,1 22,19H21V20A2,2 0 0,1 19,22H5A2,2 0 0,1 3,20V19H2A1,1 0 0,1 1,18V15A1,1 0 0,1 2,14H3A7,7 0 0,1 10,7H11V5.73C10.4,5.39 10,4.74 10,4A2,2 0 0,1 12,2Z"/></svg>
+      <span class="text-xs">AI Tools</span>
+    </a>
+  </div>
+</nav>
+
+
+<script>
+
+  function toggleSearch() {
+    const c = document.getElementById('searchContainer');
+    const i = document.getElementById('videoSearchInput');
+    c.classList.toggle('expanded');
+    if (c.classList.contains('expanded')) i.focus();
+  }
+let lastVideoWidth = null;
+let lastVideoHeight = null;
+let tempVideoElement = null;
+let thumbnailVideoURL = null;
+
+let activeFilter = 'all';
+let activeFormat = 'short';  // default: shorts
+let isTheaterOpen = false;
+let currentClipIndex = null;
+let currentClipList = [];
+let isEditMode = false;
+let footageSortable = null;
+let activeSearchQuery = '';
+let currentPlaybackRate = 1;
+
+// PROJECT + AUTH CONTEXT
+const urlParams = new URLSearchParams(window.location.search);
+const projectId = urlParams.get('id');   // same param jo main.js use kar raha hai [file:10]
+
+let isOwner = false;
+let projectOwnerUid = '';   // abhi optional hai
+let currentUser = null;
+let viewMode = 'my'; // default
+
+
+// TEMP: jab tak real auth na lagaye
+currentUser = { uid: 'TEST_USER_1' };
+projectOwnerUid = 'TEST_USER_1';          // owner jaisa behave karega
+isOwner = currentUser.uid === projectOwnerUid;
+
+
+
+  // ==== RAW CLIPS STORAGE ====
+
+// DEFAULT DATA
+const defaultRawClips = [
+  {
+    id: 'r1',
+    title: 'Scene 01A – Wide Master',
+    duration: '01:12',
+    tag: 'RAW',
+    category: 'raw',
+    format: 'long',
+    createdAt: '2025-12-02T08:00:00Z',
+    thumb: 'https://images.pexels.com/photos/6898859/pexels-photo-6898859.jpeg?auto=compress&cs=tinysrgb&w=1200',
+    width: 1920,
+    height: 1080,
+  },
+  {
+    id: 'r2',
+    title: 'Scene 01B – Handheld Close',
+    duration: '00:47',
+    tag: 'B-Roll',
+    category: 'raw',
+    format: 'long',
+    createdAt: '2025-11-27T08:00:00Z',
+    thumb: 'https://images.pexels.com/photos/6898858/pexels-photo-6898858.jpeg?auto=compress&cs=tinysrgb&w=1200',
+  },
+  {
+    id: 'r3',
+    title: 'Vertical BTS Shot',
+    duration: '00:48',
+    tag: 'BTS',
+    category: 'bts',
+    format: 'short',
+    createdAt: '2025-12-02T08:00:00Z',
+    thumb: 'https://images.pexels.com/photos/6898854/pexels-photo-6898854.jpeg?auto=compress&cs=tinysrgb&w=1200',
+    width: 1080,
+    height: 1920,
+  }
+];
+
+// RUNTIME ARRAY
+let rawClips = [];
+
+function loadRawClips() {
+  const saved = localStorage.getItem('rawClips');
+  if (saved) {
+    try {
+      rawClips = JSON.parse(saved);
+      return;
+    } catch (e) {
+      console.warn('Failed to parse saved rawClips, using defaults');
+    }
+  }
+  rawClips = defaultRawClips;
+}
+
+function saveRawClips() {
+  localStorage.setItem('rawClips', JSON.stringify(rawClips));
+}
+
+
+function matchesFilter(clip, filterKey, formatKey) {
+  // format filter
+  if (formatKey === 'long' && clip.format === 'short') return false;
+  if (formatKey === 'short' && clip.format === 'long') return false;
+if (activeSearchQuery) {
+    const haystack = [
+      clip.title || '',
+      clip.tag || '',
+      clip.category || ''
+    ].join(' ').toLowerCase();
+
+    if (!haystack.includes(activeSearchQuery)) return false;
+  }
+
+  if (!filterKey || filterKey === 'all') return true;
+
+  const now = new Date();
+  const created = new Date(clip.createdAt);
+
+  switch (filterKey) {
+    case 'today':
+      // sirf aaj ki date
+      return created.toDateString() === now.toDateString();
+      
+    case 'week':
+  case 'week':
+  const diffMs = now - created;
+  const diffDays = diffMs / (1000 * 60 * 60 * 24);
+  return diffDays <= 7;
+
+      
+    case 'month':
+      // current month
+      return created.getMonth() === now.getMonth() && created.getFullYear() === now.getFullYear();
+      
+    case 'year':
+      // current year
+      return created.getFullYear() === now.getFullYear();
+      
+    case 'bts':
+      return clip.category === 'bts' || clip.tag.toLowerCase() === 'bts';
+      
+    default:
+      return true;
+  }
+}
+
+
+
+function renderRawClips(filterKey = 'all', formatKey = 'long') {
+  const grid = document.getElementById('footageGrid');
+  grid.innerHTML = '';
+
+  // grid columns
+  grid.classList.remove('grid-long', 'grid-shorts');
+  if (formatKey === 'short') {
+    grid.classList.add('grid-shorts');
+  } else {
+    grid.classList.add('grid-long');
+  }
+
+  // PEHLE FILTER KAR KE ARRAY BANAO
+  const filteredClips = rawClips.filter(clip => matchesFilter(clip, filterKey, formatKey));
+  
+  // CURRENT LIST SET KARO (theater navigation ke liye)
+  currentClipList = filteredClips;
+
+ filteredClips.forEach((clip, index) => {
+  const isShort = clip.format === 'short';
+  const cardTypeClass = isShort ? 'video-card-short' : 'video-card-long';
+
+  const card = document.createElement('div');
+  card.className = `video-card ${cardTypeClass} group relative`;
+
+  card.innerHTML = `
+    <div class="w-full h-full flex items-center justify-center bg-black">
+      <img src="${clip.thumb}" class="w-full h-full object-contain" alt="${clip.title}">
+    </div>
+    <div class="absolute bottom-0 left-0 right-0 p-3 bg-gradient-to-t from-black/80 via-black/40 to-transparent text-xs">
+      <div class="flex justify-between items-center mb-1">
+        <h3 class="video-card-title font-medium truncate">${clip.title}</h3>
+        <span class="font-mono text-[10px] text-gray-300">${clip.duration}</span>
+      </div>
+      <div class="flex justify-between items-center text-[10px] text-gray-400">
+        <span class="px-2 py-0.5 rounded-full border border-white/20 bg-black/40 font-mono">${clip.tag}</span>
+        <button class="delete-btn px-2 py-0.5 rounded border border-red-500/60 text-red-400 text-[10px] bg-black/60">
+          Delete
+        </button>
+      </div>
+    </div>
+  `;
+
+  // YAHAN SE LISTENERS START
+  const titleEl = card.querySelector('.video-card-title');
+  const deleteBtn = card.querySelector('.delete-btn');
+
+  // delete
+  deleteBtn.addEventListener('click', (e) => {
+    e.stopPropagation();
+    if (!confirm('Delete this clip from RAW dailies?')) return;
+    const idx = rawClips.findIndex(c => c.id === clip.id);
+    if (idx !== -1) rawClips.splice(idx, 1);
+    renderRawClips(filterKey, formatKey); // yahi function ke params use karo
+  });
+
+  
+  // inline title edit
+  titleEl.addEventListener('dblclick', (e) => {
+    if (!isEditMode) return;
+    e.stopPropagation();
+    titleEl.contentEditable = 'true';
+    titleEl.focus();
+  });
+
+  titleEl.addEventListener('keydown', (e) => {
+    if (e.key === 'Enter') {
+      e.preventDefault();
+      titleEl.blur();
+    }
+  });
+
+  titleEl.addEventListener('blur', () => {
+    if (!isEditMode) {
+      titleEl.contentEditable = 'false';
+      return;
+    }
+    const newTitle = titleEl.textContent.trim() || 'Untitled';
+    titleEl.textContent = newTitle;
+    const idx = rawClips.findIndex(c => c.id === clip.id);
+    if (idx !== -1) rawClips[idx].title = newTitle;
+    titleEl.contentEditable = 'false';
+  });
+
+  // CARD CLICK (sirf normal mode me theater)
+  card.addEventListener('click', (e) => {
+    if (isEditMode) return;
+    currentClipIndex = index;
+    openTheater(clip);
+  });
+
+  // SAB KE BAAD CARD GRID ME ADD
+  grid.appendChild(card);
+});
+
+ updateFilterCounts(formatKey);
+}
+
+function updateFilterCounts(formatKey) {
+  const pills = document.querySelectorAll('#filterContainer .filter-pill');
+  if (!pills.length) return;
+
+  const now = new Date();
+
+  // har filter ke liye count nikaalo
+  let allCount = 0, todayCount = 0, weekCount = 0, monthCount = 0, yearCount = 0, btsCount = 0;
+
+  rawClips.forEach(clip => {
+    // format respect karo
+    if (formatKey === 'long' && clip.format === 'short') return;
+    if (formatKey === 'short' && clip.format === 'long') return;
+
+    // search respect karo
+    if (activeSearchQuery) {
+      const haystack = [
+        clip.title || '',
+        clip.tag || '',
+        clip.category || ''
+      ].join(' ').toLowerCase();
+      if (!haystack.includes(activeSearchQuery)) return;
+    }
+
+    allCount++;
+
+    const created = new Date(clip.createdAt);
+    const sameDay = created.toDateString() === now.toDateString();
+
+    const weekStart = new Date(now);
+    weekStart.setDate(now.getDate() - now.getDay());
+    weekStart.setHours(0,0,0,0);
+
+    const inWeek = created >= weekStart && created <= now;
+    const inMonth = created.getMonth() === now.getMonth() && created.getFullYear() === now.getFullYear();
+    const inYear = created.getFullYear() === now.getFullYear();
+
+    if (sameDay) todayCount++;
+    if (inWeek) weekCount++;
+    if (inMonth) monthCount++;
+    if (inYear) yearCount++;
+    if ((clip.category || '').toLowerCase() === 'bts' || (clip.tag || '').toLowerCase() === 'bts') {
+      btsCount++;
+    }
+  });
+
+  // order: All, Today’s, Last Week, Last Month, Last Year, BTS
+  const labels = [
+    `All (${allCount})`,
+    `Today’s (${todayCount})`,
+    `Last Week (${weekCount})`,
+    `Last Month (${monthCount})`,
+    `Last Year (${yearCount})`,
+    `BTS (${btsCount})`
+  ];
+
+  pills.forEach((pill, i) => {
+    pill.textContent = labels[i];
+  });
+}
+
+
+
+
+let currentTheaterVideoURL = null;
+
+function openTheater(clip) {
+  const modal = document.getElementById('theaterModal');
+  const titleEl = document.getElementById('playerTitle');
+  const metaEl = document.getElementById('playerMeta');
+  const formatBadge = document.getElementById('playerFormatBadge');
+  const resBadge = document.getElementById('playerResBadge');
+  const playerContainer = document.getElementById('playerContainer');
+
+  // 1) TITLE
+  titleEl.textContent = clip.title || 'Untitled';
+
+  // 2) META TEXT (tag • duration • date)
+  const niceDuration =
+    clip.duration && /^\d+:\d+$/.test(clip.duration)
+      ? clip.duration
+      : (clip.duration || '');
+  const dateLabel = clip.createdAt
+    ? new Date(clip.createdAt).toLocaleDateString()
+    : '';
+
+  metaEl.textContent = [clip.tag || 'Raw', niceDuration, dateLabel]
+    .filter(Boolean)
+    .join(' • ');
+
+  // 3) BADGES (SHORT/LONG + resolution)
+  formatBadge.textContent = clip.format === 'short' ? 'SHORT' : 'LONG';
+  resBadge.textContent = `${clip.width || '–'}×${clip.height || '–'}`;
+
+  // 4) VIDEO PLAYER (tumhara existing code)
+playerContainer.innerHTML = `
+  <video src="${clip.src || ''}"
+         class="w-full h-full object-contain"
+         controls
+         autoplay
+         playsinline></video>
+`;
+
+const video = playerContainer.querySelector('video');
+if (video) {
+  video.playbackRate = currentPlaybackRate;
+}
+
+
+  modal.classList.remove('hidden');
+  setTimeout(() => modal.classList.add('active'), 10);
+
+  isTheaterOpen = true;
+  window.addEventListener('keydown', theaterKeyHandler);
+}
+
+
+function goTheaterNext() {
+  if (!currentClipList.length) return;
+  currentClipIndex = (currentClipIndex + 1) % currentClipList.length;
+  openTheater(currentClipList[currentClipIndex]);
+}
+
+function goTheaterPrev() {
+  if (!currentClipList.length) return;
+  currentClipIndex = (currentClipIndex - 1 + currentClipList.length) % currentClipList.length;
+  openTheater(currentClipList[currentClipIndex]);
+}
+
+
+function closeTheater() {
+  const modal = document.getElementById('theaterModal');
+  const playerContainer = document.getElementById('playerContainer');
+
+  // video stop
+  const video = playerContainer.querySelector('video');
+  if (video) {
+    video.pause();
+    video.src = '';
+  }
+  if (video) {
+  video.playbackRate = currentPlaybackRate;
+}
+
+
+  modal.classList.remove('active');
+  setTimeout(() => {
+    modal.classList.add('hidden');
+    playerContainer.innerHTML = '';
+  }, 200);
+
+  // KEYBOARD CLEANUP
+  isTheaterOpen = false;
+  window.removeEventListener('keydown', theaterKeyHandler);
+}
+
+
+
+function theaterKeyHandler(e) {
+  if (!isTheaterOpen) return;
+
+  const video = document.querySelector('#playerContainer video');
+  const key = e.key.toLowerCase();
+
+  switch (key) {
+    case ' ':
+    case 'k':
+      if (video) {
+        e.preventDefault();
+        video.paused ? video.play() : video.pause();
+      }
+      break;
+
+    case 'j':
+      if (video) video.currentTime = Math.max(0, video.currentTime - 5);
+      break;
+
+    case 'l':
+      if (video) video.currentTime = Math.min(video.duration || 0, video.currentTime + 5);
+      break;
+
+    case 'arrowleft':
+      e.preventDefault();
+      goTheaterPrev();
+      break;
+
+    case 'arrowright':
+      e.preventDefault();
+      goTheaterNext();
+      break;
+
+    case 'escape':
+      closeTheater();
+      break;
+  }
+}
+
+document.addEventListener('DOMContentLoaded', () => {
+  currentUser = window.CURRENTUSER || null;
+  viewMode = window.VIEW_MODE || 'my';   // dashboard se aaya hua state
+
+  // Agar viewMode === 'my' aur user logged hai -> owner mode
+  // Agar viewMode === 'all' -> hamesha viewer mode
+  if (viewMode === 'my') {
+    isOwner = !!currentUser;
+  } else {
+    isOwner = false;
+  }
+
+  document.body.classList.toggle('owner-mode', isOwner);
+
+  const uploadBtn = document.getElementById('uploadButton');
+  const editToggleBtn = document.getElementById('editModeToggle');
+  if (uploadBtn) uploadBtn.classList.toggle('hidden', !isOwner);
+  if (editToggleBtn) editToggleBtn.classList.toggle('hidden', !isOwner);
+  // DATA LOAD
+  loadRawClips();
+
+  // FILTER PILLS
+  const filterPills = document.querySelectorAll('#filterContainer .filter-pill');
+  filterPills.forEach(pill => {
+    pill.addEventListener('click', () => {
+      filterPills.forEach(p => p.classList.remove('active'));
+      pill.classList.add('active');
+
+      const label = pill.textContent.toLowerCase();
+      if (label.startsWith('today')) activeFilter = 'today';
+      else if (label.startsWith('last week')) activeFilter = 'week';
+      else if (label.startsWith('last month')) activeFilter = 'month';
+      else if (label.startsWith('last year')) activeFilter = 'year';
+      else if (label.startsWith('bts')) activeFilter = 'bts';
+      else activeFilter = 'all';
+
+      renderRawClips(activeFilter, activeFormat);
+    });
+  });
+
+  // FORMAT TOGGLE (SHORTS / LONG)
+  const formatButtons = document.querySelectorAll('#formatToggle button');
+  formatButtons.forEach(btn => {
+    btn.addEventListener('click', () => {
+      formatButtons.forEach(b => b.classList.remove('active-format'));
+      btn.classList.add('active-format');
+
+      const key = btn.dataset.format;   // "long" ya "shorts"
+      activeFormat = (key === 'shorts') ? 'short' : 'long';
+
+      renderRawClips(activeFilter, activeFormat);
+    });
+  });
+
+  // EDIT TOGGLE (PENCIL ICON)
+  const editToggleBtn2 = document.getElementById('editModeToggle');
+  const editHint = document.getElementById('editHint');
+
+if (editToggleBtn2) {
+  editToggleBtn2.addEventListener('click', () => {
+    if (!isOwner) return;   // view mode me click ignore// viewer edit mode open hi na kar sake
+
+      isEditMode = !isEditMode;
+      document.body.classList.toggle('edit-mode', isEditMode);
+
+      if (isEditMode) {
+        editToggleBtn2.classList.add('border-orange-500', 'text-orange-400');
+        if (editHint) editHint.classList.remove('hidden');
+        enableFootageSorting();
+      } else {
+        editToggleBtn2.classList.remove('border-orange-500', 'text-orange-400');
+        if (editHint) editHint.classList.add('hidden');
+        disableFootageSorting();
+      }
+    });
+  }
+
+  // SEARCH BOX
+  const searchInput = document.getElementById('footageSearch');
+  if (searchInput) {
+    searchInput.addEventListener('input', (e) => {
+      activeSearchQuery = e.target.value.trim().toLowerCase();
+      renderRawClips(activeFilter, activeFormat);
+    });
+  }
+
+  // SPEED CONTROL
+  const speedSelect = document.getElementById('playbackSpeed');
+  const speedWrapper = speedSelect?.closest('.speed-wrapper');
+
+  if (speedSelect) {
+    speedSelect.addEventListener('change', (e) => {
+      currentPlaybackRate = parseFloat(e.target.value) || 1;
+
+      const video = document.querySelector('#playerContainer video');
+      if (video) {
+        video.playbackRate = currentPlaybackRate;
+      }
+
+      if (speedWrapper) {
+        speedWrapper.classList.add('ripple-active');
+        setTimeout(() => {
+          speedWrapper.classList.remove('ripple-active');
+        }, 600);
+      }
+    });
+  }
+
+  // INITIAL RENDER
+  renderRawClips(activeFilter, activeFormat);
+});
+
+// ==== SORTABLE HELPERS (DOMContentLoaded ke bahar) ====
+
+function enableFootageSorting() {
+  const grid = document.getElementById('footageGrid');
+  if (!grid) return;
+
+  if (!footageSortable) {
+    footageSortable = new Sortable(grid, {
+      animation: 150,
+      ghostClass: 'bg-white/5',
+      dragClass: 'opacity-60',
+      handle: '.video-card',
+      onEnd: () => {
+        const newOrder = [];
+        const cards = Array.from(grid.children);
+        cards.forEach(card => {
+          const id = card.getAttribute('data-clip-id');
+          const clip = rawClips.find(c => c.id === id);
+          if (clip) newOrder.push(clip);
+        });
+        if (newOrder.length === rawClips.length) {
+          rawClips = newOrder;
+        }
+      }
+    });
+  } else {
+    footageSortable.option('disabled', false);
+  }
+}
+
+function disableFootageSorting() {
+  if (footageSortable) {
+    footageSortable.option('disabled', true);
+  }
+} // <<< DOMContentLoaded yahin close hoga
+
+// ==== IN FUNCTIONS KO DOMContentLoaded KE BAHAR RAKHO ====
+
+function enableFootageSorting() {
+  const grid = document.getElementById('footageGrid');
+  if (!grid) return;
+
+  if (!footageSortable) {
+    footageSortable = new Sortable(grid, {
+      animation: 150,
+      ghostClass: 'bg-white/5',
+      dragClass: 'opacity-60',
+      handle: '.video-card',   // pure card draggable
+      onEnd: () => {
+        const newOrder = [];
+        const cards = Array.from(grid.children);
+        cards.forEach(card => {
+          const id = card.getAttribute('data-clip-id');
+          const clip = rawClips.find(c => c.id === id);
+          if (clip) newOrder.push(clip);
+        });
+        if (newOrder.length === rawClips.length) {
+          rawClips = newOrder;
+        }
+      }
+    });
+  } else {
+    footageSortable.option('disabled', false);
+  }
+}
+
+function disableFootageSorting() {
+  if (footageSortable) {
+    footageSortable.option('disabled', true);
+  }
+}
+
+
+// UPLOAD FLOW
+let selectedFile = null;
+
+// File input listener
+document.getElementById('footageFileInput').addEventListener('change', (e) => {
+  const file = e.target.files[0];
+  if (!file) return;
+
+  selectedFile = file;
+
+  // Preview section
+  const preview = document.getElementById('filePreview');
+  const fileName = document.getElementById('previewFileName');
+  const fileSize = document.getElementById('previewFileSize');
+  const duration = document.getElementById('previewDuration');
+  const thumb = document.getElementById('previewThumbnail');
+
+  fileName.textContent = file.name;
+  fileSize.textContent = (file.size / (1024 * 1024)).toFixed(2) + ' MB';
+  duration.textContent = '~' + Math.floor(Math.random() * 180 + 30) + ' seconds (estimated)';
+
+  // Generate thumbnail from video
+  if (file.type.startsWith('video/')) {
+    const videoURL = URL.createObjectURL(file);
+    const video = document.createElement('video');
+    video.src = videoURL;
+    video.currentTime = 1;
+  video.addEventListener('loadeddata', () => {
+  lastVideoWidth = video.videoWidth;
+  lastVideoHeight = video.videoHeight;
+
+  const canvas = document.createElement('canvas');
+  canvas.width = video.videoWidth;
+  canvas.height = video.videoHeight;
+  canvas.getContext('2d').drawImage(video, 0, 0);
+  thumb.src = canvas.toDataURL();
+  URL.revokeObjectURL(videoURL);
+});
+
+  } 
+  
+  else {
+    thumb.src = 'https://via.placeholder.com/120x120/333/999?text=Video';
+  }
+
+  preview.classList.remove('hidden');
+});
+
+function openUploadModal() {
+  document.getElementById('uploadFootageModal').classList.remove('hidden');
+  document.getElementById('uploadStep1').classList.remove('hidden');
+  document.getElementById('uploadStep2').classList.add('hidden');
+  document.getElementById('uploadStep3').classList.add('hidden');
+  document.getElementById('filePreview').classList.add('hidden');
+  selectedFile = null;
+}
+
+function closeUploadModal() {
+  document.getElementById('uploadFootageModal').classList.add('hidden');
+}
+
+function sendToStudio() {
+  if (!selectedFile) return;
+
+  // Hide step 1, show step 2
+  document.getElementById('uploadStep1').classList.add('hidden');
+  document.getElementById('uploadStep2').classList.remove('hidden');
+
+  const progressBar = document.getElementById('uploadProgressBar');
+  const progressText = document.getElementById('uploadProgressText');
+
+  let progress = 0;
+  const steps = [
+    { percent: 15, text: 'Encrypting footage...' },
+    { percent: 40, text: 'Compressing video...' },
+    { percent: 70, text: 'Uploading to studio...' },
+    { percent: 95, text: 'Finalizing...' },
+    { percent: 100, text: 'Complete!' }
+  ];
+
+  let currentStep = 0;
+
+  const progressInterval = setInterval(() => {
+    if (currentStep < steps.length) {
+      const target = steps[currentStep].percent;
+      progressText.textContent = steps[currentStep].text;
+
+      if (progress < target) {
+        progress += 2;
+        progressBar.style.width = progress + '%';
+      } else {
+        currentStep++;
+      }
+    } else {
+      clearInterval(progressInterval);
+
+      // Add new clip to rawClips
+      const titleInput = document.getElementById('previewTitleInput');
+const finalTitle = titleInput.value.trim() || selectedFile.name.replace(/\.[^/.]+$/, '');
+
+const videoURL = URL.createObjectURL(selectedFile);
+
+const newClip = {
+  id: 'r' + (rawClips.length + 1),
+  title: finalTitle,
+  duration: '0:' + (Math.floor(Math.random() * 40) + 20),
+  tag: 'RAW',
+  category: 'raw',
+  format: (lastVideoHeight && lastVideoWidth && lastVideoHeight > lastVideoWidth) ? 'short' : 'long',
+  createdAt: new Date().toISOString(),
+  thumb: document.getElementById('previewThumbnail').src,
+  width: lastVideoWidth || 1920,
+  height: lastVideoHeight || 1080,
+  src: videoURL,              // ← naya field
+};
+
+
+
+      rawClips.unshift(newClip); // Add at beginning
+
+      // Show success
+      setTimeout(() => {
+        document.getElementById('uploadStep2').classList.add('hidden');
+        document.getElementById('uploadStep3').classList.remove('hidden');
+      }, 500);
+
+      // Refresh grid after modal close
+setTimeout(() => {
+  closeUploadModal();
+  const activeFilter = document.querySelector('.filter-pill.active')?.textContent.trim().toLowerCase() || 'all';
+  let filterKey = 'all';
+  if (activeFilter.startsWith('today')) filterKey = 'today';
+  else if (activeFilter.startsWith('last week')) filterKey = 'week';
+  else if (activeFilter.startsWith('last month')) filterKey = 'month';
+  else if (activeFilter.startsWith('last year')) filterKey = 'year';
+  else if (activeFilter === 'bts') filterKey = 'bts';
+  
+  renderRawClips(filterKey, activeFormat);  // ✅ activeFormat pass kiya
+}, 2500);
+
+
+    }
+  }, 150);
+}
+
+document.addEventListener('DOMContentLoaded', function () {
+  (function initAiToolsPage() {
+    const params = new URLSearchParams(window.location.search); // [web:36][web:42]
+    const projectId = params.get('id');
+
+    if (!projectId) {
+      window.location.href = 'index.html';
+      return;
+    }
+
+    let projects = [];
+    try {
+      const raw = localStorage.getItem('imranProjects'); // [web:26][web:29]
+      projects = raw ? JSON.parse(raw) : [];
+    } catch (e) {
+      projects = [];
+    }
+
+    const project = projects.find(p => p.id === projectId);
+    if (!project) {
+      window.location.href = 'index.html';
+      return;
+    }
+
+    const titleEl = document.getElementById('aiProjectTitle');
+    if (titleEl) titleEl.textContent = project.title || 'Untitled';
+  })();
+});
+
+function goBackToFootageVault() {
+  const params = new URLSearchParams(window.location.search); // [web:36][web:42]
+  const projectId = params.get('id');
+  if (!projectId) {
+    window.location.href = 'footage.html';
+    return;
+  }
+  window.location.href = `footage.html?id=${encodeURIComponent(projectId)}`; // [web:35][web:41]
+}
+
+</script>
+
+    <!-- PWA Service Worker Registration -->
+    <script>
+      if ('serviceWorker' in navigator) {
+        window.addEventListener('load', () => {
+          navigator.serviceWorker
+            .register('/service-worker.js')
+            .then((registration) => {
+              console.log('✅ ServiceWorker registered:', registration.scope);
+            })
+            .catch((error) => {
+              console.error('❌ ServiceWorker registration failed:', error);
+            });
+        });
+      }
+    </script>
+
+</body>
+</html>

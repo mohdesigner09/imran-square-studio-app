@@ -1,0 +1,400 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>AI Tools - IMRAN SQUARE</title>
+
+        <!-- PWA Meta Tags -->
+    <meta name="theme-color" content="#ff6b35">
+    <meta name="mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <meta name="apple-mobile-web-app-title" content="IMRAN SQUARE">
+    
+    <!-- PWA Manifest -->
+    <link rel="manifest" href="/manifest.json">
+    
+    <!-- Icons for iOS -->
+    <link rel="apple-touch-icon" href="/resources/icon-152.png">
+    <link rel="apple-touch-icon" sizes="152x152" href="/resources/icon-152.png">
+    <link rel="apple-touch-icon" sizes="180x180" href="/resources/icon-192.png">
+    <link rel="apple-touch-icon" sizes="192x192" href="/resources/icon-192.png">
+    
+    <!-- Favicon -->
+    <link rel="icon" type="image/png" sizes="32x32" href="/resources/icon-32.png">
+    <link rel="icon" type="image/png" sizes="16x16" href="/resources/icon-16.png">
+    <link rel="shortcut icon" href="/resources/favicon.ico">
+
+
+    <!-- Konva CDN -->
+<script src="https://unpkg.com/konva@10/konva.min.js"></script>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/animejs/3.2.1/anime.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/echarts@5.4.3/dist/echarts.min.js"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@400;700;900&family=Inter:wght@300;400;500&family=JetBrains+Mono:wght@400&display=swap" rel="stylesheet">
+    <style>
+        :root { --primary-dark: #050505; --accent-orange: #ff6b35; }
+        body { background: var(--primary-dark); color: white; font-family: 'Inter', sans-serif; overflow-x: hidden; }
+        .font-display { font-family: 'Playfair Display', serif; }
+        .font-mono { font-family: 'JetBrains Mono', monospace; }
+
+        /* PAGE TRANSITION OVERLAY */
+        .page-transition {
+            position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+            background: black; z-index: 9999; pointer-events: none;
+            opacity: 0; /* Hidden initially */
+            transition: opacity 0.5s cubic-bezier(0.4, 0, 0.2, 1);
+        }
+        .page-transition.active { opacity: 1; pointer-events: all; }
+
+        /* Background */
+        .hero-bg { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: radial-gradient(circle at 50% 30%, #151515 0%, #000000 100%); z-index: -2; }
+        .hero-bg::after { content: ''; position: absolute; inset: 0; background: url('resources/hero-film-studio.png') center/cover; opacity: 0.15; mix-blend-mode: overlay; z-index: -1; }
+        .film-grain { position: fixed; top: 0; left: 0; width: 100%; height: 100%; pointer-events: none; opacity: 0.04; z-index: 0; }
+
+        /* --- GLASS CARDS --- */
+        .glass-card {
+            background: linear-gradient(180deg, #141414 0%, #050505 100%);
+            border: 1px solid rgba(255, 255, 255, 0.08);
+            border-top: 1px solid rgba(255, 255, 255, 0.2);
+            border-radius: 16px;
+            box-shadow: inset 0 1px 0 0 rgba(255, 255, 255, 0.1), 0 10px 30px -10px rgba(0, 0, 0, 0.8);
+        }
+        .action-card { transition: all 0.3s ease; }
+        .action-card:hover {
+            border-color: var(--accent-orange);
+            transform: translateY(-3px);
+            box-shadow: inset 0 1px 0 0 rgba(255, 107, 53, 0.3), 0 15px 40px -10px rgba(255, 107, 53, 0.15);
+        }
+
+        /* --- HERO REACTOR STYLES --- */
+        .hero-container {
+            position: relative; width: 240px; height: 240px; display: flex; justify-content: center; align-items: center;
+        }
+
+        /* The Core Button */
+        .glass-circle-hero {
+            width: 140px; height: 140px; border-radius: 50%;
+            background: linear-gradient(145deg, #1a1a1a 0%, #000000 100%);
+            border: 1px solid rgba(255, 107, 53, 0.3);
+            box-shadow: 0 0 30px rgba(255, 107, 53, 0.1), inset 0 0 20px rgba(255, 107, 53, 0.05);
+            display: flex; align-items: center; justify-content: center;
+            transition: all 0.4s cubic-bezier(0.34, 1.56, 0.64, 1); cursor: pointer; position: relative; z-index: 20;
+        }
+
+        /* The "AI" Text inside Circle */
+        .ai-icon-large {
+            font-family: 'Playfair Display', serif; font-size: 3.5rem; font-weight: 700;
+            background: linear-gradient(135deg, #ffffff 20%, var(--accent-orange) 100%);
+            -webkit-background-clip: text; -webkit-text-fill-color: transparent;
+            text-shadow: 0 0 20px rgba(255, 107, 53, 0.2);
+        }
+
+        /* Rings */
+        .reactor-ring {
+            position: absolute; width: 200px; height: 200px; border-radius: 50%;
+            border: 1px dashed rgba(255, 107, 53, 0.3);
+            animation: spin 20s linear infinite; z-index: 10; pointer-events: none;
+        }
+        .reactor-ring::before {
+            content: ''; position: absolute; top: -2px; left: 50%; transform: translateX(-50%);
+            width: 8px; height: 8px; background: var(--accent-orange); border-radius: 50%;
+            box-shadow: 0 0 10px var(--accent-orange);
+        }
+        .pulse-ring {
+            position: absolute; width: 160px; height: 160px; border-radius: 50%;
+            border: 1px solid rgba(255, 255, 255, 0.05);
+            animation: pulse 3s ease-in-out infinite; z-index: 15; pointer-events: none;
+        }
+
+        .glass-circle-hero:hover {
+             transform: scale(1.05); border-color: var(--accent-orange);
+             box-shadow: 0 0 60px rgba(255, 107, 53, 0.4), inset 0 0 30px rgba(255, 107, 53, 0.2);
+        }
+        .glass-circle-hero:hover .reactor-ring { animation-duration: 5s; border-color: rgba(255, 107, 53, 0.6); }
+
+        /* Animations */
+        @keyframes spin { 100% { transform: rotate(360deg); } }
+        @keyframes pulse { 0%, 100% { transform: scale(1); opacity: 0.5; } 50% { transform: scale(1.05); opacity: 0.8; } }
+
+        /* Sparks */
+        .spark { position: absolute; top: 50%; left: 50%; width: 2px; height: 2px; background-color: var(--accent-orange); border-radius: 50%; box-shadow: 0 0 4px var(--accent-orange); z-index: 5; opacity: 0; animation: emitSpark 3s infinite linear; }
+        @keyframes emitSpark {
+            0% { transform: translate(-50%, -50%) rotate(var(--angle)) translateX(70px) scale(1); opacity: 0; }
+            50% { opacity: 0.8; }
+            100% { transform: translate(-50%, -50%) rotate(var(--angle)) translateX(120px) scale(0); opacity: 0; }
+        }
+
+        /* LOGO: IMRAN² + AI */
+        .hero-logo-wrapper {
+            font-family: 'Playfair Display', serif; font-size: 2.5rem; font-weight: 900;
+            color: #ffffff; margin-top: 2rem; display: flex; align-items: center; justify-content: center; gap: 0.5rem;
+            position: relative; z-index: 10;
+        }
+        .hero-logo-wrapper .accent { color: var(--accent-orange); text-shadow: 0 0 15px var(--accent-orange); }
+        .hero-logo-wrapper sup { font-size: 0.6em; color: var(--accent-orange); vertical-align: top; top: -0.3em; }
+
+        .nav-bottom { background: rgba(26, 26, 26, 0.95); backdrop-filter: blur(10px); border-top: 1px solid #2a2a2a; }
+        .nav-item.active { color: var(--accent-orange); }
+    </style>
+</head>
+<body>
+    
+    <div class="page-transition" id="pageTransition"></div>
+
+    <div class="hero-bg"></div>
+    <canvas class="film-grain" id="filmGrain"></canvas>
+<div class="p-6 pb-24 max-w-5xl mx-auto min-h-screen flex flex-col">
+  <div class="flex items-center justify-between mb-12">
+    <div class="flex items-center gap-4">
+      <!-- Back to Project Hub -->
+      <button onclick="goBackToProjectHubFromAi()"
+              class="group p-3 rounded-full border border-white/10 hover:border-orange-500
+                     transition-all bg-black/60">
+        <svg class="w-5 h-5 text-gray-400 group-hover:text-orange-500"
+             fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2">
+          <path stroke-linecap="round" stroke-linejoin="round"
+                d="M15 19l-7-7 7-7" />
+        </svg>
+      </button>
+
+      <div>
+        <h1 class="font-display text-3xl font-bold text-white tracking-wide">
+          IMRAN SQUARE AI
+        </h1>
+        <p class="text-[10px] text-orange-600 tracking-[0.2em] uppercase mt-1 font-bold">
+          KIMI K2 INTEGRATION
+        </p>
+      </div>
+    </div>
+
+    <!-- right side agar chahiye to future menu ke liye khaali chhod sakte ho -->
+    <div class="w-10 h-10 rounded-lg border border-orange-500/30 bg-black/50
+                flex items-center justify-center">
+      <span class="text-orange-500/70 font-bold text-xs font-display">⚙</span>
+    </div>
+  </div>
+
+
+        <div class="grid grid-cols-2 gap-6 mb-12">
+            <div class="glass-card p-5 text-center flex flex-col justify-center h-24">
+                <div class="text-3xl font-bold text-orange-500 font-display">247</div>
+                <div class="text-xs text-gray-500 font-mono tracking-widest mt-1 uppercase">Requests</div>
+            </div>
+            <div class="glass-card p-5 text-center flex flex-col justify-center h-24">
+                <div class="text-3xl font-bold text-orange-500 font-display">1.2s</div>
+                <div class="text-xs text-gray-500 font-mono tracking-widest mt-1 uppercase">Avg Response</div>
+            </div>
+        </div>
+
+        <div class="flex-1 flex flex-col items-center justify-center relative py-10 mb-12">
+            <div class="hero-container">
+                <div class="reactor-ring"></div>
+                <div class="pulse-ring"></div>
+                
+                <div class="spark" style="--angle: 0deg; animation-delay: 0s;"></div>
+                <div class="spark" style="--angle: 45deg; animation-delay: 0.2s;"></div>
+                <div class="spark" style="--angle: 90deg; animation-delay: 0.4s;"></div>
+                <div class="spark" style="--angle: 135deg; animation-delay: 0.6s;"></div>
+                <div class="spark" style="--angle: 180deg; animation-delay: 0.8s;"></div>
+                <div class="spark" style="--angle: 225deg; animation-delay: 1.0s;"></div>
+                <div class="spark" style="--angle: 270deg; animation-delay: 1.2s;"></div>
+                <div class="spark" style="--angle: 315deg; animation-delay: 1.4s;"></div>
+                <div class="spark" style="--angle: 20deg; animation-delay: 0.5s; width: 1px; height: 1px;"></div>
+                <div class="spark" style="--angle: 110deg; animation-delay: 0.9s; width: 3px; height: 3px;"></div>
+
+                <button id="launchChatBtn" class="glass-circle-hero group" onclick="openChatWindow()">
+                    <div class="ai-icon-large">AI</div>
+                </button>
+            </div>
+
+            <div class="hero-logo-wrapper">
+                IMRAN<sup class="accent">2</sup> <span class="accent">+</span> AI
+            </div>
+            <p class="text-gray-500 text-sm mt-2 font-mono text-center max-w-md tracking-wide relative z-10">
+                Tap to initialize neural sequence
+            </p>
+        </div>
+
+        <div class="mb-8">
+            <h3 class="text-sm text-gray-400 font-mono mb-4 uppercase tracking-widest border-l-2 border-orange-500 pl-3">Quick Actions</h3>
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <button class="glass-card action-card p-4 text-left flex items-center gap-4 group">
+                    <div class="w-10 h-10 rounded-full bg-white/5 flex items-center justify-center text-orange-500 group-hover:bg-orange-500 group-hover:text-black transition-colors">
+                        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16M4 18h7"></path></svg>
+                    </div>
+                    <div>
+                        <div class="font-bold text-sm text-white">Summarize Script</div>
+                        <div class="text-xs text-gray-500">Generate concise overview</div>
+                    </div>
+                </button>
+
+                <button
+  id="brainstormBtn"
+  class="glass-card action-card p-4 text-left flex items-center gap-4 group"
+>
+  <div class="w-10 h-10 rounded-full bg-white/5 flex items-center justify-center
+              text-orange-500 group-hover:bg-orange-500 group-hover:text-black transition-colors">
+    <!-- Simple icon -->
+    <svg class="w-5 h-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+      <path d="M12 3v18M3 12h18" stroke-linecap="round" stroke-linejoin="round" />
+    </svg>
+  </div>
+  <div>
+    <div class="font-bold text-sm text-white">Brainstorm Map</div>
+    <div class="text-xs text-gray-500">Infinite canvas for ideas</div>
+  </div>
+</button>
+
+                <button class="glass-card action-card p-4 text-left flex items-center gap-4 group">
+                    <div class="w-10 h-10 rounded-full bg-white/5 flex items-center justify-center text-orange-500 group-hover:bg-orange-500 group-hover:text-black transition-colors">
+                        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 10l4.553-2.276A1 1 0 0121 8.618v6.764a1 1 0 01-1.447.894L15 14M5 18h8a2 2 0 002-2V8a2 2 0 00-2-2H5a2 2 0 00-2 2v8a2 2 0 002 2z"></path></svg>
+                    </div>
+                    <div>
+                        <div class="font-bold text-sm text-white">Generate Shot List</div>
+                        <div class="text-xs text-gray-500">AI scene breakdown</div>
+                    </div>
+                </button>
+
+                <!-- 3) Brain Map -->
+    <button onclick="openBrainMapFromAi()"
+            class="glass-card action-card p-4 text-left flex items-center gap-4 group">
+      <div class="w-10 h-10 rounded-full bg-white/5 flex items-center justify-center
+                  text-orange-500 group-hover:bg-orange-500 group-hover:text-black transition-colors">
+        <svg class="w-5 h-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <path stroke-linecap="round" stroke-linejoin="round"
+                d="M12 3a6 6 0 00-6 6v2a6 6 0 006 6 6 6 0 006-6V9a6 6 0 00-6-6z" />
+        </svg>
+      </div>
+      <div>
+        <div class="font-bold text-sm text-white">Open Brain Map</div>
+        <div class="text-xs text-gray-500">Write & connect ideas visually</div>
+      </div>
+    </button>
+
+            </div>
+        </div>
+    </div>
+<!-- BRAINSTORM OVERLAY -->
+<div id="brainstormOverlay"
+     class="fixed inset-0 bg-black/95 z-[200] hidden flex-col">
+  <!-- Top bar -->
+  <div class="flex items-center justify-between px-4 py-2 border-b border-white/10">
+    <div class="text-sm font-mono text-orange-400 uppercase tracking-[0.2em]">
+      Brainstorm Canvas
+    </div>
+    <div class="flex items-center gap-2">
+      <button id="addNodeBtn"
+              class="px-3 py-1 rounded-md border border-white/20 text-xs text-gray-200
+                     hover:border-orange-500 hover:text-orange-400 transition">
+        + Add Node
+      </button>
+      <button id="brainZoomIn"
+              class="w-8 h-8 rounded-md border border-white/20 text-sm
+                     flex items-center justify-center text-gray-200
+                     hover:border-orange-500 hover:text-orange-400 transition">
+        +
+      </button>
+      <button id="brainZoomOut"
+              class="w-8 h-8 rounded-md border border-white/20 text-sm
+                     flex items-center justify-center text-gray-200
+                     hover:border-orange-500 hover:text-orange-400 transition">
+        −
+      </button>
+      <button id="closeBrainstorm"
+              class="px-3 py-1 rounded-md bg-orange-500 text-xs font-medium text-black
+                     hover:bg-orange-400 transition">
+        Close
+      </button>
+    </div>
+  </div>
+
+  <!-- Canvas area -->
+  <div id="brainstormCanvasContainer" class="flex-1 relative">
+    <!-- Konva will attach here -->
+  </div>
+</div>
+
+
+    <nav class="nav-bottom fixed bottom-0 left-0 right-0 px-4 py-3 z-40">
+        <div class="flex justify-around items-center">
+            <a href="index.html" class="nav-item text-gray-500 flex flex-col items-center space-y-1"><svg class="w-5 h-5" fill="currentColor" viewBox="0 0 24 24"><path d="M3 13h8V3H3v10zm0 8h8v-6H3v6zm10 0h8V11h-8v10zm0-18v6h8V3h-8z"/></svg><span class="text-xs">Projects</span></a>
+            <a href="scripts.html" class="nav-item text-gray-500 flex flex-col items-center space-y-1"><svg class="w-5 h-5" fill="currentColor" viewBox="0 0 24 24"><path d="M14,2H6A2,2 0 0,0 4,4V20A2,2 0 0,0 6,22H18A2,2 0 0,0 20,20V8L14,2M18,20H6V4H13V9H18V20Z"/></svg><span class="text-xs">Scripts</span></a>
+            <a href="footage.html" class="nav-item text-gray-500 flex flex-col items-center space-y-1"><svg class="w-5 h-5" fill="currentColor" viewBox="0 0 24 24"><path d="M17,10.5V7A1,1 0 0,0 16,6H4A1,1 0 0,0 3,7V17A1,1 0 0,0 4,18H16A1,1 0 0,0 17,17V13.5L21,17.5V6.5L17,10.5Z"/></svg><span class="text-xs">Footage</span></a>
+            <a href="ai-tools.html" class="nav-item active flex flex-col items-center space-y-1"><svg class="w-5 h-5" fill="currentColor" viewBox="0 0 24 24"><path d="M12,2A2,2 0 0,1 14,4C14,4.74 13.6,5.39 13,5.73V7H14A7,7 0 0,1 21,14H22A1,1 0 0,1 23,15V18A1,1 0 0,1 22,19H21V20A2,2 0 0,1 19,22H5A2,2 0 0,1 3,20V19H2A1,1 0 0,1 1,18V15A1,1 0 0,1 2,14H3A7,7 0 0,1 10,7H11V5.73C10.4,5.39 10,4.74 10,4A2,2 0 0,1 12,2Z"/></svg><span class="text-xs">AI Tools</span></a>
+        </div>
+    </nav>
+
+    <script>
+
+  function goBackToProjectHubFromAi() {
+    const params = new URLSearchParams(window.location.search);
+    const id = params.get('id');
+    if (!id) {
+      // agar id missing ho to fallback dashboard
+      window.location.href = 'index.html';
+      return;
+    }
+    window.location.href = 'project-hub.html?id=' + encodeURIComponent(id);
+  }
+
+  function openChatWindow() {
+    const heroBtn = document.getElementById('launchChatBtn');
+    const transition = document.getElementById('pageTransition');
+  }
+
+
+  function openBrainMapFromAi() {
+    const params = new URLSearchParams(window.location.search);
+    const id = params.get('id');
+    if (!id) {
+      window.location.href = 'index.html';
+      return;
+    }
+    window.location.href = 'brainstorm.html?id=' + encodeURIComponent(id);
+  }
+        function openChatWindow() {
+            const heroBtn = document.getElementById('launchChatBtn');
+            const transition = document.getElementById('pageTransition');
+            
+            // 1. Button zooms in
+            heroBtn.style.transform = "scale(1.5)";
+            heroBtn.style.opacity = "0";
+            
+            // 2. Screen fades to black
+            setTimeout(() => {
+                transition.classList.add('active');
+            }, 200);
+
+            // 3. Redirect after fade
+            setTimeout(() => {
+                window.location.href = 'ai-chat.html';
+            }, 600);
+        }
+
+        const c = document.getElementById('filmGrain'); const ctx = c.getContext('2d'); c.width = window.innerWidth; c.height = window.innerHeight;
+        const anim = () => { ctx.clearRect(0,0,c.width,c.height); ctx.fillStyle = '#fff'; for(let i=0; i<1000; i++) ctx.fillRect(Math.random()*c.width, Math.random()*c.height, Math.random()*2, Math.random()*2); requestAnimationFrame(anim); }; anim();
+    </script>
+
+    <script src="brainstorm.js"></script>
+
+        <!-- PWA Service Worker Registration -->
+    <script>
+      if ('serviceWorker' in navigator) {
+        window.addEventListener('load', () => {
+          navigator.serviceWorker
+            .register('/service-worker.js')
+            .then((registration) => {
+              console.log('✅ ServiceWorker registered:', registration.scope);
+            })
+            .catch((error) => {
+              console.error('❌ ServiceWorker registration failed:', error);
+            });
+        });
+      }
+    </script>
+
+</body>
+</html>

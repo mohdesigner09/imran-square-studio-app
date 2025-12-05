@@ -1,0 +1,575 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>IMRAN SQUARE - Dashboard</title>
+
+        <!-- PWA Meta Tags -->
+    <meta name="theme-color" content="#ff6b35">
+    <meta name="mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <meta name="apple-mobile-web-app-title" content="IMRAN SQUARE">
+    
+    <!-- PWA Manifest -->
+    <link rel="manifest" href="/manifest.json">
+    
+    <!-- Icons for iOS -->
+    <link rel="apple-touch-icon" href="/resources/icon-152.png">
+    <link rel="apple-touch-icon" sizes="152x152" href="/resources/icon-152.png">
+    <link rel="apple-touch-icon" sizes="180x180" href="/resources/icon-192.png">
+    <link rel="apple-touch-icon" sizes="192x192" href="/resources/icon-192.png">
+    
+    <!-- Favicon -->
+    <link rel="icon" type="image/png" sizes="32x32" href="/resources/icon-32.png">
+    <link rel="icon" type="image/png" sizes="16x16" href="/resources/icon-16.png">
+    <link rel="shortcut icon" href="/resources/favicon.ico">
+
+    
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/animejs/3.2.1/anime.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/Sortable/1.14.0/Sortable.min.js"></script>
+    
+    <script src="https://accounts.google.com/gsi/client" async defer></script>
+    <script src="https://apis.google.com/js/api.js" async defer></script>
+
+    <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@400;600;700&family=Inter:wght@300;400;500&family=JetBrains+Mono:wght@400&display=swap" rel="stylesheet">
+    
+    <style>
+        body.theme-basic {
+  background: #f3f4f6;
+  color: #111827;
+}
+
+body.theme-basic .glass-panel,
+body.theme-basic .project-card {
+  background: rgba(255,255,255,0.9);
+  color: #111827;
+}
+
+body.theme-advanced {
+  background: #050505;
+  color: #f9fafb;
+}
+
+        :root { --primary-dark: #050505; --secondary-dark: #1a1a1a; --accent-orange: #ff6b35; --text-primary: #ffffff; --border-subtle: #2a2a2a; }
+        body { background: var(--primary-dark); color: var(--text-primary); font-family: 'Inter', sans-serif; overflow-x: hidden; }
+        .font-display { font-family: 'Playfair Display', serif; }
+        .font-mono { font-family: 'JetBrains Mono', monospace; }
+        
+        /* Background */
+        .hero-bg { background: linear-gradient(135deg, #020202 0%, #0a0a0a 50%, #000000 100%); position: relative; min-height: 100vh; }
+        .hero-bg::before { content: ''; position: absolute; top: 0; left: 0; right: 0; bottom: 0; background: url('resources/hero-film-studio.png') center/cover; opacity: 0.2; z-index: 0; }
+        .content-layer { position: relative; z-index: 2; }
+        
+        /* --- SOLID PREMIUM CARD --- */
+        .project-card { 
+            background: linear-gradient(180deg, #141414 0%, #050505 100%);
+            border: 1px solid rgba(255, 255, 255, 0.15);
+            border-radius: 16px;
+            position: relative; z-index: 10;
+            transition: transform 0.4s cubic-bezier(0.34, 1.56, 0.64, 1), box-shadow 0.3s ease, border-color 0.3s ease;
+            will-change: transform, opacity;
+            transform-style: preserve-3d;
+            box-shadow: inset 0 1px 0 0 rgba(255, 255, 255, 0.25), 0 20px 40px -15px rgba(0, 0, 0, 1);
+        }
+        .project-card:hover { 
+            border-color: var(--accent-orange); 
+            transform: translateY(-10px) scale(1.02); 
+            z-index: 50 !important; 
+            box-shadow: inset 0 1px 0 0 rgba(255, 107, 53, 0.4), 0 30px 60px -15px rgba(0, 0, 0, 1), 0 0 20px rgba(255, 107, 53, 0.1);
+        }
+
+        /* Scroll Area */
+        .scroll-wrapper {
+    position: relative;
+    height: 500px;
+    overflow: hidden;
+    perspective: 1500px;
+    /* -webkit-mask-image: linear-gradient(to bottom, transparent 0%, black 10%, black 90%, transparent 100%);
+    mask-image: linear-gradient(to bottom, transparent 0%, black 10%, black 90%, transparent 100%); */
+}
+
+        .custom-scroll { height: 100%; overflow-y: auto; padding: 60px 5px; scroll-behavior: smooth; }
+        .custom-scroll::-webkit-scrollbar { width: 0px; }
+
+        /* Edit Mode */
+        .delete-btn { display: none !important; } 
+        body.edit-mode .delete-btn { display: flex !important; } 
+        body.edit-mode .project-card { border: 1px dashed var(--accent-orange); cursor: move; transform: none !important; }
+        [contenteditable="true"] { border-bottom: 1px dashed var(--accent-orange); outline: none; }
+
+        /* Animation */
+        @keyframes unfoldIn { 0% { opacity: 0; transform: scale(0.8) translateY(50px) perspective(600px) rotateX(70deg); filter: blur(8px); } 70% { transform: scale(1.02) translateY(-5px) perspective(600px) rotateX(-5deg); filter: blur(0px); } 100% { opacity: 1; transform: scale(1) translateY(0) perspective(600px) rotateX(0deg); } }
+        .animate-paper-unfold { animation: unfoldIn 0.6s cubic-bezier(0.34, 1.56, 0.64, 1) forwards; transform-origin: center bottom; }
+        
+        .progress-ring { transform: rotate(-90deg); }
+        .progress-ring-circle { stroke: var(--accent-orange); stroke-linecap: round; }
+        .film-grain { position: fixed; top: 0; left: 0; width: 100%; height: 100%; pointer-events: none; opacity: 0.03; z-index: 1; }
+        .nav-bottom { background: rgba(26, 26, 26, 0.95); backdrop-filter: blur(10px); border-top: 1px solid #2a2a2a; }
+        .nav-item.active { color: var(--accent-orange); }
+        /* Dashboard Card Glow */
+.dashboard-card {
+    background: linear-gradient(180deg, #141414 0%, #050505 100%);
+    border: 1px solid rgba(255, 255, 255, 0.08);
+    border-top: 1px solid rgba(255, 255, 255, 0.2);
+    border-radius: 16px;
+    box-shadow: 0 10px 30px -10px rgba(0,0,0,0.8);
+    transition: all 0.3s cubic-bezier(0.25, 0.8, 0.25, 1);
+}
+
+   .dashboard-card:hover {
+    border-color: #ff6b35;
+    transform: scale(1.005);  
+    box-shadow: 
+        inset 0 1px 0 0 rgba(255, 107, 53, 0.3),
+        0 20px 50px -10px rgba(255, 107, 53, 0.15);
+}
+
+/* My/All Toggle Active State */
+#projectScopeToggle button.active-scope {
+  background: rgba(255, 107, 53, 0.2);
+  color: #ff6b35;
+  font-weight: 600;
+}
+
+#projectScopeToggle button:not(.active-scope):hover {
+  background: rgba(255, 255, 255, 0.05);
+}
+
+
+   </style>
+</head>
+<body>
+    <canvas class="film-grain" id="filmGrain"></canvas>
+
+
+    <!-- Top Sticky Header -->
+    <header class="sticky top-0 z-30 bg-black/70 backdrop-blur border-b border-white/5">
+        <div class="max-w-6xl mx-auto flex items-center justify-between px-4 sm:px-6 py-3">
+            <!-- Left: Logo + title -->
+            <div class="flex items-center gap-3">
+                <div class="w-9 h-9 rounded-lg border border-orange-500/50 shadow-[0_0_15px_rgba(255,107,53,0.6)] bg-black overflow-hidden">
+                    <img src="resources/imran square logo.png" alt="Logo" class="w-full h-full object-cover">
+                </div>
+                <div class="leading-tight hidden xs:block">
+                    <h1 class="font-display text-lg sm:text-xl font-bold bg-gradient-to-r from-orange-500 via-orange-300 to-white bg-clip-text text-transparent tracking-[0.25em]">
+                        IMRAN SQUARE
+                    </h1>
+                    <p class="text-[10px] sm:text-xs text-gray-400 font-mono tracking-wider">
+                        DOCUMENTARY CREATOR STUDIO
+                    </p>
+                </div>
+            </div>
+
+            <!-- Center: Search (desktop) -->
+            <div class="hidden md:block flex-1 max-w-md mx-6">
+                <div class="relative">
+                    <div class="absolute top-1/2 left-3 -translate-y-1/2 pointer-events-none">
+                        <svg class="w-4 h-4 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                  d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"/>
+                        </svg>
+                    </div>
+                    <input
+                        type="text"
+                        placeholder="Search projects..."
+                        class="w-full bg-[#1a1a1a] border border-[#2a2a2a] text-white pl-9 pr-3 py-2 rounded-lg text-xs sm:text-sm focus:border-orange-500 focus:outline-none"
+                    >
+                </div>
+            </div>
+
+            <!-- Right: greeting + info + avatar -->
+            <div class="flex items-center gap-3">
+                <div class="hidden sm:flex flex-col items-end leading-tight text-xs">
+                    <span class="text-gray-400">Welcome back,</span>
+                    <span class="text-orange-400 font-semibold">Imran Square</span>
+                </div>
+
+ <div class="relative inline-block">
+    <div id="userAvatarButton" class="w-8 h-8 rounded-full border border-orange-400/60 overflow-hidden cursor-pointer flex items-center justify-center bg-black/70">
+        <span id="userAvatarFallback" class="text-xs text-orange-300 font-semibold">i</span>
+        <img id="userAvatarImg" src="" alt="User avatar" class="w-full h-full object-cover hidden">
+    </div>
+
+    <div id="userMenu" class="hidden absolute right-0 mt-2 w-60 bg-black/95 border border-orange-500/40 rounded-xl shadow-xl z-50 text-sm">
+        <div class="px-4 py-3 border-b border-white/10">
+            <p id="userMenuName" class="font-semibold text-white">User</p>
+            <p id="userMenuEmail" class="text-xs text-gray-400 truncate">email@example.com</p>
+            <span id="userMenuRole" class="inline-block mt-1 px-2 py-0.5 rounded-full text-[10px] uppercase tracking-wide bg-orange-500/10 text-orange-300 border border-orange-500/40">User</span>
+        </div>
+        <button id="userMenuAccount" class="w-full text-left px-4 py-2 hover:bg-white/5 text-gray-200">
+            Account settings
+        </button>
+        <button id="userMenuSignOut" class="w-full text-left px-4 py-2 hover:bg-white/5 text-red-300 border-t border-white/5">
+            Sign out
+        </button>
+    </div>
+</div>
+
+
+<div id="dashToast" class="hidden fixed bottom-6 left-1/2 -translate-x-1/2 px-4 py-2 rounded-full bg-white/90 text-xs text-black shadow-lg z-50">
+  Welcome back.
+</div>
+
+
+
+                <!-- Avatar shell for Firebase user -->
+                <div class="relative">
+                    <div
+                        class="w-8 h-8 rounded-full bg-white/10 flex items-center justify-center text-xs text-white font-semibold">
+                        ME
+                    </div>
+                    <img
+                        id="userAvatar"
+                        class="hidden absolute inset-0 w-8 h-8 rounded-full object-cover"
+                        alt="User avatar">
+                </div>
+            </div>
+        </div>
+    </header>
+
+    <!-- Main hero/layout -->
+    <div class="hero-bg flex flex-col">
+        <div class="content-layer flex-1 px-4 pt-6 pb-24 max-w-6xl mx-auto w-full">
+            <!-- Mobile search (chhota screen par hi dikhega) -->
+            <div class="md:hidden mb-4">
+                <div class="relative">
+                    <div class="absolute top-1/2 left-3 -translate-y-1/2 pointer-events-none">
+                        <svg class="w-4 h-4 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                  d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"/>
+                        </svg>
+                    </div>
+                 <input
+    type="text"
+    placeholder="Search projects..."
+    class="w-full bg-[#1a1a1a] border border-[#2a2a2a] text-white pl-9 pr-3 py-2.5 rounded-lg text-sm focus:border-orange-500 focus:outline-none">
+
+                </div>
+            </div>
+
+            <!-- yahan se tumhara baaki content (summary cards, Active Projects, Recent Activity, etc.) -->
+
+
+            
+           <div class="grid grid-cols-3 gap-3 sm:gap-4 mb-8">
+    <!-- Projects -->
+    <div class="relative overflow-hidden rounded-2xl bg-black/70 backdrop-blur-xl border border-white/5 shadow-[0_22px_60px_rgba(0,0,0,0.95)]">
+
+        <div class="absolute inset-0 bg-gradient-to-br from-orange-500/10 via-transparent to-black/60 pointer-events-none"></div>
+        <div class="relative px-5 py-4 flex flex-col items-center">
+            <div class="text-[11px] tracking-[0.25em] uppercase text-gray-400 mb-1">Projects</div>
+            <div class="text-4xl font-semibold text-orange-400 leading-none mb-2" id="project-count">12</div>
+            <div class="flex items-center gap-2 text-[11px] text-gray-500">
+                <span class="w-1.5 h-1.5 rounded-full bg-emerald-400 shadow-[0_0_8px_rgba(16,185,129,0.9)]"></span>
+                <span>4 active</span>
+            </div>
+        </div>
+    </div>
+
+    <!-- Scripts -->
+    <div class="relative overflow-hidden rounded-2xl bg-black/70 backdrop-blur-xl border border-white/5 shadow-[0_22px_60px_rgba(0,0,0,0.95)]">
+
+        <div class="absolute inset-0 bg-gradient-to-br from-sky-500/10 via-transparent to-black/60 pointer-events-none"></div>
+        <div class="relative px-5 py-4 flex flex-col items-center">
+            <div class="text-[11px] tracking-[0.25em] uppercase text-gray-400 mb-1">Scripts</div>
+            <div class="text-4xl font-semibold text-orange-400 leading-none mb-2" id="script-count">54</div>
+            <div class="flex items-center gap-2 text-[11px] text-gray-500">
+                <span class="w-1.5 h-1.5 rounded-full bg-sky-400 shadow-[0_0_8px_rgba(56,189,248,0.9)]"></span>
+                <span>10 in progress</span>
+            </div>
+        </div>
+    </div>
+
+    <!-- Videos -->
+    <div class="relative overflow-hidden rounded-2xl bg-black/70 backdrop-blur-xl border border-white/5 shadow-[0_22px_60px_rgba(0,0,0,0.95)]">
+
+        <div class="absolute inset-0 bg-gradient-to-br from-amber-500/12 via-transparent to-black/60 pointer-events-none"></div>
+        <div class="relative px-5 py-4 flex flex-col items-center">
+            <div class="text-[11px] tracking-[0.25em] uppercase text-gray-400 mb-1">Videos</div>
+            <div class="text-4xl font-semibold text-orange-400 leading-none mb-2" id="video-count">8</div>
+            <div class="flex items-center gap-2 text-[11px] text-gray-500">
+                <span class="w-1.5 h-1.5 rounded-full bg-amber-400 shadow-[0_0_8px_rgba(251,191,36,0.9)]"></span>
+                <span>3 rendering</span>
+            </div>
+        </div>
+    </div>
+</div>
+
+            
+<!-- Active Projects Heading with My/All Toggle -->
+<div class="mb-6">
+  <div class="flex items-center justify-between mb-4">
+    <div class="flex items-center gap-3">
+      <h2 class="font-display text-xl font-semibold">Active Projects</h2>
+      
+      <!-- My / All Toggle -->
+      <div id="projectScopeToggle" class="inline-flex bg-black/40 border border-white/10 rounded-full px-1 py-1 text-[11px]">
+        <button data-scope="my" class="px-3 py-1 rounded-full active-scope transition-all bg-orange-500/20 text-orange-400">
+          My
+        </button>
+        <button data-scope="all" class="px-3 py-1 rounded-full transition-all text-gray-400 hover:text-white">
+          All
+        </button>
+      </div>
+    </div>
+
+    <div class="flex gap-3">
+      <button id="dashEditorToggle" class="text-gray-400 hover:text-orange-500 transition p-2 rounded hover:bg-gray-800" title="Edit Projects">
+        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z"/></svg>
+      </button>
+      <button class="text-orange-500 text-sm font-medium">View All</button>
+    </div>
+  </div>
+  
+  <!-- Projects Grid -->
+  <div class="scroll-wrapper">
+    <div id="projectCards" class="space-y-6" style="overflow-y: auto; max-height: calc(100vh - 500px); padding: 0 15px 0 0;"></div>
+  </div>
+</div>
+
+
+            <div class="mb-6">
+                <h2 class="font-display text-xl font-semibold mb-4">Recent Activity</h2>
+                <div class="space-y-3 pl-4 border-l border-gray-700">
+                    <div class="mb-3"><div class="text-sm text-white">AI analyzed "Midnight City Chronicles"</div><div class="text-xs text-gray-400 font-mono">2 hours ago</div></div>
+                    <div class="mb-3"><div class="text-sm text-white">Added 3 videos to "Neon Dreams"</div><div class="text-xs text-gray-400 font-mono">4 hours ago</div></div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <button id="fabButton" class="fixed bottom-24 right-4 w-14 h-14 bg-orange-500 rounded-full flex items-center justify-center shadow-lg z-50 text-black hover:scale-110 transition-transform"><svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"></path></svg></button>
+<!-- Create New Project Modal -->
+<div id="projectModal" class="fixed inset-0 bg-black/80 backdrop-blur-sm z-50 hidden flex items-center justify-center p-4">
+  <div class="relative w-full max-w-md">
+    <!-- Outer glow -->
+    <div class="absolute -inset-4 bg-gradient-to-br from-orange-500/20 via-transparent to-black/80 rounded-3xl blur-2xl opacity-70 pointer-events-none"></div>
+
+    <!-- Card -->
+    <div class="relative bg-[#101010] border border-white/10 rounded-3xl px-8 py-7 shadow-[0_22px_60px_rgba(0,0,0,0.95)]">
+      <!-- Top accent -->
+      <div class="absolute inset-x-8 -top-px h-px bg-gradient-to-r from-transparent via-orange-400/70 to-transparent"></div>
+
+      <!-- Header -->
+      <header class="mb-6">
+        <p class="text-[11px] uppercase tracking-[0.25em] text-orange-400/80 mb-1">Project setup</p>
+        <h2 class="text-2xl font-display font-semibold text-white drop-shadow-sm">Create New Project</h2>
+      </header>
+
+      <!-- Title Input -->
+      <div class="mb-5">
+        <label class="flex items-center justify-between text-xs text-gray-400 mb-1.5">
+          <span>Project Title</span>
+          <span class="text-[10px] uppercase tracking-wide text-gray-500">Required</span>
+        </label>
+        <div class="relative">
+          <input
+            type="text"
+            id="projectTitle"
+            placeholder="eg. Midnight City Chronicles"
+            class="w-full bg-[#141414] border border-[#262626] rounded-xl px-4 py-2.5 text-sm text-white placeholder-gray-500 focus:border-orange-500 focus:ring-1 focus:ring-orange-500/50 outline-none transition"
+          />
+        </div>
+        <p id="titleError" class="text-[11px] text-red-400 mt-1 hidden">Please enter a project title.</p>
+      </div>
+
+      <!-- Genre Dropdown -->
+      <div class="mb-6">
+        <label class="flex items-center justify-between text-xs text-gray-400 mb-1.5">
+          <span>Genre</span>
+          <span class="text-[10px] uppercase tracking-wide text-gray-500">Optional</span>
+        </label>
+        <div class="relative">
+          <select
+            id="projectGenre"
+            class="w-full bg-[#141414] border border-[#262626] rounded-xl px-4 py-2.5 text-sm text-white focus:border-orange-500 focus:ring-1 focus:ring-orange-500/50 outline-none appearance-none pr-9"
+          >
+            <option value="Film Noir">Film Noir</option>
+            <option value="Sci-Fi">Sci‑Fi</option>
+            <option value="Thriller">Thriller</option>
+            <option value="Documentary">Documentary</option>
+            <option value="Drama">Drama</option>
+            <option value="Action">Action</option>
+            <option value="Comedy">Comedy</option>
+            <option value="Horror">Horror</option>
+            <option value="Other">Other</option>
+          </select>
+          <span class="pointer-events-none absolute right-3 top-1/2 -translate-y-1/2 text-gray-500 text-xs">▾</span>
+        </div>
+      </div>
+
+      <!-- Buttons -->
+      <div class="mt-2 flex gap-3">
+  <button
+    id="cancelModal"
+    class="flex-1 h-11 rounded-xl text-sm font-medium text-gray-300 border border-white/10 bg-transparent hover:bg-white/5 transition"
+  >
+    Cancel
+  </button>
+
+  <!-- Create: deep orange gradient -->
+  <button
+    id="createProject"
+    class="flex-1 h-11 rounded-xl text-sm font-semibold text-black
+           bg-[radial-gradient(circle_at_20%_0%,#ffb27a_0,#ff7a3b_35%,#ff4b1f_100%)]
+           shadow-[0_0_22px_rgba(255,120,60,0.7)]
+           hover:shadow-[0_0_30px_rgba(255,120,60,0.95)]
+           hover:translate-y-[1px]
+           transition"
+  >
+    Create
+  </button>
+
+  <!-- Create & Open: warm gold gradient -->
+  <button
+    id="createAndOpen"
+    class="flex-1 h-11 rounded-xl text-sm font-semibold text-black
+           bg-[radial-gradient(circle_at_20%_0%,#ffe9a3_0,#ffd45a_35%,#ffb200_100%)]
+           shadow-[0_0_22px_rgba(255,200,80,0.7)]
+           hover:shadow-[0_0_30px_rgba(255,210,100,0.95)]
+           hover:translate-y-[1px]
+           transition"
+  >
+    Create &amp; Open
+  </button>
+</div>
+
+
+
+
+    <nav class="nav-bottom fixed bottom-0 left-0 right-0 px-4 py-3 z-40">
+        <div class="flex justify-around items-center">
+            <a href="index.html" class="nav-item active flex flex-col items-center space-y-1"><svg class="w-5 h-5" fill="currentColor" viewBox="0 0 24 24"><path d="M3 13h8V3H3v10zm0 8h8v-6H3v6zm10 0h8V11h-8v10zm0-18v6h8V3h-8z"/></svg><span class="text-xs">Projects</span></a>
+            <a href="scripts.html" class="nav-item text-gray-500 flex flex-col items-center space-y-1"><svg class="w-5 h-5" fill="currentColor" viewBox="0 0 24 24"><path d="M14,2H6A2,2 0 0,0 4,4V20A2,2 0 0,0 6,22H18A2,2 0 0,0 20,20V8L14,2M18,20H6V4H13V9H18V20Z"/></svg><span class="text-xs">Scripts</span></a>
+            <a href="footage.html" class="nav-item text-gray-500 flex flex-col items-center space-y-1"><svg class="w-5 h-5" fill="currentColor" viewBox="0 0 24 24"><path d="M17,10.5V7A1,1 0 0,0 16,6H4A1,1 0 0,0 3,7V17A1,1 0 0,0 4,18H16A1,1 0 0,0 17,17V13.5L21,17.5V6.5L17,10.5Z"/></svg><span class="text-xs">Footage</span></a>
+            <a href="ai-tools.html" class="nav-item text-gray-500 flex flex-col items-center space-y-1"><svg class="w-5 h-5" fill="currentColor" viewBox="0 0 24 24"><path d="M12,2A2,2 0 0,1 14,4C14,4.74 13.6,5.39 13,5.73V7H14A7,7 0 0,1 21,14H22A1,1 0 0,1 23,15V18A1,1 0 0,1 22,19H21V20A2,2 0 0,1 19,22H5A2,2 0 0,1 3,20V19H2A1,1 0 0,1 1,18V15A1,1 0 0,1 2,14H3A7,7 0 0,1 10,7H11V5.73C10.4,5.39 10,4.74 10,4A2,2 0 0,1 12,2Z"/></svg><span class="text-xs">AI Tools</span></a>
+        </div>
+    </nav>
+
+    <!-- Account Settings Panel -->
+<div id="accountPanelOverlay" class="fixed inset-0 bg-black/60 backdrop-blur-sm z-40 hidden"></div>
+
+<div id="accountPanel" class="fixed top-0 right-0 h-full w-full max-w-md bg-[#050505] border-l border-orange-500/40 shadow-2xl z-50 translate-x-full transition-transform duration-300">
+  <div class="flex items-center justify-between px-6 py-4 border-b border-white/10">
+    <div>
+      <p class="text-sm uppercase tracking-[0.2em] text-orange-400">Account</p>
+      <h2 class="text-xl font-semibold text-white">Profile & preferences</h2>
+    </div>
+    <button id="accountPanelClose" class="w-8 h-8 rounded-full bg-white/5 hover:bg-white/10 flex items-center justify-center text-gray-300">
+      ✕
+    </button>
+  </div>
+
+  <div class="px-6 py-5 space-y-6 overflow-y-auto h-[calc(100%-64px)]">
+    <!-- Profile -->
+    <section class="bg-white/5 border border-white/10 rounded-2xl p-4 flex gap-4 items-center">
+      <div class="w-14 h-14 rounded-full overflow-hidden border border-orange-400/70 bg-black/70 flex items-center justify-center">
+        <img id="panelAvatarImg" src="" class="w-full h-full object-cover hidden" alt="Avatar">
+        <span id="panelAvatarFallback" class="text-lg font-semibold text-orange-300">U</span>
+      </div>
+      <div class="flex-1">
+        <p id="panelName" class="text-white font-semibold text-sm">User name</p>
+        <p id="panelEmail" class="text-xs text-gray-400 truncate">email@example.com</p>
+        <span id="panelRole" class="inline-block mt-1 px-2 py-0.5 rounded-full text-[10px] uppercase tracking-wide bg-orange-500/10 text-orange-300 border border-orange-500/40">User</span>
+      </div>
+      <button id="panelChangeAvatar" class="text-[11px] px-2 py-1 rounded-lg border border-white/15 text-gray-200 hover:bg-white/5">
+        Change
+      </button>
+      <input id="panelAvatarInput" type="file" accept="image/*" class="hidden">
+    </section>
+
+    <!-- Appearance -->
+    <section class="bg-white/5 border border-white/10 rounded-2xl p-4 space-y-3">
+      <div class="flex items-center justify-between">
+        <div>
+          <p class="text-xs font-semibold text-gray-200">Appearance</p>
+          <p class="text-[11px] text-gray-400">Choose how IMRAN SQUARE looks.</p>
+        </div>
+      </div>
+      <div class="flex gap-2">
+        <button id="themeAdvanced" class="flex-1 px-3 py-2 rounded-xl border border-orange-500/60 bg-orange-500/10 text-xs text-orange-100">
+          Advanced (Cinematic)
+        </button>
+        <button id="themeBasic" class="flex-1 px-3 py-2 rounded-xl border border-white/15 bg-black/60 text-xs text-gray-200">
+          Basic (Day / Light)
+        </button>
+      </div>
+    </section>
+
+    <!-- Session -->
+    <section class="bg-white/5 border border-white/10 rounded-2xl p-4 space-y-3">
+      <p class="text-xs font-semibold text-gray-200">Session</p>
+      <button id="panelSignOut" class="w-full text-left px-3 py-2 rounded-xl border border-red-500/40 text-xs text-red-300 hover:bg-red-500/10">
+        Sign out from this device
+      </button>
+    </section>
+  </div>
+</div>
+
+<script type="module">
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
+        import { getAuth, onAuthStateChanged, signOut } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js";
+
+        const firebaseConfig = {
+            apiKey: "AIzaSyA_D3AuwSzHKgs5svcwRoP0St2Nc-delF8",
+            authDomain: "iimransquare.firebaseapp.com",
+            projectId: "iimransquare",
+            storageBucket: "iimransquare.firebasestorage.app",
+            messagingSenderId: "431645042472",
+            appId: "1:431645042472:web:87e7cea4659d6a0564121d",
+            measurementId: "G-Z0EN14J4XM"
+        };
+
+        const app = initializeApp(firebaseConfig);
+        const auth = getAuth(app);
+
+        
+   function showDashToast(msg, timeout = 3000) {
+  const el = document.getElementById('dashToast');
+  if (!el) return;
+  el.textContent = msg;
+  el.classList.remove('hidden');
+  clearTimeout(window.__dashToastTimer);
+  window.__dashToastTimer = setTimeout(() => {
+    el.classList.add('hidden');
+  }, timeout);
+}
+<div id="dashToast"
+     class="hidden fixed bottom-6 left-1/2 -translate-x-1/2 px-4 py-2 rounded-full bg-white/90 text-xs text-black shadow-lg z-50">
+  Welcome back.
+</div>
+
+
+        // 2. Logout Function (Global)
+        window.logoutApp = () => {
+            signOut(auth).then(() => {
+                localStorage.removeItem('imranUser');
+                window.location.href = "landing.html";
+            });
+        };
+    </script>
+    <script src="main.js"></script>
+    <script src="dashboard-advanced.js"></script>
+
+        <!-- PWA Service Worker Registration -->
+    <script>
+      if ('serviceWorker' in navigator) {
+        window.addEventListener('load', () => {
+          navigator.serviceWorker
+            .register('/service-worker.js')
+            .then((registration) => {
+              console.log('✅ ServiceWorker registered:', registration.scope);
+            })
+            .catch((error) => {
+              console.error('❌ ServiceWorker registration failed:', error);
+            });
+        });
+      }
+    </script>
+
+</body>
+</html>
