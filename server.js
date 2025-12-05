@@ -26,10 +26,8 @@ app.use(cors());
 app.use(express.json());
 app.use(express.static('public'));
 
-// Firebase Admin initialization
-const serviceAccount = JSON.parse(
-  readFileSync('./serviceAccountKey.json', 'utf8')
-);
+const serviceAccount = JSON.parse(process.env.FIREBASE_SERVICE_ACCOUNT_JSON);
+
 
 
 admin.initializeApp({
