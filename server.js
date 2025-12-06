@@ -888,6 +888,26 @@ const footageData = {
   updatedAt: new Date().toISOString()
 };
 
+// List footage for a project
+app.get('/api/footage/list', async (req, res) => {
+  try {
+    const { projectId } = req.query;
+
+    let q = db.collection('footage');
+    if (projectId) {
+      q = q.where('projectId', '==', projectId);
+    }
+
+    const snap = await q.orderBy('createdAt', 'desc').get();
+    const items = snap.docs.map(d => ({ id: d.id, ...d.data() }));
+
+    res.json({ items });
+  } catch (err) {
+    console.error('Footage list error:', err);
+    res.status(500).json({ error: 'Failed to load footage' });
+  }
+});
+
 
 
     const docRef = await db.collection('footage').add(footageData);

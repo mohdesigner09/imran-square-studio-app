@@ -628,18 +628,41 @@ const defaultRawClips = [
 // RUNTIME ARRAY
 let rawClips = [];
 
-function loadRawClips() {
-  const saved = localStorage.getItem('rawClips');
-  if (saved) {
-    try {
-      rawClips = JSON.parse(saved);
-      return;
-    } catch (e) {
-      console.warn('Failed to parse saved rawClips, using defaults');
+async function loadRawClips() {
+  try {
+    const params = new URLSearchParams(window.location.search);
+    const projectId = params.get('id') || 'default-project';
+
+    const res = await fetch(`/api/footage/list?projectId=${encodeURIComponent(projectId)}`);
+    if (!res.ok) throw new Error('Failed to load footage');
+
+    const data = await res.json();
+    const items = data.items || [];
+
+    rawClips = items.map(item => ({
+      id: item.id,
+      title: item.title || item.fileName || 'Untitled',
+      duration: item.duration || '00:00',
+      tag: 'RAW',
+      category: 'raw',
+      format: item.format || 'long',
+      createdAt: item.createdAt || new Date().toISOString(),
+      thumb: '/resources/hero-film-studio.png', // temporary placeholder thumbnail
+      width: 1920,
+      height: 1080,
+      src: '', // later: Drive preview link
+    }));
+
+    // Agar abhi Firestore empty hai to UI ke liye default dikhana ho to:
+    if (!rawClips.length) {
+      rawClips = defaultRawClips;
     }
+  } catch (err) {
+    console.error('loadRawClips error:', err);
+    rawClips = defaultRawClips; // fallback
   }
-  rawClips = defaultRawClips;
 }
+
 
 function saveRawClips() {
   localStorage.setItem('rawClips', JSON.stringify(rawClips));
@@ -990,7 +1013,7 @@ function theaterKeyHandler(e) {
   }
 }
 
-document.addEventListener('DOMContentLoaded', () => {
+document.addEventListener('DOMContentLoaded', async () => {
   currentUser = window.CURRENTUSER || null;
   viewMode = window.VIEW_MODE || 'my';   // dashboard se aaya hua state
 
