@@ -844,6 +844,38 @@ app.post('/api/chat', async (req, res) => {
   }
 });
 
+// ===== FOOTAGE METADATA API =====
+app.post('/api/footage/create', async (req, res) => {
+  try {
+    const { projectId, userId, fileName, fileSize, duration, title, thumbnail, format } = req.body;
+
+    const footageData = {
+      projectId,
+      userId,
+      fileName,
+      fileSize: fileSize || 0,
+      duration: duration || '00:00',
+      title: title || fileName,
+      thumbnailDataUrl: thumbnail || '',
+      format: format || 'long',
+      status: 'queued',  // User ne "send" kar diya, ab admin upload karega
+      kind: 'raw',
+      rawDriveLink: '',
+      editedDriveLink: '',
+      createdAt: new Date().toISOString(),
+      updatedAt: new Date().toISOString()
+    };
+
+    const docRef = await db.collection('footage').add(footageData);
+
+    res.json({ success: true, footageId: docRef.id });
+  } catch (err) {
+    console.error('Footage create error:', err);
+    res.status(500).json({ error: 'Failed to create footage doc' });
+  }
+});
+
+
 const PORT = process.env.PORT || 3000;
 
 app.listen(PORT, () => {

@@ -1291,6 +1291,26 @@ const newClip = {
   src: videoURL,              // ← naya field
 };
 
+// Backend me Firestore doc create karo
+fetch('/api/footage/create', {
+  method: 'POST',
+  headers: { 'Content-Type': 'application/json' },
+  body: JSON.stringify({
+    projectId: projectId || 'default-project',
+    userId: currentUser?.uid || 'guest',
+    fileName: selectedFile.name,
+    fileSize: selectedFile.size,
+    duration: `00:${Math.floor(Math.random() * 40 + 20)}`,
+    title: finalTitle,
+    thumbnail: document.getElementById('previewThumbnail').src,
+    format: lastVideoHeight > lastVideoWidth ? 'short' : 'long'
+  })
+})
+.then(r => r.json())
+.then(data => {
+  console.log('✅ Footage doc created:', data.footageId);
+})
+.catch(err => console.error('Footage save error:', err));
 
 
       rawClips.unshift(newClip); // Add at beginning
