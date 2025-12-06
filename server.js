@@ -46,23 +46,6 @@ app.get('/index.html', (req, res) => {
   res.sendFile(path.join(__dirname, 'index.html'));
 });
 
-app.get('/api/footage/list', async (req, res) => {
-  try {
-    const { projectId } = req.query;
-    let q = db.collection('footage');
-    if (projectId) q = q.where('projectId', '==', projectId);
-
-    const snap = await q.orderBy('createdAt', 'desc').get();
-    const items = snap.docs.map(d => ({ id: d.id, ...d.data() }));
-    res.json({ items });
-  } catch (err) {
-    console.error('Footage list error:', err);
-    res.status(500).json({ error: 'Failed to load footage' });
-  }
-});
-
-
-
 
 const serviceAccount = JSON.parse(process.env.FIREBASE_SERVICE_ACCOUNT_JSON);
 
@@ -898,13 +881,10 @@ app.get('/api/footage/list', async (req, res) => {
       q = q.where('projectId', '==', projectId);
     }
 
-    // Temporarily remove orderBy to avoid index error
-    // q = q.orderBy('createdAt', 'desc');
-
     const snap = await q.get();
     const items = snap.docs.map(d => ({ id: d.id, ...d.data() }));
     
-    // Sort in JS instead
+    // Sort in JS to avoid Firestore index error
     items.sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt));
 
     res.json({ items });
@@ -913,6 +893,7 @@ app.get('/api/footage/list', async (req, res) => {
     res.status(500).json({ error: 'Failed to load footage' });
   }
 });
+
 
 
 

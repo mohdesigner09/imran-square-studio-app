@@ -1010,116 +1010,7 @@ function theaterKeyHandler(e) {
   }
 }
 
-document.addEventListener('DOMContentLoaded', async () => {
-  currentUser = window.CURRENTUSER || null;
-  viewMode = window.VIEW_MODE || 'my';
 
-  if (viewMode === 'my') {
-    isOwner = !!currentUser;
-  } else {
-    isOwner = false;
-  }
-
-  document.body.classList.toggle('owner-mode', isOwner);
-
-  const uploadBtn = document.getElementById('uploadButton');
-  const editToggleBtn = document.getElementById('editModeToggle');
-  if (uploadBtn) uploadBtn.classList.toggle('hidden', !isOwner);
-  if (editToggleBtn) editToggleBtn.classList.toggle('hidden', !isOwner);
-
-  // 🔸 Yahan AB await karo:
-  await loadRawClips();
-
-  // FILTER PILLS
-  const filterPills = document.querySelectorAll('#filterContainer .filter-pill');
-  filterPills.forEach(pill => {
-    pill.addEventListener('click', () => {
-      filterPills.forEach(p => p.classList.remove('active'));
-      pill.classList.add('active');
-
-      const label = pill.textContent.toLowerCase();
-      if (label.startsWith('today')) activeFilter = 'today';
-      else if (label.startsWith('last week')) activeFilter = 'week';
-      else if (label.startsWith('last month')) activeFilter = 'month';
-      else if (label.startsWith('last year')) activeFilter = 'year';
-      else if (label.startsWith('bts')) activeFilter = 'bts';
-      else activeFilter = 'all';
-
-      renderRawClips(activeFilter, activeFormat);
-    });
-  });
-
-  // FORMAT TOGGLE
-  const formatButtons = document.querySelectorAll('#formatToggle button');
-  formatButtons.forEach(btn => {
-    btn.addEventListener('click', () => {
-      formatButtons.forEach(b => b.classList.remove('active-format'));
-      btn.classList.add('active-format');
-
-      const key = btn.dataset.format;
-      activeFormat = (key === 'shorts') ? 'short' : 'long';
-
-      renderRawClips(activeFilter, activeFormat);
-    });
-  });
-
-  // EDIT TOGGLE
-  const editToggleBtn2 = document.getElementById('editModeToggle');
-  const editHint = document.getElementById('editHint');
-
-  if (editToggleBtn2) {
-    editToggleBtn2.addEventListener('click', () => {
-      if (!isOwner) return;
-
-      isEditMode = !isEditMode;
-      document.body.classList.toggle('edit-mode', isEditMode);
-
-      if (isEditMode) {
-        editToggleBtn2.classList.add('border-orange-500', 'text-orange-400');
-        if (editHint) editHint.classList.remove('hidden');
-        enableFootageSorting();
-      } else {
-        editToggleBtn2.classList.remove('border-orange-500', 'text-orange-400');
-        if (editHint) editHint.classList.add('hidden');
-        disableFootageSorting();
-      }
-    });
-  }
-
-  // SEARCH BOX
-  const searchInput = document.getElementById('footageSearch');
-  if (searchInput) {
-    searchInput.addEventListener('input', (e) => {
-      activeSearchQuery = e.target.value.trim().toLowerCase();
-      renderRawClips(activeFilter, activeFormat);
-    });
-  }
-
-  // SPEED CONTROL
-  const speedSelect = document.getElementById('playbackSpeed');
-  const speedWrapper = speedSelect?.closest('.speed-wrapper');
-
-  if (speedSelect) {
-    speedSelect.addEventListener('change', (e) => {
-      currentPlaybackRate = parseFloat(e.target.value) || 1;
-
-      const video = document.querySelector('#playerContainer video');
-      if (video) {
-        video.playbackRate = currentPlaybackRate;
-      }
-
-      if (speedWrapper) {
-        speedWrapper.classList.add('ripple-active');
-        setTimeout(() => {
-          speedWrapper.classList.remove('ripple-active');
-        }, 600);
-      }
-    });
-  }
-
-  // 🔸 INITIAL RENDER ab loadRawClips ke baad:
-  renderRawClips(activeFilter, activeFormat);
-});
 
 // ==== SORTABLE HELPERS (DOMContentLoaded ke bahar) ====
 
@@ -1266,17 +1157,11 @@ function sendToStudio() {
   if (!selectedFile) return;
 
   // Hide step 1, show step 2
-  const canvas = document.createElement('canvas');
-canvas.width = video.videoWidth;
-canvas.height = video.videoHeight;
-canvas.getContext('2d').drawImage(video, 0, 0);
+  document.getElementById('uploadStep1').classList.add('hidden');
+  document.getElementById('uploadStep2').classList.remove('hidden');
 
-// yeh line ko replace karo:
-thumb.src = canvas.toDataURL();
-
-// isse:
-thumb.src = canvas.toDataURL('image/jpeg', 0.25);  // 25% quality
-
+  const progressBar = document.getElementById('uploadProgressBar');
+  const progressText = document.getElementById('uploadProgressText');
 
   let progress = 0;
   const steps = [
@@ -1303,76 +1188,45 @@ thumb.src = canvas.toDataURL('image/jpeg', 0.25);  // 25% quality
     } else {
       clearInterval(progressInterval);
 
-      // Add new clip to rawClips
+      // Backend API call
       const titleInput = document.getElementById('previewTitleInput');
-const finalTitle = titleInput.value.trim() || selectedFile.name.replace(/\.[^/.]+$/, '');
+      const finalTitle = titleInput.value.trim() || selectedFile.name.replace(/\.[^/.]+$/, '');
 
-const rawThumb = document.getElementById('previewThumbnail').src;
+      fetch('/api/footage/create', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          projectId: projectId || 'default-project',
+          userId: currentUser?.uid || 'guest',
+          fileName: selectedFile.name,
+          fileSize: selectedFile.size,
+          duration: `00:${Math.floor(Math.random() * 40 + 20)}`,
+          title: finalTitle,
+          format: lastVideoHeight > lastVideoWidth ? 'short' : 'long'
+        })
+      })
+        .then(r => r.json())
+        .then(data => {
+          console.log('✅ Footage doc created:', data.footageId);
+        })
+        .catch(err => console.error('Footage save error:', err));
 
-// Base64 length limit rakho (e.g. max ~200KB)
-const maxThumbLength = 200 * 1024; // chars
-const safeThumb = rawThumb.length > maxThumbLength
-  ? rawThumb.slice(0, maxThumbLength)
-  : rawThumb;
+      // Local clip for UI
+      const newClip = {
+        id: 'r' + (rawClips.length + 1),
+        title: finalTitle,
+        duration: `00:${Math.floor(Math.random() * 40 + 20)}`,
+        tag: 'RAW',
+        category: 'raw',
+        format: lastVideoHeight > lastVideoWidth ? 'short' : 'long',
+        createdAt: new Date().toISOString(),
+        thumb: document.getElementById('previewThumbnail').src,
+        width: lastVideoWidth || 1920,
+        height: lastVideoHeight || 1080,
+        src: '',
+      };
 
-fetch('/api/footage/create', {
-  method: 'POST',
-  headers: { 'Content-Type': 'application/json' },
-body: JSON.stringify({
-  projectId: projectId || 'default-project',
-  userId: currentUser?.uid || 'guest',
-  fileName: selectedFile.name,
-  fileSize: selectedFile.size,
-  duration: `00:${Math.floor(Math.random() * 40 + 20)}`,
-  title: finalTitle,
-  format: lastVideoHeight > lastVideoWidth ? 'short' : 'long'
-})
-
-})
-
-
-
-const videoURL = URL.createObjectURL(selectedFile);
-
-
-const newClip = {
-  id: 'r' + (rawClips.length + 1),
-  title: finalTitle,
-  duration: `00:${Math.floor(Math.random() * 40 + 20)}`,
-  tag: 'RAW',
-  category: 'raw',
-  format: lastVideoHeight > lastVideoWidth ? 'short' : 'long',
-  createdAt: new Date().toISOString(),
-  thumb: document.getElementById('previewThumbnail').src,
-  width: lastVideoWidth || 1920,
-  height: lastVideoHeight || 1080,
-  src: '', // abhi ke liye empty; baad me Drive link
-};
-
-
-// Backend me Firestore doc create karo
-fetch('/api/footage/create', {
-  method: 'POST',
-  headers: { 'Content-Type': 'application/json' },
-body: JSON.stringify({
-  projectId: projectId || 'default-project',
-  userId: currentUser?.uid || 'guest',
-  fileName: selectedFile.name,
-  fileSize: selectedFile.size,
-  duration: `00:${Math.floor(Math.random() * 40 + 20)}`,
-  title: finalTitle,
-  format: lastVideoHeight > lastVideoWidth ? 'short' : 'long'
-})
-
-})
-.then(r => r.json())
-.then(data => {
-  console.log('✅ Footage doc created:', data.footageId);
-})
-.catch(err => console.error('Footage save error:', err));
-
-
-      rawClips.unshift(newClip); // Add at beginning
+      rawClips.unshift(newClip);
 
       // Show success
       setTimeout(() => {
@@ -1381,52 +1235,126 @@ body: JSON.stringify({
       }, 500);
 
       // Refresh grid after modal close
-setTimeout(() => {
-  closeUploadModal();
-  const activeFilter = document.querySelector('.filter-pill.active')?.textContent.trim().toLowerCase() || 'all';
-  let filterKey = 'all';
-  if (activeFilter.startsWith('today')) filterKey = 'today';
-  else if (activeFilter.startsWith('last week')) filterKey = 'week';
-  else if (activeFilter.startsWith('last month')) filterKey = 'month';
-  else if (activeFilter.startsWith('last year')) filterKey = 'year';
-  else if (activeFilter === 'bts') filterKey = 'bts';
-  
-  renderRawClips(filterKey, activeFormat);  // ✅ activeFormat pass kiya
-}, 2500);
-
-
+      setTimeout(() => {
+        closeUploadModal();
+        renderRawClips(activeFilter, activeFormat);
+      }, 2500);
     }
   }, 150);
 }
 
-document.addEventListener('DOMContentLoaded', function () {
-  (function initAiToolsPage() {
-    const params = new URLSearchParams(window.location.search); // [web:36][web:42]
-    const projectId = params.get('id');
 
-    if (!projectId) {
-      window.location.href = 'index.html';
-      return;
-    }
+document.addEventListener('DOMContentLoaded', async () => {
+  currentUser = window.CURRENT_USER || null;
+  viewMode = window.VIEW_MODE || 'my';
 
-    let projects = [];
-    try {
-      const raw = localStorage.getItem('imranProjects'); // [web:26][web:29]
-      projects = raw ? JSON.parse(raw) : [];
-    } catch (e) {
-      projects = [];
-    }
+  if (viewMode === 'my') {
+    isOwner = !!currentUser;
+  } else {
+    isOwner = false;
+  }
 
-    const project = projects.find(p => p.id === projectId);
-    if (!project) {
-      window.location.href = 'index.html';
-      return;
-    }
+  document.body.classList.toggle('owner-mode', isOwner);
 
-    const titleEl = document.getElementById('aiProjectTitle');
-    if (titleEl) titleEl.textContent = project.title || 'Untitled';
-  })();
+  const uploadBtn = document.getElementById('uploadButton');
+  const editToggleBtn = document.getElementById('editModeToggle');
+  if (uploadBtn) uploadBtn.classList.toggle('hidden', !isOwner);
+  if (editToggleBtn) editToggleBtn.classList.toggle('hidden', !isOwner);
+
+  // 🔸 DATA LOAD
+  await loadRawClips();
+
+  // FILTER PILLS
+  const filterPills = document.querySelectorAll('#filterContainer .filter-pill');
+  filterPills.forEach(pill => {
+    pill.addEventListener('click', () => {
+      filterPills.forEach(p => p.classList.remove('active'));
+      pill.classList.add('active');
+
+      const label = pill.textContent.toLowerCase();
+      if (label.startsWith('today')) activeFilter = 'today';
+      else if (label.startsWith('last week')) activeFilter = 'week';
+      else if (label.startsWith('last month')) activeFilter = 'month';
+      else if (label.startsWith('last year')) activeFilter = 'year';
+      else if (label.startsWith('bts')) activeFilter = 'bts';
+      else activeFilter = 'all';
+
+      renderRawClips(activeFilter, activeFormat);
+    });
+  });
+
+  // FORMAT TOGGLE
+  const formatButtons = document.querySelectorAll('#formatToggle button');
+  formatButtons.forEach(btn => {
+    btn.addEventListener('click', () => {
+      formatButtons.forEach(b => b.classList.remove('active-format'));
+      btn.classList.add('active-format');
+
+      const key = btn.dataset.format;
+      activeFormat = (key === 'shorts') ? 'short' : 'long';
+
+      renderRawClips(activeFilter, activeFormat);
+    });
+  });
+
+  // EDIT TOGGLE
+  const editToggleBtn2 = document.getElementById('editModeToggle');
+  const editHint = document.getElementById('editHint');
+
+  if (editToggleBtn2) {
+    editToggleBtn2.addEventListener('click', () => {
+      if (!isOwner) return;
+
+      isEditMode = !isEditMode;
+      document.body.classList.toggle('edit-mode', isEditMode);
+
+      if (isEditMode) {
+        editToggleBtn2.classList.add('border-orange-500', 'text-orange-400');
+        if (editHint) editHint.classList.remove('hidden');
+        enableFootageSorting();
+      } else {
+        editToggleBtn2.classList.remove('border-orange-500', 'text-orange-400');
+        if (editHint) editHint.classList.add('hidden');
+        disableFootageSorting();
+      }
+    });
+  }
+
+  // SEARCH BOX
+  const searchInput = document.getElementById('videoSearchInput');
+  if (searchInput) {
+    searchInput.addEventListener('input', (e) => {
+      activeSearchQuery = e.target.value.trim().toLowerCase();
+      renderRawClips(activeFilter, activeFormat);
+    });
+  }
+
+  // SPEED CONTROL
+  const speedSelect = document.getElementById('playbackSpeed');
+  const speedWrapper = speedSelect?.closest('.speed-wrapper');
+
+  if (speedSelect) {
+    speedSelect.addEventListener('change', (e) => {
+      currentPlaybackRate = parseFloat(e.target.value) || 1;
+
+      const video = document.querySelector('#playerContainer video');
+      if (video) {
+        video.playbackRate = currentPlaybackRate;
+      }
+
+      if (speedWrapper) {
+        speedWrapper.classList.add('ripple-active');
+        setTimeout(() => {
+          speedWrapper.classList.remove('ripple-active');
+        }, 600);
+      }
+    });
+  }
+
+  // INITIAL RENDER
+  renderRawClips(activeFilter, activeFormat);
 });
+
 
 function goBackToFootageVault() {
   const params = new URLSearchParams(window.location.search); // [web:36][web:42]
