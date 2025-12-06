@@ -28,7 +28,13 @@ app.use(express.static(__dirname));
 
 // Middlewares
 app.use(cors());
-app.use(express.json());
+// Pehle tha:
+// app.use(express.json());
+
+// Ab aise karo:
+app.use(express.json({ limit: '2mb' }));
+app.use(express.urlencoded({ limit: '2mb', extended: true }));
+
 
 // Root landing
 app.get('/', (req, res) => {
