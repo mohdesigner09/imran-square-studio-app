@@ -1,4 +1,5 @@
-const CACHE_NAME = 'imran-square-v1.0.0';
+const CACHE_NAME = 'imran-square-v2';  // v1 se v2 karo
+
 const OFFLINE_URL = '/landing.html';
 
 // Files to cache on install
