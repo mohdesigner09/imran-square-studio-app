@@ -1,3 +1,9 @@
+const API_BASE = window.location.hostname === 'localhost'
+  ? 'http://localhost:3000'
+  : 'https://imran-square-studio.onrender.com';
+
+// niche tumhara pura JS code...
+
 /// ===== AUTH & CURRENT USER SETUP =====
 const RAWUSER = localStorage.getItem('imranUser');
 const CURRENTUSER = RAWUSER ? JSON.parse(RAWUSER) : null;

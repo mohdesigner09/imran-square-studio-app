@@ -129,8 +129,8 @@
     </div>
   </header>
 
-  <div class="relative w-full max-w-md rounded-3xl bg-gradient-to-b from-white/5 to-black/80 border border-white/10 shadow-[0_0_80px_rgba(0,0,0,0.8)] px-8 py-7 space-y-6 z-10">
-    
+  <div class="relative w-full max-w-md mx-auto md:ml-auto md:mr-24 rounded-3xl ... px-6 sm:px-8 py-7 space-y-6 z-10">
+
     <!-- Logo -->
     <div class="text-center space-y-1">
       <p class="text-[11px] tracking-[0.3em] text-orange-400">IMRAN SQUARE</p>
@@ -349,8 +349,6 @@
 <script>
 
 
-
-
 // GLOBAL STATE
 let currentProvider = null;
 let contactValue = null;
@@ -360,6 +358,12 @@ let timerInterval = null;
 function $(id) {
   return document.getElementById(id);
 }
+
+// API base URL - automatically uses current domain
+const API_BASE = window.location.hostname === 'localhost' 
+  ? 'http://localhost:3000' 
+  : 'https://imran-square-studio.onrender.com';
+
 
 // YAHAN YE 4 LINES ADD KARO 👇
 const stepProviders = $('stepProviders');
@@ -573,13 +577,13 @@ if (btnUsernameLogin) {
 
     btnUsernameLogin.disabled = true;
     btnUsernameLogin.textContent = 'Signing in...';
-
     try {
-      const res = await fetch('http://localhost:3000/api/login-username', {
+      const res = await fetch(`${API_BASE}/api/login-username`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ username: user, password: pass })
       });
+
 
       const data = await res.json();
       console.log('USERNAME LOGIN RESPONSE:', data);
@@ -641,12 +645,13 @@ if (btnUsernameLogin) {
       btnSendOtp.disabled = true;
       btnSendOtp.textContent = 'Sending...';
 
-      try {
-        const res = await fetch('http://localhost:3000/api/send-otp', {
+       try {
+        const res = await fetch(`${API_BASE}/api/send-otp`, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ email: contact })
         });
+
 
         const data = await res.json();
         console.log('✉️ SEND OTP RESPONSE:', data);
@@ -698,15 +703,16 @@ if (btnVerifyOtp) {
     btnVerifyOtp.disabled = true;
     btnVerifyOtp.textContent = 'Verifying...';
 
-    try {
-      const res = await fetch('http://localhost:3000/api/verify-otp', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          email: contactValue,
-          code
-        })
-      });
+  try {
+  const res = await fetch(`${API_BASE}/api/verify-otp`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({
+      email: contactValue,
+      code
+    })
+  });
+
 
       const data = await res.json();
       console.log('VERIFY RESPONSE:', data);
@@ -766,13 +772,13 @@ window.location.href = 'index.html';
       btnResendOtp.disabled = true;
       btnResendOtp.textContent = 'Sending...';
 
-      try {
-        const res = await fetch('http://localhost:3000/api/send-otp', {
+        try {
+        const res = await fetch(`${API_BASE}/api/send-otp`, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
-         body: JSON.stringify({ email: contactValue })
-
+          body: JSON.stringify({ email: contactValue })
         });
+
 
         const data = await res.json();
         if (data.success) {
@@ -821,21 +827,22 @@ window.location.href = 'index.html';
       btnRegister.textContent = 'Creating account...';
 
       try {
-        const res = await fetch('http://localhost:3000/api/complete-registration', {
+        const res = await fetch(`${API_BASE}/api/complete-registration`, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
-body: JSON.stringify({ 
-  email, 
-  firstName: first, 
-  lastName: last, 
-  username, 
-  role,
-  password: $('password').value
-})
-
-
+          body: JSON.stringify({ 
+            email, 
+            firstName: first, 
+            lastName: last, 
+            username, 
+            role,
+            password: $('password').value
+          })
         });
 
+
+
+        
         const data = await res.json();
 
  if (data.success && data.user) {

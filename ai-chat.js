@@ -1,3 +1,9 @@
+  const API_BASE = window.location.hostname === 'localhost'
+  ? 'http://localhost:3000'
+  : 'https://imran-square-studio.onrender.com';
+
+// niche tumhara pura JS code...
+
   // ============= CHAT STORAGE =============
   function getChats() {
     return JSON.parse(localStorage.getItem("chatSessions") || "[]");
@@ -469,18 +475,19 @@ window.startNewChat = startNewChat;
                 const typingId = showTyping();
 
                 try {
-                  const selectedModel = document.getElementById('modelSelect').value || 'gemini-1.5-pro';
+        const selectedModel = document.getElementById('modelSelect').value || 'gemini-1.5-pro';
 
-                  console.log('🚀 Sending request:', { userMessage, selectedModel });
+        console.log('🚀 Sending request:', { userMessage, selectedModel });
 
-                  const response = await fetch('http://localhost:3000/api/chat', {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({
-                      userMessage: userMessage,
-                      model: selectedModel
-                    })
-                  });
+        const response = await fetch(`${API_BASE}/api/chat`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            userMessage: userMessage,
+            model: selectedModel
+          })
+        });
+
 
                   if (!response.ok) {
                     throw new Error(`Server error: ${response.status} ${response.statusText}`);

@@ -73,9 +73,10 @@ self.addEventListener('fetch', (event) => {
   // Skip non-GET requests
   if (event.request.method !== 'GET') return;
 
-  // Skip chrome extensions and dev tools
-  if (event.request.url.startsWith('chrome-extension://')) return;
-  if (event.request.url.includes('localhost:3000')) return; // Skip API calls
+// Skip chrome extensions and dev tools
+if (event.request.url.startsWith('chrome-extension://')) return;
+if (event.request.url.includes('localhost:3000')) return; // Skip API calls
+
 
   event.respondWith(
     caches.match(event.request)

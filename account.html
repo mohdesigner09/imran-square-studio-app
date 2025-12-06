@@ -402,6 +402,11 @@
   const ADMIN_EMAILS = ['imransquareofficial@gmail.com'];
   const IS_ADMIN = CURRENT_USER && ADMIN_EMAILS.includes(CURRENT_USER.email);
 
+const API_BASE = window.location.hostname === 'localhost' 
+  ? 'http://localhost:3000' 
+  : 'https://imran-square-studio.onrender.com';
+
+
   // ---- Name helper ----
   function getImranFullName(user) {
     if (!user) return 'Guest';
@@ -640,7 +645,7 @@ if (btnAccountSave && btnAccountCancel) {
     btnAccountSave.disabled = true;
     btnAccountSave.textContent = 'Saving...';
 
-    try {
+      try {
       let updatedUser = null;
 
       // 1) Naya avatar hua to Drive pe upload
@@ -649,10 +654,11 @@ if (btnAccountSave && btnAccountCancel) {
         formData.append('avatar', NEW_AVATAR_FILE);
         formData.append('userId', WORKING_USER.userId);
 
-        const resAvatar = await fetch('http://localhost:3000/api/account/upload-avatar', {
+        const resAvatar = await fetch(`${API_BASE}/api/account/upload-avatar`, {
           method: 'POST',
           body: formData
         });
+
 
         const dataAvatar = await resAvatar.json();
         console.log('UPLOAD AVATAR RESPONSE:', dataAvatar);
@@ -669,7 +675,7 @@ if (btnAccountSave && btnAccountCancel) {
       }
 
       // 2) Name / username update-profile se sync
-      const res = await fetch('http://localhost:3000/api/account/update-profile', {
+      const res = await fetch(`${API_BASE}/api/account/update-profile`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
@@ -679,6 +685,7 @@ if (btnAccountSave && btnAccountCancel) {
           username: WORKING_USER.username || ''
         })
       });
+
 
       const data = await res.json();
       console.log('UPDATE PROFILE RESPONSE:', data);
