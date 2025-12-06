@@ -898,8 +898,14 @@ app.get('/api/footage/list', async (req, res) => {
       q = q.where('projectId', '==', projectId);
     }
 
-    const snap = await q.orderBy('createdAt', 'desc').get();
+    // Temporarily remove orderBy to avoid index error
+    // q = q.orderBy('createdAt', 'desc');
+
+    const snap = await q.get();
     const items = snap.docs.map(d => ({ id: d.id, ...d.data() }));
+    
+    // Sort in JS instead
+    items.sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt));
 
     res.json({ items });
   } catch (err) {

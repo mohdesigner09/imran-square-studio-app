@@ -1209,7 +1209,14 @@ document.getElementById('footageFileInput').addEventListener('change', (e) => {
   const fileName = document.getElementById('previewFileName');
   const fileSize = document.getElementById('previewFileSize');
   const duration = document.getElementById('previewDuration');
-  const thumb = document.getElementById('previewThumbnail');
+   const thumb = document.getElementById('previewThumbnail');
+  
+  // Create temp video element for thumbnail if not exists
+  if (!tempVideoElement) {
+    tempVideoElement = document.createElement('video');
+    tempVideoElement.muted = true;
+    tempVideoElement.playsInline = true;
+  }
 
   fileName.textContent = file.name;
   fileSize.textContent = (file.size / (1024 * 1024)).toFixed(2) + ' MB';
