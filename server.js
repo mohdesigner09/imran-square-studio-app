@@ -92,14 +92,7 @@ function bufferToStream(buffer) {
 
 
 
-// Verify connection
-transporter.verify((error, success) => {
-  if (error) {
-    console.error('❌ Gmail Error:', error);
-  } else {
-    console.log('✅ Gmail SMTP works with IPv4! Ready to send.');
-  }
-});
+
 
 const otpStore = {};
 
