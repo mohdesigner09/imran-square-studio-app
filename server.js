@@ -92,31 +92,25 @@ function bufferToStream(buffer) {
 
 
 // ✅ UPDATED GMAIL CONFIGURATION (Fixed for Render)
+// ✅ Gmail SMTP with IPv4 Enforcement
 const transporter = nodemailer.createTransport({
-  host: 'smtp.gmail.com',
-  port: 587,                 // 465 ki jagah 587 use karenge (STARTTLS)
-  secure: false,             // 587 ke liye ye false hona chahiye
-  requireTLS: true,          // TLS zaroori hai
+  service: 'gmail', // Simple service use karenge
   auth: {
     user: process.env.GMAIL_USER,
     pass: process.env.GMAIL_APP_PASSWORD
   },
-  tls: {
-    ciphers: 'SSLv3',        // Compatibility ke liye
-    rejectUnauthorized: false // Cloud SSL issues avoid karne ke liye
-  },
-  // ⚠️ IMPORTANT: Connection Timeout fix
-  connectionTimeout: 10000, // 10 seconds wait karega
-  greetingTimeout: 5000,    // Server greeting ka wait
-  socketTimeout: 10000      // Socket idle timeout
+  // ⚠️ YE HAI MAGIC FIX:
+  family: 4, // Force IPv4 (Render ke IPv6 issues ko bypass karega)
+  logger: true, // Logs mein detail dikhayega
+  debug: true   // Debug mode on
 });
 
-// Verify connection on startup (Optional but good for debugging)
+// Verify connection
 transporter.verify((error, success) => {
   if (error) {
     console.error('❌ Gmail Error:', error);
   } else {
-    console.log('✅ Gmail SMTP works! Ready to send emails.');
+    console.log('✅ Gmail SMTP works with IPv4! Ready to send.');
   }
 });
 
