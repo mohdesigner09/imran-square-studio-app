@@ -91,23 +91,32 @@ function bufferToStream(buffer) {
 }
 
 
-// ✅ Gmail SMTP Transporter
+// ✅ UPDATED GMAIL CONFIGURATION (Fixed for Render)
 const transporter = nodemailer.createTransport({
-  host: "smtp.gmail.com",
-  port: 465, // Secure port use karenge
-  secure: true, // true for 465, false for other ports
+  host: 'smtp.gmail.com',
+  port: 587,                 // 465 ki jagah 587 use karenge (STARTTLS)
+  secure: false,             // 587 ke liye ye false hona chahiye
+  requireTLS: true,          // TLS zaroori hai
   auth: {
     user: process.env.GMAIL_USER,
     pass: process.env.GMAIL_APP_PASSWORD
-  }
+  },
+  tls: {
+    ciphers: 'SSLv3',        // Compatibility ke liye
+    rejectUnauthorized: false // Cloud SSL issues avoid karne ke liye
+  },
+  // ⚠️ IMPORTANT: Connection Timeout fix
+  connectionTimeout: 10000, // 10 seconds wait karega
+  greetingTimeout: 5000,    // Server greeting ka wait
+  socketTimeout: 10000      // Socket idle timeout
 });
 
-// Test connection on startup
+// Verify connection on startup (Optional but good for debugging)
 transporter.verify((error, success) => {
   if (error) {
-    console.error('❌ Gmail SMTP connection failed:', error);
+    console.error('❌ Gmail Error:', error);
   } else {
-    console.log('✅ Gmail SMTP ready to send emails');
+    console.log('✅ Gmail SMTP works! Ready to send emails.');
   }
 });
 
