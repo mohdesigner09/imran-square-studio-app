@@ -36,6 +36,7 @@
     .pill-tab-inactive { background:transparent; color:#9ca3af; }
   </style>
 </head>
+
 <body class="min-h-screen flex flex-col">
 
   <!-- Top bar -->
@@ -56,9 +57,9 @@
   </header>
 
   <!-- Main layout -->
-  <main class="flex-1 flex px-6 py-4 gap-4">
+  <main class="flex-1 flex flex-col lg:flex-row px-4 sm:px-6 py-4 gap-4">
     <!-- Sidebar -->
-    <aside class="w-64 glass p-4 flex flex-col gap-4">
+    <aside class="w-full lg:w-64 glass p-4 flex-shrink-0 flex flex-col gap-4">
       <div>
         <p class="text-xs font-semibold text-gray-400 uppercase tracking-[0.2em] mb-2">Account</p>
         <div class="space-y-1 text-sm">
@@ -73,7 +74,7 @@
     </aside>
 
     <!-- Content -->
-    <section class="flex-1 glass p-5 overflow-y-auto">
+    <section class="flex-1 glass p-4 sm:p-5 overflow-y-auto">
 
 
       <!-- ACCOUNT TAB -->
@@ -92,10 +93,12 @@
   </button>
 </div>
 
-  <!-- Top row: avatar + basic info -->
-  <div class="flex gap-8">
+    <!-- Top row: avatar + basic info -->
+  <div class="flex flex-col sm:flex-row gap-6 sm:gap-8">
+
     <!-- Avatar column -->
-    <div class="flex flex-col items-center gap-3">
+        <div class="flex flex-col items-center sm:items-start gap-3">
+
       <div class="w-16 h-16 rounded-full overflow-hidden border border-orange-400/70 bg-black/70 flex items-center justify-center">
         <img id="accAvatarImg" src="" class="w-full h-full object-cover hidden" />
         <span id="accAvatarFallback" class="text-lg font-semibold text-orange-300">U</span>
@@ -107,7 +110,7 @@
     </div>
 
     <!-- Fields column -->
-    <div class="flex-1 space-y-4 text-xs">
+        <div class="flex-1 space-y-4 text-xs min-w-0">
       <!-- Full name -->
       <div class="flex items-center justify-between">
         <div>
@@ -144,7 +147,7 @@
   <section class="space-y-3 text-xs">
     <p class="text-gray-400 font-semibold">Your subscription</p>
 
-    <div class="bg-white/5 border border-white/10 rounded-2xl p-4 flex items-center justify-between">
+     <div class="bg-white/5 border border-white/10 rounded-2xl p-4 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
       <div>
         <p class="text-gray-300 mb-1">Thanks for using IMRAN SQUARE Studio!</p>
         <p class="text-[11px] text-gray-500">Explore future pro features and workflow boosts.</p>
@@ -159,7 +162,7 @@
       </div>
     </div>
 
-    <div class="bg-white/5 border border-white/10 rounded-2xl p-4 flex items-center justify-between">
+     <div class="bg-white/5 border border-white/10 rounded-2xl p-4 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
       <div>
         <p class="text-gray-300 mb-1">Community & support</p>
         <p class="text-[11px] text-gray-500">Join our Discord server for updates and tips.</p>
