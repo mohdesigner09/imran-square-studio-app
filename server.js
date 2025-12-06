@@ -16,20 +16,21 @@ import { Readable } from 'stream';
 // ===== CONFIG / GLOBALS =====
 dotenv.config();
 
+// __dirname / __filename for ES modules
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
+// Express app
 const app = express();
-const PORT = process.env.PORT || 3000;
 
+// Static files (HTML, JS, CSS, images)
+app.use(express.static(__dirname));
+
+// Middlewares
 app.use(cors());
 app.use(express.json());
-app.use(express.static('public'));
 
-app.get('/', (req, res) => {
-  res.sendFile(path.join(__dirname, 'landing.html'));
-});
-
+// Root landing
 app.get('/', (req, res) => {
   res.sendFile(path.join(__dirname, 'landing.html'));
 });
