@@ -647,21 +647,18 @@ async function loadRawClips() {
       category: 'raw',
       format: item.format || 'long',
       createdAt: item.createdAt || new Date().toISOString(),
-      thumb: '/resources/hero-film-studio.png', // temporary placeholder thumbnail
+      thumb: '/resources/hero-film-studio.png',
       width: 1920,
       height: 1080,
-      src: '', // later: Drive preview link
+      src: '',
     }));
-
-    // Agar abhi Firestore empty hai to UI ke liye default dikhana ho to:
-    if (!rawClips.length) {
-      rawClips = defaultRawClips;
-    }
   } catch (err) {
     console.error('loadRawClips error:', err);
-    rawClips = defaultRawClips; // fallback
+    rawClips = [];
   }
 }
+
+
 
 
 function saveRawClips() {
@@ -1015,10 +1012,8 @@ function theaterKeyHandler(e) {
 
 document.addEventListener('DOMContentLoaded', async () => {
   currentUser = window.CURRENTUSER || null;
-  viewMode = window.VIEW_MODE || 'my';   // dashboard se aaya hua state
+  viewMode = window.VIEW_MODE || 'my';
 
-  // Agar viewMode === 'my' aur user logged hai -> owner mode
-  // Agar viewMode === 'all' -> hamesha viewer mode
   if (viewMode === 'my') {
     isOwner = !!currentUser;
   } else {
@@ -1031,8 +1026,9 @@ document.addEventListener('DOMContentLoaded', async () => {
   const editToggleBtn = document.getElementById('editModeToggle');
   if (uploadBtn) uploadBtn.classList.toggle('hidden', !isOwner);
   if (editToggleBtn) editToggleBtn.classList.toggle('hidden', !isOwner);
-  // DATA LOAD
-  loadRawClips();
+
+  // 🔸 Yahan AB await karo:
+  await loadRawClips();
 
   // FILTER PILLS
   const filterPills = document.querySelectorAll('#filterContainer .filter-pill');
@@ -1053,27 +1049,27 @@ document.addEventListener('DOMContentLoaded', async () => {
     });
   });
 
-  // FORMAT TOGGLE (SHORTS / LONG)
+  // FORMAT TOGGLE
   const formatButtons = document.querySelectorAll('#formatToggle button');
   formatButtons.forEach(btn => {
     btn.addEventListener('click', () => {
       formatButtons.forEach(b => b.classList.remove('active-format'));
       btn.classList.add('active-format');
 
-      const key = btn.dataset.format;   // "long" ya "shorts"
+      const key = btn.dataset.format;
       activeFormat = (key === 'shorts') ? 'short' : 'long';
 
       renderRawClips(activeFilter, activeFormat);
     });
   });
 
-  // EDIT TOGGLE (PENCIL ICON)
+  // EDIT TOGGLE
   const editToggleBtn2 = document.getElementById('editModeToggle');
   const editHint = document.getElementById('editHint');
 
-if (editToggleBtn2) {
-  editToggleBtn2.addEventListener('click', () => {
-    if (!isOwner) return;   // view mode me click ignore// viewer edit mode open hi na kar sake
+  if (editToggleBtn2) {
+    editToggleBtn2.addEventListener('click', () => {
+      if (!isOwner) return;
 
       isEditMode = !isEditMode;
       document.body.classList.toggle('edit-mode', isEditMode);
@@ -1121,7 +1117,7 @@ if (editToggleBtn2) {
     });
   }
 
-  // INITIAL RENDER
+  // 🔸 INITIAL RENDER ab loadRawClips ke baad:
   renderRawClips(activeFilter, activeFormat);
 });
 
