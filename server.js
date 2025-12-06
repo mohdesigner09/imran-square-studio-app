@@ -62,16 +62,25 @@ console.log('✅ Firebase Admin initialized');
 // ============ MULTER + GOOGLE DRIVE SETUP ============
 const upload = multer({ storage: multer.memoryStorage() });
 
-const KEYFILE_PATH = path.join(__dirname, 'config', 'drive-service-account.json');
 const SCOPES = ['https://www.googleapis.com/auth/drive.file'];
 
+// Credentials ab Environment Variables se aayenge (Render ke liye safe)
+const credentials = {
+  type: 'service_account',
+  project_id: process.env.GOOGLE_PROJECT_ID,
+  private_key_id: process.env.GOOGLE_PRIVATE_KEY_ID,
+  private_key: process.env.GOOGLE_PRIVATE_KEY ? process.env.GOOGLE_PRIVATE_KEY.replace(/\\n/g, '\n') : undefined,
+  client_email: process.env.GOOGLE_CLIENT_EMAIL,
+  client_id: process.env.GOOGLE_CLIENT_ID,
+};
+
 const auth = new google.auth.GoogleAuth({
-  keyFile: KEYFILE_PATH,
+  credentials,
   scopes: SCOPES,
 });
 
-const drive = google.drive({ version: 'v3', auth });
-const AVATAR_FOLDER_ID = '1kzeFkuFbsLdZb9Tkr9ChGB9Uk5Ha8ba6'; // tumhara actual folder ID
+// Folder ID bhi ab setting se aayega
+const AVATAR_FOLDER_ID = process.env.DRIVE_FOLDER_ID;
 
 // Helper: Buffer → Readable stream
 function bufferToStream(buffer) {
