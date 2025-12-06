@@ -869,7 +869,7 @@ app.post('/api/chat', async (req, res) => {
 // ===== FOOTAGE METADATA API =====
 app.post('/api/footage/create', async (req, res) => {
   try {
-   const { projectId, userId, fileName, fileSize, duration, title, thumbnail, format } = req.body;
+const { projectId, userId, fileName, fileSize, duration, title, thumbnail, format } = req.body;
 
 const footageData = {
   projectId,
@@ -878,7 +878,7 @@ const footageData = {
   fileSize: fileSize || 0,
   duration: duration || '00:00',
   title: title || fileName,
-  thumbnailDataUrl: thumbnail || '',
+  // thumbnailDataUrl: thumbnail || '',   // ❌ is line ko comment/remove karo
   format: format || 'long',
   status: 'queued',
   kind: 'raw',
@@ -887,6 +887,7 @@ const footageData = {
   createdAt: new Date().toISOString(),
   updatedAt: new Date().toISOString()
 };
+
 
 
     const docRef = await db.collection('footage').add(footageData);
