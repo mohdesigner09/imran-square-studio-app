@@ -85,29 +85,36 @@
           </div>
         </div>
         
-        <!-- Desktop Navigation -->
-        <nav class="hidden md:flex items-center gap-4">
-          <a href="#features" class="text-sm text-gray-300 hover:text-white transition">Features</a>
-          <a href="#pricing" class="text-sm text-gray-300 hover:text-white transition">Pricing</a>
-          
-          <!-- Install Button (Hidden by default) -->
-          <button id="pwaInstallBtn" class="hidden px-5 py-2 rounded-full bg-orange-600 text-white text-sm font-semibold hover:bg-orange-700 hover:shadow-lg transition-all flex items-center gap-2">
-            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"/>
-            </svg>
-            Install App
-          </button>
-          
-          <!-- Sign In Button -->
-          <button id="loginBtn" class="px-5 py-2 rounded-full border border-white/20 text-white text-sm hover:bg-white/10 transition">
-            Sign In
-          </button>
-          
-          <!-- Get Started Button -->
-          <button id="signupBtn" class="px-5 py-2 rounded-full bg-gradient-to-r from-orange-500 to-orange-600 text-white text-sm font-semibold hover:shadow-lg transition">
-            Get Started
-          </button>
-        </nav>
+             <!-- Desktop Navigation -->
+      <nav class="hidden md:flex items-center gap-4">
+        <a href="#features" class="text-sm text-gray-300 hover:text-white transition">Features</a>
+        <a href="#pricing" class="text-sm text-gray-300 hover:text-white transition">Pricing</a>
+        
+        <!-- Install Button (desktop only) -->
+        <button id="pwaInstallBtn"
+          class="hidden md:flex px-5 py-2 rounded-full bg-orange-600 text-white text-sm font-semibold hover:bg-orange-700 hover:shadow-lg transition-all items-center gap-2">
+          <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                  d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"/>
+          </svg>
+          Install App
+        </button>
+
+        <!-- Get Started Button (desktop only) -->
+        <button id="signupBtn"
+          class="hidden md:flex px-5 py-2 rounded-full bg-gradient-to-r from-orange-500 to-orange-600 text-white text-sm font-semibold hover:shadow-lg transition">
+          Get Started
+        </button>
+      </nav>
+
+      <!-- Mobile Menu Button (sirf ye rehne do) -->
+      <button class="md:hidden p-2 text-white">
+        <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                d="M4 6h16M4 12h16M4 18h16"/>
+        </svg>
+      </button>
+
         
         <button id="pwaInstallBtn" class="px-5 py-2 rounded-full bg-orange-600 text-white text-sm font-semibold hover:bg-orange-700 transition flex items-center gap-2">
     <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -129,8 +136,12 @@
     </div>
   </header>
 
-  <div class="relative w-full max-w-md mx-auto md:ml-auto md:mr-24 rounded-3xl ... px-6 sm:px-8 py-7 space-y-6 z-10">
-
+   <div
+    class="relative w-full max-w-md mx-auto md:ml-auto md:mr-16
+           rounded-3xl bg-gradient-to-b from-white/5 to-black/80
+           border border-white/10 shadow-[0_0_80px_rgba(0,0,0,0.8)]
+           px-6 sm:px-8 py-7 space-y-6 z-10">
+    
     <!-- Logo -->
     <div class="text-center space-y-1">
       <p class="text-[11px] tracking-[0.3em] text-orange-400">IMRAN SQUARE</p>
@@ -843,6 +854,7 @@ window.location.href = 'index.html';
 
 
         
+
         const data = await res.json();
 
  if (data.success && data.user) {

@@ -152,7 +152,8 @@ body.theme-advanced {
 
     <!-- Top Sticky Header -->
     <header class="sticky top-0 z-30 bg-black/70 backdrop-blur border-b border-white/5">
-        <div class="max-w-6xl mx-auto flex items-center justify-between px-4 sm:px-6 py-3">
+  <div class="max-w-6xl mx-auto flex items-center justify-between px-4 sm:px-6 py-2.5 sm:py-3">
+
             <!-- Left: Logo + title -->
             <div class="flex items-center gap-3">
                 <div class="w-9 h-9 rounded-lg border border-orange-500/50 shadow-[0_0_15px_rgba(255,107,53,0.6)] bg-black overflow-hidden">
@@ -186,11 +187,10 @@ body.theme-advanced {
             </div>
 
             <!-- Right: greeting + info + avatar -->
-            <div class="flex items-center gap-3">
-                <div class="hidden sm:flex flex-col items-end leading-tight text-xs">
-                    <span class="text-gray-400">Welcome back,</span>
-                    <span class="text-orange-400 font-semibold">Imran Square</span>
-                </div>
+            <div class="hidden sm:flex flex-col items-end leading-tight text-[11px] sm:text-xs">
+  <span class="text-gray-400">Welcome back,</span>
+  <span class="text-orange-400 font-semibold" id="dashboardUserName">Imran Square</span>
+</div>
 
  <div class="relative inline-block">
     <div id="userAvatarButton" class="w-8 h-8 rounded-full border border-orange-400/60 overflow-hidden cursor-pointer flex items-center justify-center bg-black/70">
@@ -236,8 +236,15 @@ body.theme-advanced {
     </header>
 
     <!-- Main hero/layout -->
+       <!-- Main hero/layout -->
     <div class="hero-bg flex flex-col">
-        <div class="content-layer flex-1 px-4 pt-6 pb-24 max-w-6xl mx-auto w-full">
+        <div
+          class="content-layer flex-1 w-full max-w-6xl mx-auto
+                 px-4 sm:px-6
+                 pt-4 sm:pt-6
+                 pb-20 sm:pb-24
+                 space-y-6">
+
             <!-- Mobile search (chhota screen par hi dikhega) -->
             <div class="md:hidden mb-4">
                 <div class="relative">
@@ -259,7 +266,8 @@ body.theme-advanced {
 
 
             
-           <div class="grid grid-cols-3 gap-3 sm:gap-4 mb-8">
+           <div class="grid grid-cols-3 gap-2 sm:gap-4 mb-6">
+
     <!-- Projects -->
     <div class="relative overflow-hidden rounded-2xl bg-black/70 backdrop-blur-xl border border-white/5 shadow-[0_22px_60px_rgba(0,0,0,0.95)]">
 
@@ -306,9 +314,11 @@ body.theme-advanced {
             
 <!-- Active Projects Heading with My/All Toggle -->
 <div class="mb-6">
-  <div class="flex items-center justify-between mb-4">
+  <div class="flex items-center justify-between mb-3 sm:mb-4">
     <div class="flex items-center gap-3">
-      <h2 class="font-display text-xl font-semibold">Active Projects</h2>
+      <h2 class="font-display text-lg sm:text-xl font-semibold">Active Projects</h2>
+      
+
       
       <!-- My / All Toggle -->
       <div id="projectScopeToggle" class="inline-flex bg-black/40 border border-white/10 rounded-full px-1 py-1 text-[11px]">
@@ -346,7 +356,15 @@ body.theme-advanced {
         </div>
     </div>
 
-    <button id="fabButton" class="fixed bottom-24 right-4 w-14 h-14 bg-orange-500 rounded-full flex items-center justify-center shadow-lg z-50 text-black hover:scale-110 transition-transform"><svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"></path></svg></button>
+    <button id="fabButton"
+  class="fixed bottom-24 sm:bottom-24 right-4 sm:right-6
+         w-14 h-14 bg-orange-500 rounded-full flex items-center justify-center
+         shadow-lg z-50 text-black hover:scale-110 transition-transform">
+  <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"></path>
+  </svg>
+</button>
+
 <!-- Create New Project Modal -->
 <div id="projectModal" class="fixed inset-0 bg-black/80 backdrop-blur-sm z-50 hidden flex items-center justify-center p-4">
   <div class="relative w-full max-w-md">
