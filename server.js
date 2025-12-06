@@ -40,6 +40,22 @@ app.get('/index.html', (req, res) => {
   res.sendFile(path.join(__dirname, 'index.html'));
 });
 
+app.get('/api/footage/list', async (req, res) => {
+  try {
+    const { projectId } = req.query;
+    let q = db.collection('footage');
+    if (projectId) q = q.where('projectId', '==', projectId);
+
+    const snap = await q.orderBy('createdAt', 'desc').get();
+    const items = snap.docs.map(d => ({ id: d.id, ...d.data() }));
+    res.json({ items });
+  } catch (err) {
+    console.error('Footage list error:', err);
+    res.status(500).json({ error: 'Failed to load footage' });
+  }
+});
+
+
 
 
 const serviceAccount = JSON.parse(process.env.FIREBASE_SERVICE_ACCOUNT_JSON);
@@ -847,24 +863,25 @@ app.post('/api/chat', async (req, res) => {
 // ===== FOOTAGE METADATA API =====
 app.post('/api/footage/create', async (req, res) => {
   try {
-    const { projectId, userId, fileName, fileSize, duration, title, thumbnail, format } = req.body;
+   const { projectId, userId, fileName, fileSize, duration, title, thumbnail, format } = req.body;
 
-    const footageData = {
-      projectId,
-      userId,
-      fileName,
-      fileSize: fileSize || 0,
-      duration: duration || '00:00',
-      title: title || fileName,
-      thumbnailDataUrl: thumbnail || '',
-      format: format || 'long',
-      status: 'queued',  // User ne "send" kar diya, ab admin upload karega
-      kind: 'raw',
-      rawDriveLink: '',
-      editedDriveLink: '',
-      createdAt: new Date().toISOString(),
-      updatedAt: new Date().toISOString()
-    };
+const footageData = {
+  projectId,
+  userId,
+  fileName,
+  fileSize: fileSize || 0,
+  duration: duration || '00:00',
+  title: title || fileName,
+  thumbnailDataUrl: thumbnail || '',
+  format: format || 'long',
+  status: 'queued',
+  kind: 'raw',
+  rawDriveLink: '',
+  editedDriveLink: '',
+  createdAt: new Date().toISOString(),
+  updatedAt: new Date().toISOString()
+};
+
 
     const docRef = await db.collection('footage').add(footageData);
 
