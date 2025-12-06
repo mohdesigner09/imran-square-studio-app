@@ -1331,19 +1331,21 @@ body: JSON.stringify({
 
 const videoURL = URL.createObjectURL(selectedFile);
 
+
 const newClip = {
   id: 'r' + (rawClips.length + 1),
   title: finalTitle,
-  duration: '0:' + (Math.floor(Math.random() * 40) + 20),
+  duration: `00:${Math.floor(Math.random() * 40 + 20)}`,
   tag: 'RAW',
   category: 'raw',
-  format: (lastVideoHeight && lastVideoWidth && lastVideoHeight > lastVideoWidth) ? 'short' : 'long',
+  format: lastVideoHeight > lastVideoWidth ? 'short' : 'long',
   createdAt: new Date().toISOString(),
   thumb: document.getElementById('previewThumbnail').src,
   width: lastVideoWidth || 1920,
   height: lastVideoHeight || 1080,
-  src: videoURL,              // ← naya field
+  src: '', // abhi ke liye empty; baad me Drive link
 };
+
 
 // Backend me Firestore doc create karo
 fetch('/api/footage/create', {
