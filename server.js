@@ -53,13 +53,23 @@ app.use(express.static(__dirname));
 // ... ISKE NEECHE JO CODE HAI USE MAT CHEDHNA ...
 // ... (Routes, Firebase Init, etc. waisa hi rahega) ...
 
-// ===== 6. BASIC ROUTES =====
-// Root landing page
+// ===== ROUTES =====
+
+// 1. New Landing Page (Resend Style)
 app.get('/', (req, res) => {
   res.sendFile(path.join(__dirname, 'landing.html'));
 });
 
-// Index/Dashboard route
+// 2. Old App Login Page (Logic Wala)
+app.get('/login', (req, res) => {
+  res.sendFile(path.join(__dirname, 'login.html'));
+});
+
+// 3. Direct HTML access (Safety ke liye)
+app.get('/login.html', (req, res) => {
+  res.sendFile(path.join(__dirname, 'login.html'));
+});
+
 app.get('/index.html', (req, res) => {
   res.sendFile(path.join(__dirname, 'index.html'));
 });

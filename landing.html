@@ -1,905 +1,311 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="en" class="scroll-smooth">
 <head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Imran Square Studio - Video Management Reimagined</title>
+    
+    <script src="https://cdn.tailwindcss.com"></script>
+    
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+    
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    fontFamily: {
+                        sans: ['Inter', 'sans-serif'],
+                        mono: ['JetBrains Mono', 'monospace'],
+                    },
+                    colors: {
+                        brand: {
+                            bg: '#000000',
+                            surface: '#080808',
+                            border: '#1C1C1C',
+                            text: '#EDEDED',
+                            muted: '#888888',
+                            accent: '#ff6b35', // Orange Accent
+                        }
+                    },
+                    animation: {
+                        'fade-in-up': 'fadeInUp 0.8s ease-out forwards',
+                        'pulse-slow': 'pulse 4s cubic-bezier(0.4, 0, 0.6, 1) infinite',
+                    },
+                    keyframes: {
+                        fadeInUp: {
+                            '0%': { opacity: '0', transform: 'translateY(20px)' },
+                            '100%': { opacity: '1', transform: 'translateY(0)' },
+                        }
+                    }
+                }
+            }
+        }
+    </script>
 
-  <script>
-  // Auth Guard: Agar user pehle se login hai, to Dashboard par bhejo
-  const user = localStorage.getItem('imranUser');
-  if (user) {
-    window.location.href = 'index.html';
-  }
-</script>
+    <style>
+        body {
+            background-color: #000000;
+            color: #EDEDED;
+            overflow-x: hidden;
+            -webkit-font-smoothing: antialiased;
+        }
+        
+        ::-webkit-scrollbar { width: 6px; }
+        ::-webkit-scrollbar-track { background: #000; }
+        ::-webkit-scrollbar-thumb { background: #333; border-radius: 3px; }
 
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Welcome - IMRAN SQUARE</title>
-  <meta name="theme-color" content="#ff6b35">
-  <link rel="manifest" href="/manifest.json">
-  <link rel="icon" type="image/png" sizes="32x32" href="/resources/icon-32.png">
-  <link rel="shortcut icon" href="/resources/favicon.ico">
-  <script src="https://cdn.tailwindcss.com"></script>
-  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
-  
-  <style>
-    body { background: #000; color: white; font-family: 'Inter', sans-serif; overflow-x: hidden; }
-    .hero-bg { position: fixed; inset: 0; background: radial-gradient(circle at 50% 30%, #1a1a1a 0%, #000 100%); z-index: -1; }
-  </style>
+        .glow-radial {
+            background: radial-gradient(circle at center, rgba(255, 255, 255, 0.08) 0%, transparent 70%);
+        }
+        
+        .text-gradient {
+            background: linear-gradient(to bottom right, #fff 30%, #666 100%);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+        }
+
+        .glass-panel {
+            background: rgba(255, 255, 255, 0.02);
+            backdrop-filter: blur(10px);
+            border: 1px solid rgba(255, 255, 255, 0.05);
+        }
+    </style>
 </head>
 
-<body class="min-h-screen flex flex-col items-center justify-center p-4">
-  <div class="hero-bg"></div>
-
-  <div class="absolute top-0 left-0 w-full p-6 flex justify-between items-center z-10">
-    <div class="flex items-center gap-3">
-      <div class="w-8 h-8 rounded bg-orange-500/20 flex items-center justify-center text-orange-500 font-bold text-xs border border-orange-500/40">IS</div>
-      <span class="text-xs font-bold tracking-[0.2em] text-orange-500 hidden sm:block">IMRAN SQUARE</span>
-    </div>
-    <button id="pwaInstallBtn" class="hidden px-4 py-2 bg-orange-600 rounded-full text-xs font-bold">Install App</button>
-  </div>
-
-  <div class="w-full max-w-sm bg-[#0a0a0a] border border-white/10 rounded-3xl p-8 shadow-2xl relative z-20">
-    
-    <div class="text-center mb-8">
-      <p class="text-[10px] text-orange-500 tracking-[0.3em] uppercase mb-2">Studio Access</p>
-      <h1 class="text-2xl font-bold text-white">Sign in to continue</h1>
-      <p class="text-xs text-gray-500 mt-1">Manage your documentary projects</p>
-    </div>
-
-    <div id="stepProviders" class="space-y-3">
-      <button id="btnGoogle" class="w-full py-3 bg-white text-black rounded-xl text-sm font-semibold hover:bg-gray-200 transition flex items-center justify-center gap-2">
-        <svg class="w-4 h-4" viewBox="0 0 24 24"><path fill="currentColor" d="M21.35 11.1h-9.17v2.73h6.51c-.33 3.81-3.5 5.44-6.5 5.44C8.36 19.27 5 16.25 5 12c0-4.1 3.2-7.27 7.2-7.27c3.09 0 4.9 1.97 4.9 1.97L19 4.72S16.56 2 12.1 2C6.42 2 2.03 6.8 2.03 12c0 5.05 4.13 10 10.22 10c5.35 0 9.25-3.67 9.25-9.09c0-1.15-.15-1.81-.15-1.81Z"/></svg>
-        Sign in with Google
-      </button>
-
-      <div class="flex items-center gap-2 py-2">
-        <div class="h-px bg-white/10 flex-1"></div>
-        <span class="text-[10px] text-gray-500 uppercase">Existing User</span>
-        <div class="h-px bg-white/10 flex-1"></div>
-      </div>
-
-      <button id="btnLoginGoogle" class="w-full py-3 bg-white/5 border border-white/10 rounded-xl text-sm text-gray-300 hover:bg-white/10 transition">
-        Login with Email
-      </button>
-      <button id="btnUsername" class="w-full py-3 bg-white/5 border border-white/10 rounded-xl text-sm text-gray-300 hover:bg-white/10 transition">
-        Login with Username
-      </button>
-    </div>
-
-    <div id="stepContact" class="hidden space-y-4">
-      <input id="contactInput" type="email" placeholder="name@example.com" class="w-full bg-black border border-white/20 rounded-xl px-4 py-3 text-sm text-white focus:border-orange-500 outline-none">
-      <button id="btnSendOtp" class="w-full py-3 bg-orange-600 rounded-xl text-sm font-bold text-white hover:bg-orange-500 transition">Send Code</button>
-      <button id="btnBackToProviders" class="w-full text-xs text-gray-500 py-2">Back</button>
-    </div>
-
-    <div id="stepOtp" class="hidden space-y-4 text-center">
-      <p class="text-xs text-gray-400">Code sent to email</p>
-      <input id="otpInput" type="text" maxlength="6" placeholder="000000" class="w-full bg-black border border-white/20 rounded-xl px-4 py-3 text-center text-xl tracking-[0.5em] text-white focus:border-orange-500 outline-none font-mono">
-      <button id="btnVerifyOtp" class="w-full py-3 bg-white text-black rounded-xl text-sm font-bold hover:bg-gray-200 transition">Verify</button>
-    </div>
-
-    <div id="stepUsernameLogin" class="hidden space-y-4">
-      <input id="loginUsername" type="text" placeholder="Username" class="w-full bg-black border border-white/20 rounded-xl px-4 py-3 text-sm text-white focus:border-orange-500 outline-none">
-      <input id="loginPassword" type="password" placeholder="Password" class="w-full bg-black border border-white/20 rounded-xl px-4 py-3 text-sm text-white focus:border-orange-500 outline-none">
-      <button id="btnUsernameLogin" class="w-full py-3 bg-white text-black rounded-xl text-sm font-bold hover:bg-gray-200 transition">Sign In</button>
-      <button id="btnBackFromUsername" class="w-full text-xs text-gray-500 py-2">Back</button>
-    </div>
-
-    <div id="stepRegister" class="hidden space-y-3">
-      <input id="firstName" placeholder="First Name" class="w-full px-3 py-2 bg-black border border-white/15 rounded-lg text-sm text-white">
-      <input id="lastName" placeholder="Last Name" class="w-full px-3 py-2 bg-black border border-white/15 rounded-lg text-sm text-white">
-      <input id="username" placeholder="Username" class="w-full px-3 py-2 bg-black border border-white/15 rounded-lg text-sm text-white">
-      <input id="password" type="password" placeholder="Password" class="w-full px-3 py-2 bg-black border border-white/15 rounded-lg text-sm text-white">
-      <input id="passwordConfirm" type="password" placeholder="Confirm Password" class="w-full px-3 py-2 bg-black border border-white/15 rounded-lg text-sm text-white">
-      <button id="btnRegister" class="w-full py-3 bg-orange-600 rounded-xl text-sm font-bold text-white mt-2">Create Account</button>
-    </div>
-
-  </div>
-
-  <div id="toast" class="hidden fixed bottom-10 px-4 py-2 bg-white text-black text-xs font-bold rounded-full shadow-xl"></div>
-
-  <script src="landing-logic.js"></script> 
- 
-<script>
-// GLOBAL STATE
-let currentProvider = null;
-let contactValue = null;
-let timerInterval = null;
-
-// Simple helper like jQuery
-function $(id) {
-  return document.getElementById(id);
-}
-
-// API base URL - automatically uses current domain
-const API_BASE = window.location.hostname === 'localhost' 
-  ? 'http://localhost:3000' 
-  : 'https://imran-square-studio.onrender.com';
-
-
-// YAHAN YE 4 LINES ADD KARO 👇
-const stepProviders = $('stepProviders');
-const stepContact   = $('stepContact');
-const stepOtp       = $('stepOtp');
-const stepRegister  = $('stepRegister');
-
-
-function showStep(stepId) {
-  const allIds = [
-    'stepProviders',
-    'stepContact',
-    'stepOtp',
-    'stepRegister',
-    'stepUsernameLogin'
-  ];
-  allIds.forEach(id => {
-    const el = $(id);
-    if (el) el.classList.add('hidden');
-  });
-  const target = $(stepId);
-  if (target) target.classList.remove('hidden');
-}
-
-
-
-
-
-
-function setStepTitle(title, subtitle) {
-  const wrapper = $('stepTitle');
-  if (!wrapper) return;
-  const h1 = wrapper.querySelector('h1');
-  const p = wrapper.querySelector('p');
-  if (h1) h1.textContent = title;
-  if (p) p.textContent = subtitle;
-}
-
-function showToast(msg, timeout = 3000) {
-  const el = $('toast');
-  if (!el) {
-    alert(msg);
-    return;
-  }
-  el.textContent = msg;
-  el.classList.remove('hidden');
-
-  clearTimeout(window.__toastTimer);
-  window.__toastTimer = setTimeout(() => {
-    el.classList.add('hidden');
-  }, timeout);
-}
-
-
-function startTimer(seconds = 60) {
-  const timer = $('timer');
-  const btnResendOtp = $('btnResendOtp');
-  
-  if (!timer) return;
-  
-  let timeLeft = seconds;
-  timer.textContent = `${timeLeft}`;
-  
-  if (btnResendOtp) btnResendOtp.disabled = true;
-  
-  clearInterval(timerInterval);
-  timerInterval = setInterval(() => {
-    timeLeft--;
-    timer.textContent = `${timeLeft}`;
-    if (timeLeft <= 0) {
-      clearInterval(timerInterval);
-      if (btnResendOtp) btnResendOtp.disabled = false;
-    }
-  }, 1000);
-}
-
-// ===== REGISTRATION HELPERS =====
-function getAllUsers() {
-  return JSON.parse(localStorage.getItem('imranUsers') || '[]');
-}
-
-function isUsernameAvailable(username) {
-  if (!username) return false;
-  const list = getAllUsers();
-  return !list.some(u => (u.username || '').toLowerCase() === username.toLowerCase());
-}
-
-function validateRegisterForm() {
-  const first = $('firstName').value.trim();
-  const last = $('lastName').value.trim();
-  const user = $('username').value.trim();
-  const bro = $('brotherName').value.trim();
-  const pass = $('password').value;
-  const pass2 = $('passwordConfirm').value;
-
-  let ok = true;
-
-  if (!first || !last) ok = false;
-  if (!/^[a-z0-9_]{3,}$/.test(user)) ok = false;
-
-  if (!user || !isUsernameAvailable(user)) {
-    ok = false;
-    const hint = $('usernameHint');
-    if (user) {
-      hint.textContent = 'This username is already taken.';
-      hint.classList.remove('text-gray-500');
-      hint.classList.add('text-red-400');
-    } else {
-      hint.textContent = 'This must be unique.';
-      hint.classList.remove('text-red-400');
-      hint.classList.add('text-gray-500');
-    }
-  } else {
-    const hint = $('usernameHint');
-    hint.textContent = 'Great, this username is available.';
-    hint.classList.remove('text-red-400');
-    hint.classList.add('text-green-400');
-  }
-
-  if (bro !== 'IMRAN KHAN') ok = false;
-  if (!pass || pass.length < 8 || pass !== pass2) ok = false;
-
-  const btnReg = $('btnRegister');
-  if (btnReg) {
-    if (ok) {
-      btnReg.classList.remove('cursor-not-allowed', 'bg-orange-500/40', 'text-black/40');
-      btnReg.classList.add('bg-orange-500', 'text-black');
-    } else {
-      btnReg.classList.add('cursor-not-allowed', 'bg-orange-500/40', 'text-black/40');
-      btnReg.classList.remove('bg-orange-500', 'text-black');
-    }
-  }
-
-  return ok;
-}
-
-
-// ===== DOM READY =====
-document.addEventListener('DOMContentLoaded', function () {
-  console.log('✅ DOM Ready');
-
-  // Default view on first load
-  showStep('stepProviders');
-  setStepTitle('Sign in to continue', 'Choose a way to continue to your studio.');
-
-  // STEP SWITCHER
-  function showStep(stepId) {
-    const allIds = [
-      'stepProviders',
-      'stepContact',
-      'stepOtp',
-      'stepRegister',
-      'stepUsernameLogin'
-    ];
-    allIds.forEach(id => {
-      const el = $(id);
-      if (el) el.classList.add('hidden');
-    });
-    const target = $(stepId);
-    if (target) target.classList.remove('hidden');
-  }
-
-  // Primary Google sign-in (new or first-time users)
-  const btnGoogle = $('btnGoogle');
-  if (btnGoogle) {
-    btnGoogle.addEventListener('click', () => {
-      currentProvider = 'google';
-      setStepTitle('Sign in with Google', 'We will send a one-time code to your Gmail.');
-      $('contactLabel').textContent = 'Google email';
-      $('contactInput').placeholder = 'you@gmail.com';
-      $('contactHint').textContent = 'A 6-digit code will be sent to this Gmail address.';
-      $('contactInput').value = '';
-      showStep('stepContact');
-    });
-  }
-
-  // Existing user: Login with Google (same OTP flow, different copy)
-  const btnLoginGoogle = $('btnLoginGoogle');
-  if (btnLoginGoogle) {
-    btnLoginGoogle.addEventListener('click', () => {
-      currentProvider = 'google';
-      setStepTitle('Login with Google', 'Enter the Gmail linked to your IMRAN SQUARE account.');
-      $('contactLabel').textContent = 'Google email';
-      $('contactInput').placeholder = 'you@gmail.com';
-      $('contactHint').textContent = 'You will receive a 6-digit login code.';
-      $('contactInput').value = '';
-      showStep('stepContact');
-    });
-  }
-// Existing user: Login with Username button (providers screen)
-const btnUsername = $('btnUsername');
-if (btnUsername) {
-  btnUsername.addEventListener('click', () => {
-    setStepTitle('Login with username', 'Use your username and password to enter your studio.');
-    showStep('stepUsernameLogin');
-  });
-}
-
-
-// USERNAME + PASSWORD LOGIN SUBMIT
-const btnUsernameLogin = $('btnUsernameLogin');
-if (btnUsernameLogin) {
-  btnUsernameLogin.addEventListener('click', async () => {
-    const user = $('loginUsername').value.trim();
-    const pass = $('loginPassword').value;
-
-    if (!user || !pass) {
-      alert('Enter username and password');
-      return;
-    }
-
-    btnUsernameLogin.disabled = true;
-    btnUsernameLogin.textContent = 'Signing in...';
-    try {
-      const res = await fetch(`${API_BASE}/api/login-username`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ username: user, password: pass })
-      });
-
-
-      const data = await res.json();
-      console.log('USERNAME LOGIN RESPONSE:', data);
-
-      if (!data.success || !data.user) {
-        alert(data.message || 'Login failed');
-        btnUsernameLogin.disabled = false;
-        btnUsernameLogin.textContent = 'Sign in';
-        return;
-      }
-
-      localStorage.setItem('imranUser', JSON.stringify(data.user));
-      localStorage.setItem('userEmail', data.user.email);
-      localStorage.setItem('userId', data.user.userId || '');
-
-      window.location.href = 'index.html';
-    } catch (err) {
-      console.error('Username login error:', err);
-      alert('Login error, please try again.');
-      btnUsernameLogin.disabled = false;
-      btnUsernameLogin.textContent = 'Sign in';
-    }
-  });
-}
-
-
-
-  // ---- Back button (from contact step) ----
-  const btnBackToProviders = $('btnBackToProviders');
-  if (btnBackToProviders) {
-    btnBackToProviders.addEventListener('click', () => {
-      currentProvider = null;
-      contactValue = null;
-      setStepTitle('Sign in to continue', 'Choose a way to continue to your studio.');
-      showStep('stepProviders');
-    });
-  }
-
-  // ---- SEND OTP ----
-  const btnSendOtp = $('btnSendOtp');
-  if (btnSendOtp) {
-    btnSendOtp.addEventListener('click', async () => {
-      if (!currentProvider) {
-        alert('Choose a sign-in method first');
-        return;
-      }
-
-      const contactInput = $('contactInput');
-      const contact = contactInput ? contactInput.value.trim() : '';
-
-      if (!contact) {
-        alert('Please enter your email or phone number');
-        return;
-      }
-
-      contactValue = contact;
-      console.log('📧 CONTACT SAVED:', contactValue);
-
-      btnSendOtp.disabled = true;
-      btnSendOtp.textContent = 'Sending...';
-
-       try {
-        const res = await fetch(`${API_BASE}/api/send-otp`, {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ email: contact })
-        });
-
-
-        const data = await res.json();
-        console.log('✉️ SEND OTP RESPONSE:', data);
-
-        if (!data.success) {
-          alert(data.message || 'Failed to send OTP');
-          btnSendOtp.disabled = false;
-          btnSendOtp.textContent = 'Send code';
-          return;
-        }
-
-        // success case:
-showToast('OTP sent successfully');
-
-
-        const displayEmail = $('displayEmail');
-        if (displayEmail) displayEmail.textContent = contact;
-
-        showToast('OTP sent successfully'); 
-        
-        showStep('stepOtp');
-        setStepTitle('Check your inbox', `Enter the 6-digit code sent to ${contact}.`);
-        $('otpInput').value = '';
-        startTimer(60);
-
-        btnSendOtp.disabled = false;
-        btnSendOtp.textContent = 'Resend code';
-      } catch (err) {
-        console.error('❌ SEND OTP ERROR:', err);
-        alert('Failed to send OTP. Please try again.');
-        btnSendOtp.disabled = false;
-        btnSendOtp.textContent = 'Send code';
-      }
-    });
-  }
-
-// ---- VERIFY OTP ----
-const btnVerifyOtp = $('btnVerifyOtp');
-if (btnVerifyOtp) {
-  btnVerifyOtp.addEventListener('click', async () => {
-    const code = $('otpInput').value.trim();
-    console.log('DEBUG OTP:', { code, contactValue, currentProvider });
-
-    if (!code || !contactValue) {
-      alert('Enter the OTP first');
-      return;
-    }
-
-    btnVerifyOtp.disabled = true;
-    btnVerifyOtp.textContent = 'Verifying...';
-
-  try {
-  const res = await fetch(`${API_BASE}/api/verify-otp`, {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({
-      email: contactValue,
-      code
-    })
-  });
-
-
-      const data = await res.json();
-      console.log('VERIFY RESPONSE:', data);
-
-      if (data.success) {
-        const u = data.user;
-        const isNew = data.isNew;
-
-        if (!u) {
-          alert('Login error. Please try again.');
-          btnVerifyOtp.disabled = false;
-          btnVerifyOtp.textContent = 'Verify OTP';
-          return;
-        }
-
-        if (isNew) {
-          // 🆕 New user → registration form
-          console.log('✅ OTP VERIFIED, NEW user → registration');
-          localStorage.setItem('userEmail', contactValue);
-          setStepTitle('Complete your profile', 'Just a few details to set up your studio.');
-          showStep('stepRegister');
-        } else {
-          // ✅ Existing user → direct dashboard
-          console.log('✅ OTP VERIFIED, EXISTING user → dashboard');
-        localStorage.setItem('imranUser', JSON.stringify(u));
-localStorage.setItem('userEmail', u.email);
-localStorage.setItem('userId', u.userId || '');
-localStorage.setItem('imranWelcome', '1');   // <-- add
-
-window.location.href = 'index.html';
-
-        }
-      } else {
-        alert(data.message || 'Invalid OTP');
-        btnVerifyOtp.disabled = false;
-        btnVerifyOtp.textContent = 'Verify OTP';
-      }
-    } catch (err) {
-      console.error('VERIFY ERROR:', err);
-      alert('Verification failed');
-      btnVerifyOtp.disabled = false;
-      btnVerifyOtp.textContent = 'Verify OTP';
-    }
-  });
-}
-
-
-  // ---- RESEND OTP ----
-  const btnResendOtp = $('btnResendOtp');
-  if (btnResendOtp) {
-    btnResendOtp.addEventListener('click', async () => {
-      if (!contactValue || !currentProvider) {
-        alert('Session expired. Please start again.');
-        return;
-      }
-
-      btnResendOtp.disabled = true;
-      btnResendOtp.textContent = 'Sending...';
-
-        try {
-        const res = await fetch(`${API_BASE}/api/send-otp`, {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ email: contactValue })
-        });
-
-
-        const data = await res.json();
-        if (data.success) {
-          showToast('OTP resent successfully');
-          startTimer(60);
-        } else {
-          alert(data.message || 'Failed to resend OTP');
-        }
-      } catch (err) {
-        console.error(err);
-        alert('Failed to resend OTP');
-      } finally {
-        btnResendOtp.disabled = false;
-        btnResendOtp.textContent = 'Resend OTP';
-      }
-    });
-  }
-
-  // ---- REGISTRATION FORM VALIDATION ----
-  ['firstName', 'lastName', 'username', 'brotherName', 'password', 'passwordConfirm'].forEach(id => {
-    const el = $(id);
-    if (el) el.addEventListener('input', validateRegisterForm);
-  });
-
-  // ---- COMPLETE REGISTRATION ----
-  const btnRegister = $('btnRegister');
-  if (btnRegister) {
-    btnRegister.addEventListener('click', async () => {
-      if (!validateRegisterForm()) {
-        alert('Please complete all required fields correctly.');
-        return;
-      }
-
-      const first = $('firstName').value.trim();
-      const last = $('lastName').value.trim();
-      const username = $('username').value.trim();
-      const role = $('role').value || null;
-      const email = localStorage.getItem('userEmail');
-
-      if (!email) {
-        alert('Email not found. Please login again.');
-        return;
-      }
-
-      btnRegister.disabled = true;
-      btnRegister.textContent = 'Creating account...';
-
-      try {
-        const res = await fetch(`${API_BASE}/api/complete-registration`, {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ 
-            email, 
-            firstName: first, 
-            lastName: last, 
-            username, 
-            role,
-            password: $('password').value
-          })
-        });
-
-
-
-        
-
-        const data = await res.json();
-
- if (data.success && data.user) {
-localStorage.setItem('imranUser', JSON.stringify(data.user));
-localStorage.setItem('userEmail', data.user.email);
-localStorage.setItem('userId', data.user.userId || '');
-localStorage.setItem('imranWelcome', '1');   // <-- new
-
-window.location.href = 'index.html';
-
-
-}
-
-
-          
-         else {
-          alert(data.message || 'Failed to complete registration');
-          btnRegister.disabled = false;
-          btnRegister.textContent = 'Complete setup';
-        }
-      } catch (err) {
-        console.error('❌ Registration error:', err);
-        alert('Failed to create account. Check console.');
-        btnRegister.disabled = false;
-        btnRegister.textContent = 'Complete setup';
-      }
-    });
-  }
-
-  // ---- PASSWORD TOGGLE ----
-  const togglePassword = $('togglePassword');
-  const passwordInput = $('password');
-  if (togglePassword && passwordInput) {
-    togglePassword.addEventListener('click', () => {
-      const type = passwordInput.type === 'password' ? 'text' : 'password';
-      passwordInput.type = type;
-      togglePassword.textContent = type === 'password' ? '👁️' : '🙈';
-    });
-  }
-
-  const togglePasswordConfirm = $('togglePasswordConfirm');
-  const passwordConfirmInput = $('passwordConfirm');
-  if (togglePasswordConfirm && passwordConfirmInput) {
-    togglePasswordConfirm.addEventListener('click', () => {
-      const type = passwordConfirmInput.type === 'password' ? 'text' : 'password';
-      passwordConfirmInput.type = type;
-      togglePasswordConfirm.textContent = type === 'password' ? '👁️' : '🙈';
-    });
-  }
-
-  // ---- BACK TO LOGIN ----
- const btnBackToLogin = $('btnBackToLogin');
-if (btnBackToLogin) {
-  btnBackToLogin.addEventListener('click', () => {
-    showStep('stepProviders');
-    setStepTitle('Sign in to continue', 'Choose a way to continue to your studio.');
-  });
-}
-
-  // ---- BACK FROM USERNAME LOGIN ----
-  const btnBackFromUsername = $('btnBackFromUsername');
-  if (btnBackFromUsername) {
-    btnBackFromUsername.addEventListener('click', () => {
-      showStep('stepProviders');
-      setStepTitle('Sign in to continue', 'Choose a way to continue to your studio.');
-    });
-  }
-
-  console.log('✅ All handlers initialized');
-});
-  </script>
-
-      <!-- PWA Service Worker Registration -->
-    <script>
-      if ('serviceWorker' in navigator) {
-        window.addEventListener('load', () => {
-          navigator.serviceWorker
-            .register('/service-worker.js')
-            .then((registration) => {
-              console.log('✅ ServiceWorker registered:', registration.scope);
-            })
-            .catch((error) => {
-              console.error('❌ ServiceWorker registration failed:', error);
-            });
-        });
-      }
-    </script>
-
-    <!-- PWA Install Prompt Logic -->
-    <script>
-      let deferredPrompt;
-      const installBtn = document.getElementById('pwaInstallBtn');
-
-      // Listen for beforeinstallprompt event
-      window.addEventListener('beforeinstallprompt', (e) => {
-        console.log('💡 PWA Install prompt available');
-        // Prevent the mini-infobar from appearing on mobile
-        e.preventDefault();
-        // Save the event for later use
-        deferredPrompt = e;
-        // Show install button
-        if (installBtn) {
-          installBtn.classList.remove('hidden');
-          console.log('✅ Install button visible');
-        }
-      });
-
-      // Handle install button click
-      if (installBtn) {
-        installBtn.addEventListener('click', async () => {
-          console.log('🔘 Install button clicked');
-          
-          if (!deferredPrompt) {
-            console.log('⚠️ Install prompt not available');
-            alert('App is already installed or browser does not support PWA installation.');
-            return;
-          }
-          
-          // Show the install prompt
-          deferredPrompt.prompt();
-          
-          // Wait for user response
-          const { outcome } = await deferredPrompt.userChoice;
-          console.log(`👤 User response: ${outcome}`);
-          
-          if (outcome === 'accepted') {
-            console.log('✅ PWA installed successfully');
-            // Show success message
-            showToast('✅ IMRAN SQUARE installed successfully!');
-          } else {
-            console.log('❌ User cancelled installation');
-            showToast('Installation cancelled');
-          }
-          
-          // Clear the saved prompt
-          deferredPrompt = null;
-          installBtn.classList.add('hidden');
-        });
-      }
-
-      // Track PWA installation
-      window.addEventListener('appinstalled', () => {
-        console.log('🎉 PWA installed on device');
-        if (installBtn) {
-          installBtn.classList.add('hidden');
-        }
-        showToast('🎉 App installed! Open from home screen.');
-      });
-
-      // Detect if app is running in standalone mode (already installed)
-      if (window.matchMedia('(display-mode: standalone)').matches) {
-        console.log('📱 Running in standalone mode');
-        if (installBtn) {
-          installBtn.classList.add('hidden');
-        }
-      }
-
-      // iOS detection and standalone check
-      const isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent) && !window.MSStream;
-      const isInStandaloneMode = ('standalone' in window.navigator) && (window.navigator.standalone);
-      
-      if (isIOS && !isInStandaloneMode) {
-        console.log('📱 iOS detected - showing install button for manual instructions');
-        // On iOS, show button that opens instructions modal
-        if (installBtn) {
-          installBtn.classList.remove('hidden');
-          installBtn.innerHTML = `
-            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"/>
-            </svg>
-            Install on iOS
-          `;
-          // Override click to show iOS instructions
-          installBtn.addEventListener('click', (e) => {
-            e.stopPropagation();
-            const modal = document.getElementById('iosInstallModal');
-            if (modal) modal.classList.remove('hidden');
-          }, { once: false });
-        }
-      }
-
-      // Helper function for toast notifications
-      function showToast(message) {
-        const toast = document.createElement('div');
-        toast.className = 'fixed bottom-6 left-1/2 -translate-x-1/2 px-6 py-3 rounded-full bg-white text-black text-sm font-medium shadow-2xl z-50 animate-bounce';
-        toast.textContent = message;
-        document.body.appendChild(toast);
-        
-        setTimeout(() => {
-          toast.style.opacity = '0';
-          toast.style.transition = 'opacity 0.3s';
-          setTimeout(() => toast.remove(), 300);
-        }, 3000);
-      }
-    </script>
-
-<!-- iOS Install Instructions Modal -->
-<div id="iosInstallModal" class="hidden fixed inset-0 bg-black/90 backdrop-blur-sm z-50 flex items-center justify-center p-4">
-  <div class="bg-gradient-to-b from-gray-900 to-black rounded-3xl max-w-md w-full p-8 border border-orange-500/30 shadow-2xl relative">
-    
-    <!-- Decorative glow -->
-    <div class="absolute -inset-1 bg-gradient-to-r from-orange-500/20 to-orange-600/20 rounded-3xl blur-xl"></div>
-    
-    <!-- Content -->
-    <div class="relative">
-      <!-- Header -->
-      <div class="flex items-center justify-between mb-6">
-        <div>
-          <h3 class="text-xl font-bold text-white">Install on iPhone</h3>
-          <p class="text-xs text-gray-400 mt-1">Add to your home screen</p>
-        </div>
-        <button id="closeIosModal" class="w-10 h-10 rounded-full bg-white/10 hover:bg-white/20 flex items-center justify-center text-gray-300 transition">
-          <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/>
-          </svg>
-        </button>
-      </div>
-      
-      <!-- Instructions -->
-      <div class="space-y-4 text-gray-300 text-sm">
-        
-        <!-- Step 1 -->
-        <div class="flex items-start gap-4 bg-white/5 p-4 rounded-xl border border-white/10">
-          <div class="flex-shrink-0 w-8 h-8 rounded-full bg-orange-500 text-white font-bold flex items-center justify-center">1</div>
-          <div class="flex-1">
-            <p class="text-white font-semibold mb-2">Tap the Share button</p>
-            <p class="text-xs text-gray-400">Look for the <strong>share icon</strong> at the bottom of Safari</p>
-            <div class="mt-3 flex items-center justify-center bg-blue-500/10 p-3 rounded-lg">
-              <svg class="w-8 h-8 text-blue-400" fill="currentColor" viewBox="0 0 24 24">
-                <path d="M16 5l-1.42 1.42-1.59-1.59V16h-1.98V4.83L9.42 6.42 8 5l4-4 4 4zm4 5v11c0 1.1-.9 2-2 2H6c-1.11 0-2-.9-2-2V10c0-1.11.89-2 2-2h3v2H6v11h12V10h-3V8h3c1.1 0 2 .89 2 2z"/>
-              </svg>
+<body class="selection:bg-brand-accent/30 selection:text-white">
+
+    <header class="fixed top-0 w-full z-50 bg-black/50 backdrop-blur-md border-b border-brand-border">
+        <div class="max-w-7xl mx-auto px-6 h-16 flex items-center justify-between">
+            <div class="flex items-center gap-2">
+                <div class="w-6 h-6 rounded bg-brand-accent/20 border border-brand-accent/50 flex items-center justify-center">
+                    <span class="font-bold text-brand-accent text-[10px]">IS</span>
+                </div>
+                <span class="font-medium text-sm tracking-tight text-white">IMRAN SQUARE</span>
             </div>
-          </div>
+
+            <nav class="hidden md:flex items-center gap-8 text-sm text-brand-muted font-medium">
+                <a href="#features" class="hover:text-white transition-colors">Features</a>
+                <a href="#integration" class="hover:text-white transition-colors">Integrations</a>
+                <a href="#docs" class="hover:text-white transition-colors">Docs</a>
+            </nav>
+
+            <div class="flex items-center gap-4">
+                <a href="/login" class="text-sm text-brand-muted hover:text-white transition-colors">Log In</a>
+                <a href="/login" class="px-4 py-1.5 rounded-full bg-white text-black text-sm font-semibold hover:bg-gray-200 transition">
+                    Get Started
+                </a>
+            </div>
         </div>
-        
-        <!-- Step 2 -->
-        <div class="flex items-start gap-4 bg-white/5 p-4 rounded-xl border border-white/10">
-          <div class="flex-shrink-0 w-8 h-8 rounded-full bg-orange-500 text-white font-bold flex items-center justify-center">2</div>
-          <div class="flex-1">
-            <p class="text-white font-semibold mb-2">Select "Add to Home Screen"</p>
-            <p class="text-xs text-gray-400">Scroll down in the share menu and tap this option</p>
-          </div>
+    </header>
+
+    <section class="relative pt-32 pb-20 md:pt-48 md:pb-32 px-6 overflow-hidden border-b border-brand-border">
+        <div class="absolute top-0 left-1/2 -translate-x-1/2 w-[1000px] h-[600px] glow-radial pointer-events-none z-0"></div>
+
+        <div class="max-w-4xl mx-auto text-center relative z-10 animate-fade-in-up">
+            <div class="inline-flex items-center gap-2 px-3 py-1 rounded-full border border-brand-border bg-white/[0.03] text-[11px] text-brand-muted mb-8 hover:border-brand-accent/30 transition cursor-default">
+                <span class="w-1.5 h-1.5 rounded-full bg-brand-accent animate-pulse"></span>
+                Video management reimagined. Available today.
+            </div>
+
+            <h1 class="text-5xl md:text-7xl font-bold tracking-tight mb-6 leading-[1.1]">
+                <span class="text-gradient">Imran Square Studio</span><br>
+                <span class="text-brand-muted">Everything in your control.</span>
+            </h1>
+
+            <p class="text-lg text-brand-muted max-w-xl mx-auto mb-10 leading-relaxed">
+                A simple, elegant interface so you can start managing raw footage in minutes. Fits right into your workflow with Google Drive and AI.
+            </p>
+
+            <div class="flex flex-col sm:flex-row items-center justify-center gap-4 mb-16">
+                <a href="/login" class="h-12 px-8 rounded-full bg-white text-black font-semibold text-sm hover:scale-105 transition duration-300 flex items-center gap-2 shadow-[0_0_20px_rgba(255,255,255,0.2)]">
+                    Get Started <span>→</span>
+                </a>
+                <button class="h-12 px-8 rounded-full border border-brand-border text-brand-muted font-medium text-sm hover:text-white hover:border-white/20 hover:bg-white/5 transition">
+                    View Documentation
+                </button>
+            </div>
+
+            <div class="flex flex-wrap justify-center gap-4 text-xs text-brand-muted font-mono uppercase tracking-widest opacity-60">
+                <span>Node.js</span> • <span>Firebase</span> • <span>Google Drive</span> • <span>AI APIs</span> • <span>Tailwind</span>
+            </div>
         </div>
-        
-        <!-- Step 3 -->
-        <div class="flex items-start gap-4 bg-white/5 p-4 rounded-xl border border-white/10">
-          <div class="flex-shrink-0 w-8 h-8 rounded-full bg-orange-500 text-white font-bold flex items-center justify-center">3</div>
-          <div class="flex-1">
-            <p class="text-white font-semibold mb-2">Tap "Add"</p>
-            <p class="text-xs text-gray-400">Confirm by tapping <strong>Add</strong> in the top right corner</p>
-          </div>
+
+        <div class="mt-20 max-w-6xl mx-auto relative group animate-fade-in-up" style="animation-delay: 0.2s;">
+            <div class="absolute -inset-1 bg-gradient-to-t from-brand-accent/20 via-transparent to-transparent rounded-xl blur-2xl opacity-20 group-hover:opacity-40 transition duration-1000"></div>
+            
+            <div class="relative rounded-xl border border-brand-border bg-[#050505] overflow-hidden shadow-2xl">
+                <img src="/image_19c7f8.jpg" alt="Studio Dashboard" class="w-full h-auto opacity-90 group-hover:opacity-100 transition duration-700">
+                
+                <div class="absolute inset-0 bg-gradient-to-t from-black via-transparent to-transparent opacity-60"></div>
+            </div>
         </div>
-        
-      </div>
-      
-      <!-- Close Button -->
-      <button id="iosModalGotIt" class="w-full mt-6 py-3 bg-gradient-to-r from-orange-500 to-orange-600 rounded-xl text-white font-semibold hover:shadow-lg hover:scale-105 transition-all">
-        Got it!
-      </button>
-    </div>
-  </div>
-</div>
+    </section>
 
-<script>
-  // iOS Install Modal Logic
-  const iosModal = document.getElementById('iosInstallModal');
-  const closeIosModal = document.getElementById('closeIosModal');
-  const iosModalGotIt = document.getElementById('iosModalGotIt');
-  
-  // Close modal handlers
-  if (closeIosModal) {
-    closeIosModal.addEventListener('click', () => {
-      if (iosModal) iosModal.classList.add('hidden');
-    });
-  }
-  
-  if (iosModalGotIt) {
-    iosModalGotIt.addEventListener('click', () => {
-      if (iosModal) iosModal.classList.add('hidden');
-    });
-  }
-  
-  // Close on outside click
-  if (iosModal) {
-    iosModal.addEventListener('click', (e) => {
-      if (e.target === iosModal) {
-        iosModal.classList.add('hidden');
-      }
-    });
-  }
+    <section class="py-12 border-b border-brand-border bg-black">
+        <div class="max-w-7xl mx-auto px-6 text-center">
+            <p class="text-xs text-brand-muted mb-8 uppercase tracking-widest">Companies of all sizes trust Imran Square</p>
+            <div class="flex flex-wrap justify-center gap-x-12 gap-y-6 opacity-40 grayscale hover:grayscale-0 transition-all duration-500">
+                <span class="text-sm font-bold text-white">Zero-Budget Startups</span>
+                <span class="text-sm font-bold text-white">Independent Creators</span>
+                <span class="text-sm font-bold text-white">Small Production Teams</span>
+                <span class="text-sm font-bold text-white">Content Studios</span>
+                <span class="text-sm font-bold text-white">Personal Archives</span>
+            </div>
+        </div>
+    </section>
 
+    <section id="features" class="py-24 px-6 border-b border-brand-border">
+        <div class="max-w-7xl mx-auto">
+            <div class="text-center mb-16">
+                <h2 class="text-3xl md:text-5xl font-bold mb-4">Full Visibility</h2>
+                <p class="text-brand-muted max-w-2xl mx-auto">Monitor upload progress, file statuses (10-40GB), and project timelines with a clean dashboard.</p>
+            </div>
 
-   // Quick UI helper just in case
-    const $ = (id) => document.getElementById(id);
-    const showStep = (id) => {
-      ['stepProviders', 'stepContact', 'stepOtp', 'stepUsernameLogin', 'stepRegister'].forEach(s => $(s)?.classList.add('hidden'));
-      $(id)?.classList.remove('hidden');
-    };
+            <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
+                <div class="p-8 rounded-2xl glass-panel hover:border-brand-accent/30 transition group">
+                    <div class="w-10 h-10 rounded-full bg-orange-500/10 flex items-center justify-center mb-6 text-brand-accent">📊</div>
+                    <h3 class="text-xl font-semibold mb-2 text-white">Intuitive Analytics</h3>
+                    <p class="text-sm text-brand-muted leading-relaxed">Track raw footage uploads, admin actions, and user activity with real-time Firestore updates.</p>
+                </div>
 
-    // Simple wiring if main.js doesn't auto-attach
-    if($('btnBackFromUsername')) $('btnBackFromUsername').onclick = () => showStep('stepProviders');
-    if($('btnBackToProviders')) $('btnBackToProviders').onclick = () => showStep('stepProviders');
+                <div class="p-8 rounded-2xl glass-panel hover:border-blue-500/30 transition group">
+                    <div class="w-10 h-10 rounded-full bg-blue-500/10 flex items-center justify-center mb-6 text-blue-500">👁</div>
+                    <h3 class="text-xl font-semibold mb-2 text-white">Real-time Status</h3>
+                    <p class="text-sm text-brand-muted leading-relaxed">Instantly know when your 40GB render is ready or if AI processing is complete.</p>
+                </div>
 
+                <div class="p-8 rounded-2xl glass-panel hover:border-green-500/30 transition group">
+                    <div class="w-10 h-10 rounded-full bg-green-500/10 flex items-center justify-center mb-6 text-green-500">🔐</div>
+                    <h3 class="text-xl font-semibold mb-2 text-white">Domain Auth</h3>
+                    <p class="text-sm text-brand-muted leading-relaxed">Secure Google OAuth + Email OTP ensures only authorized users access your projects.</p>
+                </div>
+            </div>
+        </div>
+    </section>
 
-</script>
+    <section id="integration" class="py-24 px-6 bg-[#030303]">
+        <div class="max-w-7xl mx-auto grid grid-cols-1 lg:grid-cols-2 gap-16 items-center">
+            <div>
+                <h2 class="text-4xl md:text-5xl font-bold leading-tight mb-6">Integrate this <br><span class="text-gradient">weekend.</span></h2>
+                <p class="text-brand-muted text-lg mb-8">
+                    First-class developer experience. Our goal is to craft the video management platform we've always wished we had — one that just works.
+                </p>
+                <div class="flex flex-col gap-4">
+                    <div class="flex items-center gap-3">
+                        <div class="w-6 h-6 rounded-full bg-brand-accent/10 flex items-center justify-center text-xs text-brand-accent">✓</div>
+                        <span class="text-white">Seamless Google Drive Uploads</span>
+                    </div>
+                    <div class="flex items-center gap-3">
+                        <div class="w-6 h-6 rounded-full bg-brand-accent/10 flex items-center justify-center text-xs text-brand-accent">✓</div>
+                        <span class="text-white">Automated AI Metadata Tagging</span>
+                    </div>
+                    <div class="flex items-center gap-3">
+                        <div class="w-6 h-6 rounded-full bg-brand-accent/10 flex items-center justify-center text-xs text-brand-accent">✓</div>
+                        <span class="text-white">Real-time Collaboration</span>
+                    </div>
+                </div>
+            </div>
+
+            <div class="relative group">
+                <div class="absolute -inset-1 bg-gradient-to-r from-brand-accent/20 to-blue-500/20 rounded-2xl blur opacity-20"></div>
+                <div class="relative rounded-xl bg-[#0A0A0A] border border-brand-border overflow-hidden shadow-2xl">
+                    <div class="flex items-center gap-2 px-4 py-3 border-b border-brand-border bg-white/[0.02]">
+                        <div class="flex gap-1.5">
+                            <div class="w-3 h-3 rounded-full bg-[#2A2A2A]"></div>
+                            <div class="w-3 h-3 rounded-full bg-[#2A2A2A]"></div>
+                            <div class="w-3 h-3 rounded-full bg-[#2A2A2A]"></div>
+                        </div>
+                        <div class="ml-auto text-[10px] text-brand-muted font-mono">workflow.js</div>
+                    </div>
+                    <div class="p-6 overflow-x-auto bg-[#050505]">
+<pre class="font-mono text-sm leading-relaxed">
+<span class="text-gray-500">// 1. Upload raw footage to Google Drive</span>
+<span class="text-purple-400">const</span> <span class="text-blue-300">footage</span> = <span class="text-purple-400">await</span> <span class="text-yellow-200">uploadToGoogleDrive</span>(file);
+
+<span class="text-gray-500">// 2. Send to Studio timeline</span>
+<span class="text-purple-400">await</span> <span class="text-yellow-200">sendToStudio</span>({
+  <span class="text-red-300">projectId</span>: <span class="text-green-400">'p1'</span>,
+  <span class="text-red-300">title</span>: footage.title,
+  <span class="text-red-300">format</span>: <span class="text-green-400">'long'</span>,
+  <span class="text-red-300">tag</span>: <span class="text-green-400">'RAW'</span>
+});
+
+<span class="text-gray-500">// 3. AI Chat Integration</span>
+<span class="text-purple-400">const</span> <span class="text-blue-300">response</span> = <span class="text-purple-400">await</span> <span class="text-yellow-200">geminiChat</span>(query);
+</pre>
+                    </div>
+                    <div class="p-4 border-t border-brand-border bg-black font-mono text-xs">
+                        <div class="text-green-400 mb-1">HTTP 200: ✅ Footage uploaded</div>
+                        <div class="text-green-400 mb-1">HTTP 200: ✅ Metadata synced</div>
+                        <div class="text-blue-400">HTTP 200: 🤖 AI processing ready</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <section class="py-32 px-6 border-t border-b border-brand-border">
+        <div class="max-w-4xl mx-auto text-center">
+            <h2 class="text-4xl md:text-6xl font-bold mb-10 tracking-tight text-white">
+                "Video reimagined.<br>Available today."
+            </h2>
+            <p class="text-brand-muted text-lg italic mb-10">
+                "The Imran Square team has built a great product in a space that hasn't seen much innovation for years. Engineering peers are raving about it — such a smooth dev experience."
+            </p>
+            <div class="flex items-center justify-center gap-4">
+                <div class="w-12 h-12 rounded-full bg-brand-surface border border-brand-border flex items-center justify-center text-xs text-brand-muted">
+                    FK
+                </div>
+                <div class="text-left">
+                    <p class="text-white font-semibold text-sm">Farhan Khan</p>
+                    <p class="text-brand-muted text-xs">Director at Aqlorium Creative Alliance</p>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <footer class="py-16 px-6 bg-black text-sm">
+        <div class="max-w-7xl mx-auto grid grid-cols-2 md:grid-cols-4 gap-10 mb-16">
+            <div>
+                <h4 class="font-bold text-white mb-4">Documentation</h4>
+                <ul class="space-y-2 text-brand-muted">
+                    <li><a href="#" class="hover:text-white transition">Getting Started</a></li>
+                    <li><a href="#" class="hover:text-white transition">API Reference</a></li>
+                    <li><a href="#" class="hover:text-white transition">Integrations</a></li>
+                </ul>
+            </div>
+            <div>
+                <h4 class="font-bold text-white mb-4">Resources</h4>
+                <ul class="space-y-2 text-brand-muted">
+                    <li><a href="#" class="hover:text-white transition">Changelog</a></li>
+                    <li><a href="#" class="hover:text-white transition">Pricing</a></li>
+                    <li><a href="#" class="hover:text-white transition">Security</a></li>
+                </ul>
+            </div>
+            <div class="col-span-2 md:col-span-1">
+                <h4 class="font-bold text-white mb-4">Studio</h4>
+                <address class="text-brand-muted not-italic mb-2">
+                    2261 Market Street #5039<br>Jaipur, RJ, India
+                </address>
+                <div class="text-xs text-brand-muted">Backed by: <span class="text-white">Aqlorium Creative Alliance</span></div>
+            </div>
+        </div>
+
+        <div class="max-w-7xl mx-auto pt-8 border-t border-brand-border flex flex-col md:flex-row justify-between items-center gap-4">
+            <div class="flex gap-6 text-brand-muted">
+                <a href="#" class="hover:text-white">X</a>
+                <a href="#" class="hover:text-white">LinkedIn</a>
+                <a href="#" class="hover:text-white">YouTube</a>
+            </div>
+            <div class="flex items-center gap-2">
+                <span class="relative flex h-2 w-2">
+                  <span class="animate-ping absolute inline-flex h-full w-full rounded-full bg-green-400 opacity-75"></span>
+                  <span class="relative inline-flex rounded-full h-2 w-2 bg-green-500"></span>
+                </span>
+                <span class="text-green-500 text-xs font-mono">All systems operational</span>
+            </div>
+        </div>
+    </footer>
 
 </body>
 </html>
