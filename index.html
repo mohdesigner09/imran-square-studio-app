@@ -160,12 +160,22 @@ body.theme-advanced {
 <header class="sticky top-0 z-30 bg-black/80 backdrop-blur-md border-b border-white/5">
         <div class="max-w-7xl mx-auto px-4 sm:px-6 h-16 flex items-center justify-between">
 
+            <div class="flex items-center gap-3">
+                <div class="w-9 h-9 rounded-xl border border-orange-500/30 bg-white/5 flex items-center justify-center overflow-hidden">
+                    <img src="resources/icon-32.png" alt="Logo" class="w-5 h-5 opacity-90">
+                </div>
+                <div class="hidden md:block leading-tight">
+                    <p class="text-[10px] text-gray-500 uppercase tracking-wider">Studio</p>
+                    <p class="text-xs font-bold text-white">IMRAN SQUARE</p>
+                </div>
+            </div>
+
             <div class="flex items-center gap-4">
                 
-                <div class="flex items-center gap-3">
-                    <div class="w-9 h-9 rounded-xl border border-orange-500/30 bg-white/5 flex items-center justify-center overflow-hidden">
-                        <img src="resources/icon-32.png" alt="Logo" class="w-5 h-5 opacity-90">
-                    </div>
+                <div class="relative w-60 hidden sm:block">
+                    <input type="text" placeholder="Search projects..." 
+                        class="w-full bg-white/5 border border-white/10 rounded-full py-2 pl-4 pr-10 text-xs text-white focus:outline-none focus:border-orange-500/50 transition">
+                    <svg class="w-4 h-4 text-gray-500 absolute right-3 top-2.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"/></svg>
                 </div>
 
                 <div class="relative">
@@ -174,32 +184,22 @@ body.theme-advanced {
                         <img id="userAvatarImg" src="" class="hidden w-full h-full object-cover rounded-full">
                     </button>
 
-                    <div id="userMenu" class="hidden absolute top-12 left-0 w-60 bg-[#111] border border-white/10 rounded-xl shadow-2xl z-50">
+                    <div id="userMenu" class="hidden absolute top-12 right-0 w-60 bg-[#111] border border-white/10 rounded-xl shadow-2xl z-50">
                         <div class="p-4 border-b border-white/5">
                             <p id="userMenuName" class="text-white font-semibold text-sm">User</p>
                             <p id="userMenuEmail" class="text-xs text-gray-500 truncate">email@example.com</p>
                         </div>
-                        <button id="userMenuAccount" class="w-full text-left px-4 py-3 text-sm text-gray-300 hover:bg-white/5 transition">
+                        
+                        <a href="account.html" id="userMenuAccount" class="block w-full text-left px-4 py-3 text-sm text-gray-300 hover:bg-white/5 transition decoration-0">
                             Account Settings
-                        </button>
+                        </a>
+                        
                         <button id="userMenuSignOut" class="w-full text-left px-4 py-3 text-sm text-red-400 hover:bg-white/5 transition border-t border-white/5">
                             Sign Out
                         </button>
                     </div>
                 </div>
 
-                <div class="hidden md:block leading-tight">
-                    <p class="text-[10px] text-gray-500 uppercase tracking-wider">Welcome back</p>
-                    <p id="dashboardUserName" class="text-xs font-bold text-white">Imran Square</p>
-                </div>
-            </div>
-
-            <div class="flex-1 max-w-md flex justify-end">
-                <div class="relative w-full max-w-[250px] hidden sm:block">
-                    <input type="text" placeholder="Search..." 
-                        class="w-full bg-white/5 border border-white/10 rounded-full py-2 pl-4 pr-10 text-xs text-white focus:outline-none focus:border-orange-500/50 transition">
-                    <svg class="w-4 h-4 text-gray-500 absolute right-3 top-2.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"/></svg>
-                </div>
             </div>
 
         </div>
@@ -560,6 +560,57 @@ body.theme-advanced {
         });
       }
     </script>
+<script>
+  document.addEventListener('DOMContentLoaded', () => {
+    
+    // 1. Avatar Menu Toggle
+    const avatarBtn = document.getElementById('userAvatarButton');
+    const userMenu = document.getElementById('userMenu');
+    
+    if(avatarBtn && userMenu) {
+        avatarBtn.addEventListener('click', (e) => {
+            e.stopPropagation(); // Menu turant band hone se roko
+            userMenu.classList.toggle('hidden');
+        });
 
+        // Bahar click karne par menu band karo
+        document.addEventListener('click', (e) => {
+            if (!avatarBtn.contains(e.target) && !userMenu.contains(e.target)) {
+                userMenu.classList.add('hidden');
+            }
+        });
+    }
+
+    // 2. Sign Out Logic
+    const signOutBtn = document.getElementById('userMenuSignOut');
+    if(signOutBtn) {
+        signOutBtn.addEventListener('click', () => {
+            // Data saaf karo
+            localStorage.removeItem('imranUser');
+            localStorage.removeItem('userEmail');
+            // Landing page par bhejo
+            window.location.href = 'landing.html';
+        });
+    }
+
+    // 3. User Data Load (Header mein Naam dikhane ke liye)
+    const userStr = localStorage.getItem('imranUser');
+    if(userStr) {
+        const user = JSON.parse(userStr);
+        // Initials (e.g. FK for Farhan Khan)
+        const initials = (user.firstName?.[0] || '') + (user.lastName?.[0] || '');
+        
+        // Update DOM
+        if(document.getElementById('userAvatarFallback')) 
+            document.getElementById('userAvatarFallback').textContent = initials || 'IS';
+        
+        if(document.getElementById('userMenuName')) 
+            document.getElementById('userMenuName').textContent = user.username || 'User';
+            
+        if(document.getElementById('userMenuEmail')) 
+            document.getElementById('userMenuEmail').textContent = user.email || '';
+    }
+  });
+</script>
 </body>
 </html>
