@@ -2,13 +2,14 @@
 import express from 'express';
 import cors from 'cors';
 import dotenv from 'dotenv';
+import multer from 'multer'; // 👈 YE MISSING THA (Ab laga diya)
 import nodemailer from 'nodemailer';
 import axios from 'axios';
-import admin from 'firebase-admin'; // Firebase Import
-import { readFileSync } from 'fs';
+import admin from 'firebase-admin';
 import { google } from 'googleapis';
 import path from 'path';
 import { fileURLToPath } from 'url';
+import { readFileSync } from 'fs'; // Ye bhi add kar diya safety ke liye
 
 // ===== 2. CONFIGURATION =====
 dotenv.config();
@@ -17,11 +18,10 @@ dotenv.config();
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
-// ===== 3. APP INITIALIZATION (Sirf EK baar) =====
+// ===== 3. APP INITIALIZATION =====
 const app = express();
 
-// ===== 4. SECURITY UNLOCK (Ye sabse zaroori hai) =====
-// Ye code Tailwind, Google Fonts, aur Scripts ko allow karega
+// ===== 4. SECURITY UNLOCK (CSP Fix) =====
 app.use((req, res, next) => {
   res.removeHeader("Content-Security-Policy");
   res.removeHeader("X-Content-Security-Policy");
@@ -35,11 +35,14 @@ app.use((req, res, next) => {
 
 // ===== 5. MIDDLEWARES =====
 app.use(cors());
-app.use(express.json({ limit: '10mb' })); // Limit badha di taaki images upload ho sakein
+app.use(express.json({ limit: '10mb' }));
 app.use(express.urlencoded({ limit: '10mb', extended: true }));
 
-// Static Files Serve karo
+// Static Files
 app.use(express.static(__dirname));
+
+// ... ISKE NEECHE JO CODE HAI USE MAT CHEDHNA ...
+// ... (Routes, Firebase Init, etc. waisa hi rahega) ...
 
 // ===== 6. BASIC ROUTES =====
 // Root landing page
