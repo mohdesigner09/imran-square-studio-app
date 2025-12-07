@@ -1,7 +1,6 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-
   <script>
   // Auth Guard: Agar user pehle se login hai, to Dashboard par bhejo
   const user = localStorage.getItem('imranUser');
@@ -12,90 +11,220 @@
 
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Welcome - IMRAN SQUARE</title>
-  <meta name="theme-color" content="#ff6b35">
+  <title>Log in - Imran Square</title>
+  <meta name="theme-color" content="#000000">
   <link rel="manifest" href="/manifest.json">
   <link rel="icon" type="image/png" sizes="32x32" href="/resources/icon-32.png">
   <link rel="shortcut icon" href="/resources/favicon.ico">
   <script src="https://cdn.tailwindcss.com"></script>
-  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600&family=JetBrains+Mono:wght@400&display=swap" rel="stylesheet">
   
+  <script>
+    tailwind.config = {
+        theme: {
+            extend: {
+                fontFamily: { 
+                    sans: ['Inter', 'sans-serif'],
+                    mono: ['JetBrains Mono', 'monospace']
+                },
+                colors: { 
+                    brand: { bg: '#000000', surface: '#0A0A0A', border: '#1C1C1C', text: '#EDEDED', muted: '#888888' } 
+                }
+            }
+        }
+    }
+  </script>
+
   <style>
-    body { background: #000; color: white; font-family: 'Inter', sans-serif; overflow-x: hidden; }
-    .hero-bg { position: fixed; inset: 0; background: radial-gradient(circle at 50% 30%, #1a1a1a 0%, #000 100%); z-index: -1; }
+    body { background: #000; color: #ededed; overflow-x: hidden; height: 100vh; display: flex; flex-direction: column; }
+    
+    /* Resend Style Glow */
+    .bg-glow {
+        position: fixed;
+        top: -50%;
+        left: 50%;
+        transform: translateX(-50%);
+        width: 100vw;
+        height: 100vh;
+        background: radial-gradient(circle, rgba(255,255,255,0.08) 0%, transparent 60%);
+        pointer-events: none;
+        z-index: -1;
+    }
+
+    /* Resend Input Field */
+    .input-resend {
+        background: #050505;
+        border: 1px solid #222;
+        color: white;
+        padding: 12px 16px;
+        border-radius: 8px;
+        width: 100%;
+        font-size: 14px;
+        transition: all 0.2s;
+        outline: none;
+    }
+    .input-resend:focus {
+        border-color: #555;
+        box-shadow: 0 0 0 1px #333;
+    }
+
+    /* Primary Button (White) */
+    .btn-primary {
+        background: white;
+        color: black;
+        font-weight: 500;
+        padding: 12px;
+        border-radius: 8px;
+        width: 100%;
+        font-size: 14px;
+        transition: all 0.2s;
+        border: 1px solid white;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        gap: 8px;
+    }
+    .btn-primary:hover {
+        opacity: 0.9;
+        box-shadow: 0 0 20px rgba(255,255,255,0.15);
+        transform: translateY(-1px);
+    }
+    .btn-primary:disabled {
+        opacity: 0.6;
+        cursor: not-allowed;
+    }
+
+    /* Secondary Button (Dark) */
+    .btn-secondary {
+        background: transparent;
+        color: #ededed;
+        border: 1px solid #333;
+        padding: 12px;
+        border-radius: 8px;
+        width: 100%;
+        font-size: 14px;
+        font-weight: 500;
+        transition: all 0.2s;
+    }
+    .btn-secondary:hover {
+        border-color: #666;
+        background: #111;
+        color: white;
+    }
+
+    /* Hide Scrollbar */
+    ::-webkit-scrollbar { width: 0px; }
   </style>
 </head>
 
-<body class="min-h-screen flex flex-col items-center justify-center p-4">
-  <div class="hero-bg"></div>
+<body class="selection:bg-white/20 relative">
+  <div class="bg-glow"></div>
 
-  <div class="absolute top-0 left-0 w-full p-6 flex justify-between items-center z-10">
-    <div class="flex items-center gap-3">
-      <div class="w-8 h-8 rounded bg-orange-500/20 flex items-center justify-center text-orange-500 font-bold text-xs border border-orange-500/40">IS</div>
-      <span class="text-xs font-bold tracking-[0.2em] text-orange-500 hidden sm:block">IMRAN SQUARE</span>
+  <div class="absolute top-0 left-0 w-full p-6 flex justify-between items-start z-10 pointer-events-none">
+    <div class="w-24"></div> 
+    
+    <div class="flex items-center gap-2 pointer-events-auto mt-2">
+      <img src="resources/logo.png" alt="Logo" class="w-8 h-8 rounded border border-white/10 opacity-90">
+      <span class="font-medium text-sm tracking-wide text-white/90">Imran Square</span>
     </div>
-    <button id="pwaInstallBtn" class="hidden px-4 py-2 bg-orange-600 rounded-full text-xs font-bold">Install App</button>
+
+    <div class="w-24 flex justify-end pointer-events-auto">
+        <button id="pwaInstallBtn" class="hidden px-3 py-1.5 bg-white/10 border border-white/10 rounded-full text-[10px] font-medium text-gray-300 hover:bg-white/20 transition">
+            Install App
+        </button>
+    </div>
   </div>
 
-  <div class="w-full max-w-sm bg-[#0a0a0a] border border-white/10 rounded-3xl p-8 shadow-2xl relative z-20">
+  <main class="flex-1 flex flex-col items-center justify-center px-4">
     
-    <div class="text-center mb-8">
-      <p class="text-[10px] text-orange-500 tracking-[0.3em] uppercase mb-2">Studio Access</p>
-      <h1 class="text-2xl font-bold text-white">Sign in to continue</h1>
-      <p class="text-xs text-gray-500 mt-1">Manage your documentary projects</p>
-    </div>
-
-    <div id="stepProviders" class="space-y-3">
-      <button id="btnGoogle" class="w-full py-3 bg-white text-black rounded-xl text-sm font-semibold hover:bg-gray-200 transition flex items-center justify-center gap-2">
-        <svg class="w-4 h-4" viewBox="0 0 24 24"><path fill="currentColor" d="M21.35 11.1h-9.17v2.73h6.51c-.33 3.81-3.5 5.44-6.5 5.44C8.36 19.27 5 16.25 5 12c0-4.1 3.2-7.27 7.2-7.27c3.09 0 4.9 1.97 4.9 1.97L19 4.72S16.56 2 12.1 2C6.42 2 2.03 6.8 2.03 12c0 5.05 4.13 10 10.22 10c5.35 0 9.25-3.67 9.25-9.09c0-1.15-.15-1.81-.15-1.81Z"/></svg>
-        Sign in with Google
-      </button>
-
-      <div class="flex items-center gap-2 py-2">
-        <div class="h-px bg-white/10 flex-1"></div>
-        <span class="text-[10px] text-gray-500 uppercase">Existing User</span>
-        <div class="h-px bg-white/10 flex-1"></div>
+    <div class="w-full max-w-[380px] animate-fade-in relative z-20">
+      
+      <div id="stepTitle" class="text-center mb-10">
+        <h1 class="text-2xl font-semibold text-white mb-2 tracking-tight">Sign in to continue</h1>
+        <p class="text-sm text-brand-muted">Manage your documentary projects</p>
       </div>
 
-      <button id="btnLoginGoogle" class="w-full py-3 bg-white/5 border border-white/10 rounded-xl text-sm text-gray-300 hover:bg-white/10 transition">
-        Login with Email
-      </button>
-      <button id="btnUsername" class="w-full py-3 bg-white/5 border border-white/10 rounded-xl text-sm text-gray-300 hover:bg-white/10 transition">
-        Login with Username
-      </button>
+      <div id="stepProviders" class="space-y-4">
+        <button id="btnGoogle" class="btn-primary">
+            <svg class="w-4 h-4" viewBox="0 0 24 24"><path fill="currentColor" d="M21.35 11.1h-9.17v2.73h6.51c-.33 3.81-3.5 5.44-6.5 5.44C8.36 19.27 5 16.25 5 12c0-4.1 3.2-7.27 7.2-7.27c3.09 0 4.9 1.97 4.9 1.97L19 4.72S16.56 2 12.1 2C6.42 2 2.03 6.8 2.03 12c0 5.05 4.13 10 10.22 10c5.35 0 9.25-3.67 9.25-9.09c0-1.15-.15-1.81-.15-1.81Z"/></svg>
+            Sign in with Google
+        </button>
+
+        <div class="relative flex items-center py-2">
+            <div class="flex-grow border-t border-[#222]"></div>
+            <span class="flex-shrink-0 mx-4 text-xs text-[#444] uppercase font-medium">Existing User</span>
+            <div class="flex-grow border-t border-[#222]"></div>
+        </div>
+
+        <button id="btnLoginGoogle" class="btn-secondary">
+          Login with Email
+        </button>
+        <button id="btnUsername" class="btn-secondary">
+          Login with Username
+        </button>
+      </div>
+
+      <div id="stepContact" class="hidden space-y-4">
+        <div>
+            <label id="contactLabel" class="text-xs text-gray-500 mb-1.5 block ml-1">Email Address</label>
+            <input id="contactInput" type="email" placeholder="name@example.com" class="input-resend">
+            <p id="contactHint" class="text-[10px] text-gray-600 mt-1.5 ml-1">We'll send you a secure code.</p>
+        </div>
+        <button id="btnSendOtp" class="btn-primary">Send Code</button>
+        <button id="btnBackToProviders" class="w-full text-xs text-gray-500 hover:text-white py-2 transition">← Back</button>
+      </div>
+
+      <div id="stepOtp" class="hidden space-y-5 text-center">
+        <div class="space-y-2">
+            <input id="otpInput" type="text" maxlength="6" placeholder="000000" class="input-resend text-center text-2xl tracking-[0.5em] font-mono py-4">
+            <p class="text-[11px] text-gray-500">Sent to <span id="displayEmail" class="text-white">email</span></p>
+        </div>
+        
+        <button id="btnVerifyOtp" class="btn-primary">Verify Code</button>
+        
+        <div class="flex items-center justify-between px-2">
+            <span id="timer" class="text-xs text-gray-500 font-mono">60</span>
+            <button id="btnResendOtp" class="text-xs text-gray-500 hover:text-white transition" disabled>Resend Code</button>
+        </div>
+      </div>
+
+      <div id="stepUsernameLogin" class="hidden space-y-4">
+        <input id="loginUsername" type="text" placeholder="Username" class="input-resend">
+        <input id="loginPassword" type="password" placeholder="Password" class="input-resend">
+        
+        <button id="btnUsernameLogin" class="btn-primary">Sign In</button>
+        <button id="btnBackFromUsername" class="w-full text-xs text-gray-500 hover:text-white py-2 transition">← Back</button>
+      </div>
+
+      <div id="stepRegister" class="hidden space-y-3">
+        <div class="grid grid-cols-2 gap-3">
+            <input id="firstName" placeholder="First Name" class="input-resend">
+            <input id="lastName" placeholder="Last Name" class="input-resend">
+        </div>
+        
+        <div>
+            <input id="username" placeholder="Username" class="input-resend">
+            <p id="usernameHint" class="text-[10px] text-gray-600 mt-1 ml-1"></p>
+        </div>
+
+        <input id="brotherName" placeholder="Security Answer (Who is Bro?)" class="input-resend">
+
+        <div class="relative">
+            <input id="password" type="password" placeholder="Password" class="input-resend pr-10">
+            <button id="togglePassword" class="absolute right-3 top-3 text-gray-500 hover:text-white">👁️</button>
+        </div>
+        <div class="relative">
+            <input id="passwordConfirm" type="password" placeholder="Confirm Password" class="input-resend pr-10">
+            <button id="togglePasswordConfirm" class="absolute right-3 top-3 text-gray-500 hover:text-white">👁️</button>
+        </div>
+
+        <button id="btnRegister" class="btn-primary mt-2">Create Account</button>
+      </div>
+
     </div>
+  </main>
 
-    <div id="stepContact" class="hidden space-y-4">
-      <input id="contactInput" type="email" placeholder="name@example.com" class="w-full bg-black border border-white/20 rounded-xl px-4 py-3 text-sm text-white focus:border-orange-500 outline-none">
-      <button id="btnSendOtp" class="w-full py-3 bg-orange-600 rounded-xl text-sm font-bold text-white hover:bg-orange-500 transition">Send Code</button>
-      <button id="btnBackToProviders" class="w-full text-xs text-gray-500 py-2">Back</button>
-    </div>
-
-    <div id="stepOtp" class="hidden space-y-4 text-center">
-      <p class="text-xs text-gray-400">Code sent to email</p>
-      <input id="otpInput" type="text" maxlength="6" placeholder="000000" class="w-full bg-black border border-white/20 rounded-xl px-4 py-3 text-center text-xl tracking-[0.5em] text-white focus:border-orange-500 outline-none font-mono">
-      <button id="btnVerifyOtp" class="w-full py-3 bg-white text-black rounded-xl text-sm font-bold hover:bg-gray-200 transition">Verify</button>
-    </div>
-
-    <div id="stepUsernameLogin" class="hidden space-y-4">
-      <input id="loginUsername" type="text" placeholder="Username" class="w-full bg-black border border-white/20 rounded-xl px-4 py-3 text-sm text-white focus:border-orange-500 outline-none">
-      <input id="loginPassword" type="password" placeholder="Password" class="w-full bg-black border border-white/20 rounded-xl px-4 py-3 text-sm text-white focus:border-orange-500 outline-none">
-      <button id="btnUsernameLogin" class="w-full py-3 bg-white text-black rounded-xl text-sm font-bold hover:bg-gray-200 transition">Sign In</button>
-      <button id="btnBackFromUsername" class="w-full text-xs text-gray-500 py-2">Back</button>
-    </div>
-
-    <div id="stepRegister" class="hidden space-y-3">
-      <input id="firstName" placeholder="First Name" class="w-full px-3 py-2 bg-black border border-white/15 rounded-lg text-sm text-white">
-      <input id="lastName" placeholder="Last Name" class="w-full px-3 py-2 bg-black border border-white/15 rounded-lg text-sm text-white">
-      <input id="username" placeholder="Username" class="w-full px-3 py-2 bg-black border border-white/15 rounded-lg text-sm text-white">
-      <input id="password" type="password" placeholder="Password" class="w-full px-3 py-2 bg-black border border-white/15 rounded-lg text-sm text-white">
-      <input id="passwordConfirm" type="password" placeholder="Confirm Password" class="w-full px-3 py-2 bg-black border border-white/15 rounded-lg text-sm text-white">
-      <button id="btnRegister" class="w-full py-3 bg-orange-600 rounded-xl text-sm font-bold text-white mt-2">Create Account</button>
-    </div>
-
-  </div>
-
-  <div id="toast" class="hidden fixed bottom-10 px-4 py-2 bg-white text-black text-xs font-bold rounded-full shadow-xl"></div>
+  <div id="toast" class="hidden fixed bottom-10 left-1/2 -translate-x-1/2 px-5 py-2.5 bg-white text-black text-sm font-medium rounded-full shadow-[0_0_20px_rgba(255,255,255,0.2)] z-50"></div>
 
   <script src="landing-logic.js"></script> 
  
@@ -240,11 +369,10 @@ function validateRegisterForm() {
   const btnReg = $('btnRegister');
   if (btnReg) {
     if (ok) {
-      btnReg.classList.remove('cursor-not-allowed', 'bg-orange-500/40', 'text-black/40');
-      btnReg.classList.add('bg-orange-500', 'text-black');
+        // Resend Style: Enable state is just removing disabled look
+      btnReg.classList.remove('opacity-60', 'cursor-not-allowed');
     } else {
-      btnReg.classList.add('cursor-not-allowed', 'bg-orange-500/40', 'text-black/40');
-      btnReg.classList.remove('bg-orange-500', 'text-black');
+      btnReg.classList.add('opacity-60', 'cursor-not-allowed');
     }
   }
 
@@ -258,7 +386,7 @@ document.addEventListener('DOMContentLoaded', function () {
 
   // Default view on first load
   showStep('stepProviders');
-  setStepTitle('Sign in to continue', 'Choose a way to continue to your studio.');
+  setStepTitle('Sign in to continue', 'Manage your documentary projects');
 
   // STEP SWITCHER
   function showStep(stepId) {
@@ -283,10 +411,13 @@ document.addEventListener('DOMContentLoaded', function () {
     btnGoogle.addEventListener('click', () => {
       currentProvider = 'google';
       setStepTitle('Sign in with Google', 'We will send a one-time code to your Gmail.');
-      $('contactLabel').textContent = 'Google email';
-      $('contactInput').placeholder = 'you@gmail.com';
-      $('contactHint').textContent = 'A 6-digit code will be sent to this Gmail address.';
-      $('contactInput').value = '';
+      const cl = $('contactLabel'); if(cl) cl.textContent = 'Google email';
+      const ci = $('contactInput'); 
+      if(ci) {
+        ci.placeholder = 'you@gmail.com';
+        ci.value = '';
+      }
+      const ch = $('contactHint'); if(ch) ch.textContent = 'A 6-digit code will be sent to this Gmail address.';
       showStep('stepContact');
     });
   }
@@ -296,11 +427,14 @@ document.addEventListener('DOMContentLoaded', function () {
   if (btnLoginGoogle) {
     btnLoginGoogle.addEventListener('click', () => {
       currentProvider = 'google';
-      setStepTitle('Login with Google', 'Enter the Gmail linked to your IMRAN SQUARE account.');
-      $('contactLabel').textContent = 'Google email';
-      $('contactInput').placeholder = 'you@gmail.com';
-      $('contactHint').textContent = 'You will receive a 6-digit login code.';
-      $('contactInput').value = '';
+      setStepTitle('Login with Google', 'Enter the Gmail linked to your account.');
+      const cl = $('contactLabel'); if(cl) cl.textContent = 'Google email';
+      const ci = $('contactInput'); 
+      if(ci) {
+        ci.placeholder = 'you@gmail.com';
+        ci.value = '';
+      }
+      const ch = $('contactHint'); if(ch) ch.textContent = 'You will receive a 6-digit login code.';
       showStep('stepContact');
     });
   }
@@ -308,7 +442,7 @@ document.addEventListener('DOMContentLoaded', function () {
 const btnUsername = $('btnUsername');
 if (btnUsername) {
   btnUsername.addEventListener('click', () => {
-    setStepTitle('Login with username', 'Use your username and password to enter your studio.');
+    setStepTitle('Login with username', 'Use your username and password.');
     showStep('stepUsernameLogin');
   });
 }
@@ -342,7 +476,7 @@ if (btnUsernameLogin) {
       if (!data.success || !data.user) {
         alert(data.message || 'Login failed');
         btnUsernameLogin.disabled = false;
-        btnUsernameLogin.textContent = 'Sign in';
+        btnUsernameLogin.textContent = 'Sign In';
         return;
       }
 
@@ -355,7 +489,7 @@ if (btnUsernameLogin) {
       console.error('Username login error:', err);
       alert('Login error, please try again.');
       btnUsernameLogin.disabled = false;
-      btnUsernameLogin.textContent = 'Sign in';
+      btnUsernameLogin.textContent = 'Sign In';
     }
   });
 }
@@ -368,7 +502,7 @@ if (btnUsernameLogin) {
     btnBackToProviders.addEventListener('click', () => {
       currentProvider = null;
       contactValue = null;
-      setStepTitle('Sign in to continue', 'Choose a way to continue to your studio.');
+      setStepTitle('Sign in to continue', 'Manage your documentary projects');
       showStep('stepProviders');
     });
   }
@@ -410,12 +544,12 @@ if (btnUsernameLogin) {
         if (!data.success) {
           alert(data.message || 'Failed to send OTP');
           btnSendOtp.disabled = false;
-          btnSendOtp.textContent = 'Send code';
+          btnSendOtp.textContent = 'Send Code';
           return;
         }
 
         // success case:
-showToast('OTP sent successfully');
+        showToast('OTP sent successfully');
 
 
         const displayEmail = $('displayEmail');
@@ -429,12 +563,12 @@ showToast('OTP sent successfully');
         startTimer(60);
 
         btnSendOtp.disabled = false;
-        btnSendOtp.textContent = 'Resend code';
+        btnSendOtp.textContent = 'Send Code';
       } catch (err) {
         console.error('❌ SEND OTP ERROR:', err);
         alert('Failed to send OTP. Please try again.');
         btnSendOtp.disabled = false;
-        btnSendOtp.textContent = 'Send code';
+        btnSendOtp.textContent = 'Send Code';
       }
     });
   }
@@ -475,7 +609,7 @@ if (btnVerifyOtp) {
         if (!u) {
           alert('Login error. Please try again.');
           btnVerifyOtp.disabled = false;
-          btnVerifyOtp.textContent = 'Verify OTP';
+          btnVerifyOtp.textContent = 'Verify Code';
           return;
         }
 
@@ -489,23 +623,23 @@ if (btnVerifyOtp) {
           // ✅ Existing user → direct dashboard
           console.log('✅ OTP VERIFIED, EXISTING user → dashboard');
         localStorage.setItem('imranUser', JSON.stringify(u));
-localStorage.setItem('userEmail', u.email);
-localStorage.setItem('userId', u.userId || '');
-localStorage.setItem('imranWelcome', '1');   // <-- add
+        localStorage.setItem('userEmail', u.email);
+        localStorage.setItem('userId', u.userId || '');
+        localStorage.setItem('imranWelcome', '1');   // <-- add
 
-window.location.href = 'index.html';
+        window.location.href = 'index.html';
 
         }
       } else {
         alert(data.message || 'Invalid OTP');
         btnVerifyOtp.disabled = false;
-        btnVerifyOtp.textContent = 'Verify OTP';
+        btnVerifyOtp.textContent = 'Verify Code';
       }
     } catch (err) {
       console.error('VERIFY ERROR:', err);
       alert('Verification failed');
       btnVerifyOtp.disabled = false;
-      btnVerifyOtp.textContent = 'Verify OTP';
+      btnVerifyOtp.textContent = 'Verify Code';
     }
   });
 }
@@ -543,7 +677,7 @@ window.location.href = 'index.html';
         alert('Failed to resend OTP');
       } finally {
         btnResendOtp.disabled = false;
-        btnResendOtp.textContent = 'Resend OTP';
+        btnResendOtp.textContent = 'Resend Code';
       }
     });
   }
@@ -566,7 +700,7 @@ window.location.href = 'index.html';
       const first = $('firstName').value.trim();
       const last = $('lastName').value.trim();
       const username = $('username').value.trim();
-      const role = $('role').value || null;
+      const role = null; // Removed role selector logic as it wasn't present in HTML
       const email = localStorage.getItem('userEmail');
 
       if (!email) {
@@ -598,28 +732,24 @@ window.location.href = 'index.html';
         const data = await res.json();
 
  if (data.success && data.user) {
-localStorage.setItem('imranUser', JSON.stringify(data.user));
-localStorage.setItem('userEmail', data.user.email);
-localStorage.setItem('userId', data.user.userId || '');
-localStorage.setItem('imranWelcome', '1');   // <-- new
+    localStorage.setItem('imranUser', JSON.stringify(data.user));
+    localStorage.setItem('userEmail', data.user.email);
+    localStorage.setItem('userId', data.user.userId || '');
+    localStorage.setItem('imranWelcome', '1');   // <-- new
 
-window.location.href = 'index.html';
-
-
-}
-
-
+    window.location.href = 'index.html';
+ }
           
          else {
           alert(data.message || 'Failed to complete registration');
           btnRegister.disabled = false;
-          btnRegister.textContent = 'Complete setup';
+          btnRegister.textContent = 'Create Account';
         }
       } catch (err) {
         console.error('❌ Registration error:', err);
         alert('Failed to create account. Check console.');
         btnRegister.disabled = false;
-        btnRegister.textContent = 'Complete setup';
+        btnRegister.textContent = 'Create Account';
       }
     });
   }
@@ -650,7 +780,7 @@ window.location.href = 'index.html';
 if (btnBackToLogin) {
   btnBackToLogin.addEventListener('click', () => {
     showStep('stepProviders');
-    setStepTitle('Sign in to continue', 'Choose a way to continue to your studio.');
+    setStepTitle('Sign in to continue', 'Manage your documentary projects');
   });
 }
 
@@ -659,7 +789,7 @@ if (btnBackToLogin) {
   if (btnBackFromUsername) {
     btnBackFromUsername.addEventListener('click', () => {
       showStep('stepProviders');
-      setStepTitle('Sign in to continue', 'Choose a way to continue to your studio.');
+      setStepTitle('Sign in to continue', 'Manage your documentary projects');
     });
   }
 
@@ -667,8 +797,7 @@ if (btnBackToLogin) {
 });
   </script>
 
-      <!-- PWA Service Worker Registration -->
-    <script>
+      <script>
       if ('serviceWorker' in navigator) {
         window.addEventListener('load', () => {
           navigator.serviceWorker
@@ -683,7 +812,6 @@ if (btnBackToLogin) {
       }
     </script>
 
-    <!-- PWA Install Prompt Logic -->
     <script>
       let deferredPrompt;
       const installBtn = document.getElementById('pwaInstallBtn');
@@ -761,12 +889,7 @@ if (btnBackToLogin) {
         // On iOS, show button that opens instructions modal
         if (installBtn) {
           installBtn.classList.remove('hidden');
-          installBtn.innerHTML = `
-            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"/>
-            </svg>
-            Install on iOS
-          `;
+          installBtn.innerHTML = `Install`;
           // Override click to show iOS instructions
           installBtn.addEventListener('click', (e) => {
             e.stopPropagation();
@@ -791,16 +914,12 @@ if (btnBackToLogin) {
       }
     </script>
 
-<!-- iOS Install Instructions Modal -->
 <div id="iosInstallModal" class="hidden fixed inset-0 bg-black/90 backdrop-blur-sm z-50 flex items-center justify-center p-4">
-  <div class="bg-gradient-to-b from-gray-900 to-black rounded-3xl max-w-md w-full p-8 border border-orange-500/30 shadow-2xl relative">
+  <div class="bg-gradient-to-b from-gray-900 to-black rounded-3xl max-w-md w-full p-8 border border-white/10 shadow-2xl relative">
     
-    <!-- Decorative glow -->
-    <div class="absolute -inset-1 bg-gradient-to-r from-orange-500/20 to-orange-600/20 rounded-3xl blur-xl"></div>
+    <div class="absolute -inset-1 bg-gradient-to-r from-white/10 to-gray-500/10 rounded-3xl blur-xl"></div>
     
-    <!-- Content -->
     <div class="relative">
-      <!-- Header -->
       <div class="flex items-center justify-between mb-6">
         <div>
           <h3 class="text-xl font-bold text-white">Install on iPhone</h3>
@@ -813,35 +932,26 @@ if (btnBackToLogin) {
         </button>
       </div>
       
-      <!-- Instructions -->
       <div class="space-y-4 text-gray-300 text-sm">
         
-        <!-- Step 1 -->
         <div class="flex items-start gap-4 bg-white/5 p-4 rounded-xl border border-white/10">
-          <div class="flex-shrink-0 w-8 h-8 rounded-full bg-orange-500 text-white font-bold flex items-center justify-center">1</div>
+          <div class="flex-shrink-0 w-8 h-8 rounded-full bg-white text-black font-bold flex items-center justify-center">1</div>
           <div class="flex-1">
             <p class="text-white font-semibold mb-2">Tap the Share button</p>
             <p class="text-xs text-gray-400">Look for the <strong>share icon</strong> at the bottom of Safari</p>
-            <div class="mt-3 flex items-center justify-center bg-blue-500/10 p-3 rounded-lg">
-              <svg class="w-8 h-8 text-blue-400" fill="currentColor" viewBox="0 0 24 24">
-                <path d="M16 5l-1.42 1.42-1.59-1.59V16h-1.98V4.83L9.42 6.42 8 5l4-4 4 4zm4 5v11c0 1.1-.9 2-2 2H6c-1.11 0-2-.9-2-2V10c0-1.11.89-2 2-2h3v2H6v11h12V10h-3V8h3c1.1 0 2 .89 2 2z"/>
-              </svg>
-            </div>
           </div>
         </div>
         
-        <!-- Step 2 -->
         <div class="flex items-start gap-4 bg-white/5 p-4 rounded-xl border border-white/10">
-          <div class="flex-shrink-0 w-8 h-8 rounded-full bg-orange-500 text-white font-bold flex items-center justify-center">2</div>
+          <div class="flex-shrink-0 w-8 h-8 rounded-full bg-white text-black font-bold flex items-center justify-center">2</div>
           <div class="flex-1">
             <p class="text-white font-semibold mb-2">Select "Add to Home Screen"</p>
             <p class="text-xs text-gray-400">Scroll down in the share menu and tap this option</p>
           </div>
         </div>
         
-        <!-- Step 3 -->
         <div class="flex items-start gap-4 bg-white/5 p-4 rounded-xl border border-white/10">
-          <div class="flex-shrink-0 w-8 h-8 rounded-full bg-orange-500 text-white font-bold flex items-center justify-center">3</div>
+          <div class="flex-shrink-0 w-8 h-8 rounded-full bg-white text-black font-bold flex items-center justify-center">3</div>
           <div class="flex-1">
             <p class="text-white font-semibold mb-2">Tap "Add"</p>
             <p class="text-xs text-gray-400">Confirm by tapping <strong>Add</strong> in the top right corner</p>
@@ -850,8 +960,7 @@ if (btnBackToLogin) {
         
       </div>
       
-      <!-- Close Button -->
-      <button id="iosModalGotIt" class="w-full mt-6 py-3 bg-gradient-to-r from-orange-500 to-orange-600 rounded-xl text-white font-semibold hover:shadow-lg hover:scale-105 transition-all">
+      <button id="iosModalGotIt" class="w-full mt-6 py-3 bg-white text-black rounded-xl font-semibold hover:bg-gray-200 transition-all">
         Got it!
       </button>
     </div>
@@ -888,15 +997,15 @@ if (btnBackToLogin) {
 
 
    // Quick UI helper just in case
-    const $ = (id) => document.getElementById(id);
-    const showStep = (id) => {
-      ['stepProviders', 'stepContact', 'stepOtp', 'stepUsernameLogin', 'stepRegister'].forEach(s => $(s)?.classList.add('hidden'));
-      $(id)?.classList.remove('hidden');
-    };
+   const $ = (id) => document.getElementById(id);
+   const showStep = (id) => {
+     ['stepProviders', 'stepContact', 'stepOtp', 'stepUsernameLogin', 'stepRegister'].forEach(s => $(s)?.classList.add('hidden'));
+     $(id)?.classList.remove('hidden');
+   };
 
-    // Simple wiring if main.js doesn't auto-attach
-    if($('btnBackFromUsername')) $('btnBackFromUsername').onclick = () => showStep('stepProviders');
-    if($('btnBackToProviders')) $('btnBackToProviders').onclick = () => showStep('stepProviders');
+   // Simple wiring if main.js doesn't auto-attach
+   if($('btnBackFromUsername')) $('btnBackFromUsername').onclick = () => showStep('stepProviders');
+   if($('btnBackToProviders')) $('btnBackToProviders').onclick = () => showStep('stepProviders');
 
 
 </script>
