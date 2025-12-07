@@ -1,80 +1,75 @@
-// ===== IMPORTS – sab top pe =====
+// ===== 1. IMPORTS (Sabse Top Pe) =====
 import express from 'express';
 import cors from 'cors';
 import dotenv from 'dotenv';
 import nodemailer from 'nodemailer';
-import bcrypt from 'bcrypt';
 import axios from 'axios';
-import admin from 'firebase-admin';
+import admin from 'firebase-admin'; // Firebase Import
 import { readFileSync } from 'fs';
-import multer from 'multer';
 import { google } from 'googleapis';
 import path from 'path';
 import { fileURLToPath } from 'url';
-import { Readable } from 'stream';
 
-// ===== CONFIG / GLOBALS =====
+// ===== 2. CONFIGURATION =====
 dotenv.config();
 
-// __dirname / __filename for ES modules
+// __dirname setup for ES Modules
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
-// Express app
-const express = require('express');
-// const helmet = require('helmet');  <-- YE LINE DELETE KAR DO YA COMMENT KAR DO
-const path = require('path');
-const cors = require('cors');
+// ===== 3. APP INITIALIZATION (Sirf EK baar) =====
 const app = express();
 
-// ✅ Allow Everything (Security Guard ko chutti de do)
+// ===== 4. SECURITY UNLOCK (Ye sabse zaroori hai) =====
+// Ye code Tailwind, Google Fonts, aur Scripts ko allow karega
 app.use((req, res, next) => {
   res.removeHeader("Content-Security-Policy");
   res.removeHeader("X-Content-Security-Policy");
   res.setHeader("Access-Control-Allow-Origin", "*");
+  res.setHeader(
+    "Content-Security-Policy", 
+    "default-src * 'unsafe-inline' 'unsafe-eval' data: blob:;"
+  );
   next();
 });
 
-// ... baaki code ...
+// ===== 5. MIDDLEWARES =====
+app.use(cors());
+app.use(express.json({ limit: '10mb' })); // Limit badha di taaki images upload ho sakein
+app.use(express.urlencoded({ limit: '10mb', extended: true }));
 
-// ⚠️ Note: Agar neeche kahin 'app.use(helmet())' likha hai, to usse DELETE kar do!
-
-// Static files (HTML, JS, CSS, images)
+// Static Files Serve karo
 app.use(express.static(__dirname));
 
-// Middlewares
-app.use(cors());
-// Pehle tha:
-// app.use(express.json());
-
-// Ab aise karo:
-app.use(express.json({ limit: '2mb' }));
-app.use(express.urlencoded({ limit: '2mb', extended: true }));
-
-
-// Root landing
+// ===== 6. BASIC ROUTES =====
+// Root landing page
 app.get('/', (req, res) => {
   res.sendFile(path.join(__dirname, 'landing.html'));
 });
 
-// Index/dashboard route
+// Index/Dashboard route
 app.get('/index.html', (req, res) => {
   res.sendFile(path.join(__dirname, 'index.html'));
 });
 
-
-const serviceAccount = JSON.parse(process.env.FIREBASE_SERVICE_ACCOUNT_JSON);
-
-
-
-admin.initializeApp({
-  credential: admin.credential.cert(serviceAccount),
-  storageBucket: 'iimransquare.firebasestorage.app'
-});
+// ===== 7. FIREBASE INITIALIZATION =====
+try {
+  const serviceAccount = JSON.parse(process.env.FIREBASE_SERVICE_ACCOUNT_JSON);
+  
+  if (!admin.apps.length) { // Check taaki duplicate init na ho
+    admin.initializeApp({
+      credential: admin.credential.cert(serviceAccount),
+      storageBucket: 'iimransquare.firebasestorage.app' // Bucket name check kar lena
+    });
+    console.log('✅ Firebase Admin initialized successfully');
+  }
+} catch (error) {
+  console.error('❌ Firebase Init Error:', error.message);
+}
 
 const db = admin.firestore();
-console.log('✅ Firebase Admin initialized');
 
+// ... ISKE NEECHE AAPKE BAAKI API ROUTES (Login, OTP, Drive, etc.) WAISE HI RAHENGE ...
 // ============ MULTER + GOOGLE DRIVE SETUP ============
 const upload = multer({ storage: multer.memoryStorage() });
 
