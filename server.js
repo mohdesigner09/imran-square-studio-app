@@ -23,14 +23,18 @@ const __dirname = path.dirname(__filename);
 // Express app
 const app = express();
 
-// ✅ ULTRA-FIX: Allow Everything (Tailwind, Google, Fonts, Scripts)
+
+// 🔓 SECURITY UNLOCK (Paste this at the TOP)
 app.use((req, res, next) => {
+  res.removeHeader("Content-Security-Policy"); // Purane rules hatao
   res.setHeader(
-    "Content-Security-Policy",
-    "default-src * 'unsafe-inline' 'unsafe-eval' data: blob:;"
+    "Content-Security-Policy", 
+    "default-src * 'unsafe-inline' 'unsafe-eval' data: blob:;" // Sab kuch allow karo
   );
   next();
 });
+
+// ⚠️ Note: Agar neeche kahin 'app.use(helmet())' likha hai, to usse DELETE kar do!
 
 // Static files (HTML, JS, CSS, images)
 app.use(express.static(__dirname));
