@@ -21,18 +21,21 @@ const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
 // Express app
+const express = require('express');
+// const helmet = require('helmet');  <-- YE LINE DELETE KAR DO YA COMMENT KAR DO
+const path = require('path');
+const cors = require('cors');
 const app = express();
 
-
-// 🔓 SECURITY UNLOCK (Paste this at the TOP)
+// ✅ Allow Everything (Security Guard ko chutti de do)
 app.use((req, res, next) => {
-  res.removeHeader("Content-Security-Policy"); // Purane rules hatao
-  res.setHeader(
-    "Content-Security-Policy", 
-    "default-src * 'unsafe-inline' 'unsafe-eval' data: blob:;" // Sab kuch allow karo
-  );
+  res.removeHeader("Content-Security-Policy");
+  res.removeHeader("X-Content-Security-Policy");
+  res.setHeader("Access-Control-Allow-Origin", "*");
   next();
 });
+
+// ... baaki code ...
 
 // ⚠️ Note: Agar neeche kahin 'app.use(helmet())' likha hai, to usse DELETE kar do!
 

@@ -1,162 +1,54 @@
-const CACHE_NAME = 'imran-square-v2';  // v1 se v2 karo
-
-const OFFLINE_URL = '/landing.html';
-
-// Files to cache on install
+const CACHE_NAME = 'imran-square-v3'; // Version badha diya taaki naya update le le
 const urlsToCache = [
   '/',
-  '/landing.html',
   '/index.html',
-  '/ai-chat.html',
-  '/ai-tools.html',
-  '/account.html',
-  '/scripts.html',
-  '/footage.html',
-  '/project-hub.html',
-  '/brainstorm.html',
-  '/main.js',
-  '/ai-chat.js',
-  '/brainstorm.js',
-  '/auth.js',
-  '/dashboard-advanced.js',
-  '/resources/imran square logo.png',
+  '/landing.html',
+  '/manifest.json',
+  '/resources/icon-32.png',
   '/resources/icon-192.png',
-  '/resources/icon-512.png',
-  '/resources/hero-film-studio.png',
-  'https://cdn.tailwindcss.com',
-  'https://cdnjs.cloudflare.com/ajax/libs/animejs/3.2.1/anime.min.js',
-  'https://cdnjs.cloudflare.com/ajax/libs/Sortable/1.14.0/Sortable.min.js'
+  '/main.js',
+  '/dashboard-advanced.js'
+  // Note: Humne Tailwind/Google links hata diye hain taaki errors na aayein
 ];
 
-// Install event - cache critical files
+// 1. Install (Sirf apni files save karo)
 self.addEventListener('install', (event) => {
-  console.log('[ServiceWorker] Installing...');
+  self.skipWaiting(); // Turant active ho jao
   event.waitUntil(
-    caches.open(CACHE_NAME)
-      .then((cache) => {
-        console.log('[ServiceWorker] Caching app shell');
-        return cache.addAll(urlsToCache.map(url => new Request(url, {cache: 'reload'})));
-      })
-      .then(() => {
-        console.log('[ServiceWorker] Install complete');
-        return self.skipWaiting();
-      })
-      .catch((error) => {
-        console.error('[ServiceWorker] Install failed:', error);
-      })
+    caches.open(CACHE_NAME).then((cache) => {
+      console.log('✅ Service Worker: Caching App Shell');
+      return cache.addAll(urlsToCache);
+    })
   );
 });
 
-// Activate event - clean old caches
-self.addEventListener('activate', (event) => {
-  console.log('[ServiceWorker] Activating...');
-  event.waitUntil(
-    caches.keys()
-      .then((cacheNames) => {
-        return Promise.all(
-          cacheNames.map((cacheName) => {
-            if (cacheName !== CACHE_NAME) {
-              console.log('[ServiceWorker] Deleting old cache:', cacheName);
-              return caches.delete(cacheName);
-            }
-          })
-        );
-      })
-      .then(() => {
-        console.log('[ServiceWorker] Claiming clients');
-        return self.clients.claim();
-      })
-  );
-});
-
-// Fetch event - serve from cache, fallback to network
+// 2. Fetch (Agar External link hai to ignore karo, errors mat do)
 self.addEventListener('fetch', (event) => {
-  // Skip non-GET requests
-  if (event.request.method !== 'GET') return;
-
-// Skip chrome extensions and dev tools
-if (event.request.url.startsWith('chrome-extension://')) return;
-if (event.request.url.includes('localhost:3000')) return; // Skip API calls
-
-
-  event.respondWith(
-    caches.match(event.request)
-      .then((response) => {
-        // Cache hit - return cached response
-        if (response) {
-          console.log('[ServiceWorker] Serving from cache:', event.request.url);
-          return response;
-        }
-
-        // Clone the request
-        const fetchRequest = event.request.clone();
-
-        // Try network
-        return fetch(fetchRequest)
-          .then((response) => {
-            // Check if valid response
-            if (!response || response.status !== 200 || response.type !== 'basic') {
-              return response;
-            }
-
-            // Clone the response
-            const responseToCache = response.clone();
-
-            // Cache the fetched response
-            caches.open(CACHE_NAME)
-              .then((cache) => {
-                cache.put(event.request, responseToCache);
-              });
-
-            return response;
-          })
-          .catch((error) => {
-            console.error('[ServiceWorker] Fetch failed:', error);
-            // Return offline page for navigation requests
-            if (event.request.mode === 'navigate') {
-              return caches.match(OFFLINE_URL);
-            }
-          });
-      })
-  );
-});
-
-// Background sync for offline actions (future enhancement)
-self.addEventListener('sync', (event) => {
-  console.log('[ServiceWorker] Background sync:', event.tag);
-  if (event.tag === 'sync-projects') {
-    event.waitUntil(syncProjects());
+  // Agar request doosri website (Tailwind/Google) ki hai, to Service Worker beech mein nahi aayega
+  if (!event.request.url.startsWith(self.location.origin)) {
+    return; 
   }
-});
 
-// Placeholder for sync function
-function syncProjects() {
-  return Promise.resolve();
-}
-
-// Push notification support (future enhancement)
-self.addEventListener('push', (event) => {
-  console.log('[ServiceWorker] Push received');
-  const options = {
-    body: event.data ? event.data.text() : 'New update available',
-    icon: '/resources/icon-192.png',
-    badge: '/resources/icon-192.png',
-    vibrate: [200, 100, 200],
-    tag: 'imran-square-notification'
-  };
-
-  event.waitUntil(
-    self.registration.showNotification('IMRAN SQUARE', options)
+  // Apni files ke liye Cache check karo
+  event.respondWith(
+    caches.match(event.request).then((response) => {
+      return response || fetch(event.request);
+    })
   );
 });
 
-// Handle notification clicks
-self.addEventListener('notificationclick', (event) => {
-  console.log('[ServiceWorker] Notification clicked');
-  event.notification.close();
+// 3. Activate (Purana kachra saaf karo)
+self.addEventListener('activate', (event) => {
   event.waitUntil(
-    clients.openWindow('/')
+    caches.keys().then((cacheNames) => {
+      return Promise.all(
+        cacheNames.map((cacheName) => {
+          if (cacheName !== CACHE_NAME) {
+            console.log('🧹 Deleting old cache:', cacheName);
+            return caches.delete(cacheName);
+          }
+        })
+      );
+    })
   );
 });
-
-console.log('[ServiceWorker] Service Worker loaded');
