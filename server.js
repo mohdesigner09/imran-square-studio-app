@@ -22,18 +22,19 @@ const __dirname = path.dirname(__filename);
 const app = express();
 
 // ✅ GLOBAL SECURITY UNLOCK (Ye code sabse upar hona chahiye)
+// ✅ SECURITY UNLOCK (Paste this right after 'const app = express();')
 app.use((req, res, next) => {
-  // Purane headers ko force-delete karo
+  // Purane rules hatao
   res.removeHeader("Content-Security-Policy");
   res.removeHeader("X-Content-Security-Policy");
   
-  // Naya Header: "Sabko Aane Do" (Wildcard *)
+  // Sab kuch allow karo (Tailwind, Google, AI Tools)
   res.setHeader(
     "Content-Security-Policy", 
     "default-src * 'unsafe-inline' 'unsafe-eval' data: blob:;"
   );
   
-  // CORS bhi khol do
+  // CORS Errors hatao
   res.setHeader("Access-Control-Allow-Origin", "*");
   res.setHeader("Access-Control-Allow-Methods", "GET, POST, PUT, DELETE, OPTIONS");
   res.setHeader("Access-Control-Allow-Headers", "Content-Type, Authorization");

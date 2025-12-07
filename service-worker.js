@@ -1,4 +1,4 @@
-const CACHE_NAME = 'imran-square-v3'; // Version badha diya taaki naya update le le
+const CACHE_NAME = 'imran-square-safe-v1';
 const urlsToCache = [
   '/',
   '/index.html',
@@ -8,28 +8,25 @@ const urlsToCache = [
   '/resources/icon-192.png',
   '/main.js',
   '/dashboard-advanced.js'
-  // Note: Humne Tailwind/Google links hata diye hain taaki errors na aayein
 ];
 
 // 1. Install (Sirf apni files save karo)
 self.addEventListener('install', (event) => {
-  self.skipWaiting(); // Turant active ho jao
+  self.skipWaiting();
   event.waitUntil(
     caches.open(CACHE_NAME).then((cache) => {
-      console.log('✅ Service Worker: Caching App Shell');
       return cache.addAll(urlsToCache);
     })
   );
 });
 
-// 2. Fetch (Agar External link hai to ignore karo, errors mat do)
+// 2. Fetch (EXTERNAL FILES KO IGNORE KARO - Ye Red Errors band karega)
 self.addEventListener('fetch', (event) => {
-  // Agar request doosri website (Tailwind/Google) ki hai, to Service Worker beech mein nahi aayega
+  // Agar link apni website ka nahi hai (jaise tailwind, google), to cache mat karo
   if (!event.request.url.startsWith(self.location.origin)) {
-    return; 
+    return;
   }
 
-  // Apni files ke liye Cache check karo
   event.respondWith(
     caches.match(event.request).then((response) => {
       return response || fetch(event.request);
@@ -37,14 +34,13 @@ self.addEventListener('fetch', (event) => {
   );
 });
 
-// 3. Activate (Purana kachra saaf karo)
+// 3. Activate (Purana cache saaf karo)
 self.addEventListener('activate', (event) => {
   event.waitUntil(
     caches.keys().then((cacheNames) => {
       return Promise.all(
         cacheNames.map((cacheName) => {
           if (cacheName !== CACHE_NAME) {
-            console.log('🧹 Deleting old cache:', cacheName);
             return caches.delete(cacheName);
           }
         })
