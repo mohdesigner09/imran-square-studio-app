@@ -10,7 +10,7 @@ import { google } from 'googleapis';
 import path from 'path';
 import { fileURLToPath } from 'url';
 import { readFileSync } from 'fs'; // Ye bhi add kar diya safety ke liye
-
+import bcrypt from 'bcryptjs';
 // ===== 2. CONFIGURATION =====
 dotenv.config();
 
@@ -352,7 +352,7 @@ app.post('/api/login-username', async (req, res) => {
       });
     }
 
-    const match = await bcrypt.compare(password, data.password);
+    const isMatch = await bcrypt.compare(password, user.password);
     if (!match) {
       return res.status(400).json({ success: false, message: 'Invalid username or password' });
     }
