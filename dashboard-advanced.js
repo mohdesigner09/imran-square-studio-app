@@ -2,10 +2,25 @@
 
 // ===== USER AVATAR + MENU UI =====
 function setupUserMenu() {
-  const btn = document.getElementById('userAvatarButton');
+ // In dashboard-advanced.js -> setupUserMenu()
+
+const btn = document.getElementById('userAvatarButton');
+const menu = document.getElementById('userMenu');
+
+// Remove old listener if any (safety)
+const newBtn = btn.cloneNode(true);
+btn.parentNode.replaceChild(newBtn, btn);
+
+newBtn.addEventListener('click', (e) => {
+  e.preventDefault(); // Link click roko
+  e.stopPropagation(); // Bubble roko
+  const menuEl = document.getElementById('userMenu'); // Re-select
+  if (menuEl) menuEl.classList.toggle('hidden');
+});
+
   const img = document.getElementById('userAvatarImg');
   const fallback = document.getElementById('userAvatarFallback');
-  const menu = document.getElementById('userMenu');
+  
   const nameEl = document.getElementById('userMenuName');
   const emailEl = document.getElementById('userMenuEmail');
   const roleEl = document.getElementById('userMenuRole');

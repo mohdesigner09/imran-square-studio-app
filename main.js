@@ -132,7 +132,39 @@ function createSections() {
 }
 
 // --- LOAD DATA ---
-let projects = JSON.parse(localStorage.getItem('imranProjects'));
+let projects = JSON.parse(localStorage.getItem('imranProjects'));// REPLACE initDashboard FUNCTION IN main.js
+
+async function initDashboard() {
+  console.log('🔄 Loading Dashboard from Server...');
+  
+  try {
+    // 1. Fetch Projects from Server (Not LocalStorage)
+    const res = await fetch(`${API_BASE}/api/user/projects`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ userId: CURRENTUSER.userId }) // Current user ID bhejo
+    });
+
+    const data = await res.json();
+    
+    if (data.success) {
+      projects = data.projects; // Server ka data use karo
+      console.log('✅ Projects Loaded:', projects.length);
+    } else {
+      console.warn('⚠️ No projects found on server, using empty list');
+      projects = [];
+    }
+  } catch (err) {
+    console.error('❌ Failed to load projects:', err);
+    projects = [];
+  }
+
+  // ... baaki render logic same rahega ...
+  renderDashboardProjects();
+  updateStats();
+  
+  // ... events ...
+}
 
 if (!projects || !Array.isArray(projects) || projects.length === 0) {
     projects = defaultProjects;
