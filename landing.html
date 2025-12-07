@@ -3,38 +3,28 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Imran Square Studio - Video Management Reimagined</title>
-    
+    <title>Imran Square Studio</title>
     <script src="https://cdn.tailwindcss.com"></script>
-    
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
     
     <script>
         tailwind.config = {
             theme: {
                 extend: {
-                    fontFamily: {
-                        sans: ['Inter', 'sans-serif'],
-                        mono: ['JetBrains Mono', 'monospace'],
+                    fontFamily: { sans: ['Inter', 'sans-serif'], mono: ['JetBrains Mono', 'monospace'] },
+                    colors: { 
+                        brand: { bg: '#000000', border: '#333333', text: '#EDEDED', muted: '#888888' } 
                     },
-                    colors: {
-                        brand: {
-                            bg: '#000000',
-                            surface: '#080808',
-                            border: '#1C1C1C',
-                            text: '#EDEDED',
-                            muted: '#888888',
-                            accent: '#ff6b35', // Orange Accent
-                        }
+                    backgroundImage: {
+                        'hero-pattern': "url('hero-bg.jpg')",
                     },
                     animation: {
-                        'fade-in-up': 'fadeInUp 0.8s ease-out forwards',
-                        'pulse-slow': 'pulse 4s cubic-bezier(0.4, 0, 0.6, 1) infinite',
+                        'float': 'float 6s ease-in-out infinite',
                     },
                     keyframes: {
-                        fadeInUp: {
-                            '0%': { opacity: '0', transform: 'translateY(20px)' },
-                            '100%': { opacity: '1', transform: 'translateY(0)' },
+                        float: {
+                            '0%, 100%': { transform: 'translateY(0)' },
+                            '50%': { transform: 'translateY(-20px)' },
                         }
                     }
                 }
@@ -43,268 +33,104 @@
     </script>
 
     <style>
-        body {
-            background-color: #000000;
-            color: #EDEDED;
-            overflow-x: hidden;
-            -webkit-font-smoothing: antialiased;
-        }
+        body { background-color: #000; color: #ededed; overflow-x: hidden; }
         
-        ::-webkit-scrollbar { width: 6px; }
-        ::-webkit-scrollbar-track { background: #000; }
-        ::-webkit-scrollbar-thumb { background: #333; border-radius: 3px; }
-
-        .glow-radial {
-            background: radial-gradient(circle at center, rgba(255, 255, 255, 0.08) 0%, transparent 70%);
-        }
-        
-        .text-gradient {
-            background: linear-gradient(to bottom right, #fff 30%, #666 100%);
-            -webkit-background-clip: text;
-            -webkit-text-fill-color: transparent;
-        }
-
-        .glass-panel {
-            background: rgba(255, 255, 255, 0.02);
+        /* Premium Glass Button */
+        .btn-glass {
+            background: rgba(255, 255, 255, 0.05);
+            border: 1px solid rgba(255, 255, 255, 0.1);
             backdrop-filter: blur(10px);
-            border: 1px solid rgba(255, 255, 255, 0.05);
+            transition: all 0.3s ease;
+        }
+        .btn-glass:hover {
+            background: rgba(255, 255, 255, 0.1);
+            border-color: rgba(255, 255, 255, 0.5);
+            box-shadow: 0 0 20px rgba(255, 255, 255, 0.2);
+            transform: translateY(-2px);
+        }
+
+        /* Hero Background */
+        .hero-bg {
+            position: absolute;
+            top: 0; left: 0; width: 100%; height: 100vh;
+            background-image: url('hero-bg.jpg');
+            background-size: cover;
+            background-position: center;
+            opacity: 0.5;
+            mask-image: linear-gradient(to bottom, black 20%, transparent 100%);
+            z-index: -1;
         }
     </style>
 </head>
 
-<body class="selection:bg-brand-accent/30 selection:text-white">
+<body class="antialiased selection:bg-white/20">
 
-    <header class="fixed top-0 w-full z-50 bg-black/50 backdrop-blur-md border-b border-brand-border">
-        <div class="max-w-7xl mx-auto px-6 h-16 flex items-center justify-between">
-            <div class="flex items-center gap-2">
-                <div class="w-6 h-6 rounded bg-brand-accent/20 border border-brand-accent/50 flex items-center justify-center">
-                    <span class="font-bold text-brand-accent text-[10px]">IS</span>
-                </div>
-                <span class="font-medium text-sm tracking-tight text-white">IMRAN SQUARE</span>
+    <div class="hero-bg"></div>
+
+    <header class="fixed top-0 w-full z-50 border-b border-white/5 bg-black/50 backdrop-blur-md">
+        <div class="max-w-6xl mx-auto px-6 h-16 flex items-center justify-between">
+            
+            <div class="flex items-center gap-3">
+                <img src="logo.png" alt="IS" class="w-8 h-8 rounded border border-white/20">
+                <span class="font-medium text-sm text-white tracking-wide">Imran Square</span>
             </div>
 
-            <nav class="hidden md:flex items-center gap-8 text-sm text-brand-muted font-medium">
-                <a href="#features" class="hover:text-white transition-colors">Features</a>
-                <a href="#integration" class="hover:text-white transition-colors">Integrations</a>
-                <a href="#docs" class="hover:text-white transition-colors">Docs</a>
+            <nav class="hidden md:flex gap-8 text-sm text-gray-400 font-medium">
+                <a href="#features" class="hover:text-white transition">Features</a>
+                <a href="#pricing" class="hover:text-white transition">Pricing</a>
+                <a href="#blog" class="hover:text-white transition">Blog</a>
             </nav>
 
             <div class="flex items-center gap-4">
-                <a href="/login" class="text-sm text-brand-muted hover:text-white transition-colors">Log In</a>
-                <a href="/login" class="px-4 py-1.5 rounded-full bg-white text-black text-sm font-semibold hover:bg-gray-200 transition">
+                <a href="/login" class="text-sm text-gray-400 hover:text-white transition">Sign in</a>
+                <a href="/login" class="btn-glass px-5 py-2 rounded-full text-xs font-semibold text-white tracking-wide">
                     Get Started
                 </a>
             </div>
         </div>
     </header>
 
-    <section class="relative pt-32 pb-20 md:pt-48 md:pb-32 px-6 overflow-hidden border-b border-brand-border">
-        <div class="absolute top-0 left-1/2 -translate-x-1/2 w-[1000px] h-[600px] glow-radial pointer-events-none z-0"></div>
-
-        <div class="max-w-4xl mx-auto text-center relative z-10 animate-fade-in-up">
-            <div class="inline-flex items-center gap-2 px-3 py-1 rounded-full border border-brand-border bg-white/[0.03] text-[11px] text-brand-muted mb-8 hover:border-brand-accent/30 transition cursor-default">
-                <span class="w-1.5 h-1.5 rounded-full bg-brand-accent animate-pulse"></span>
-                Video management reimagined. Available today.
+    <section class="relative pt-40 pb-20 px-6 flex flex-col items-center text-center min-h-screen">
+        
+        <div class="max-w-3xl mx-auto relative z-10 animate-fade-in-up">
+            <div class="inline-flex items-center gap-2 px-3 py-1 rounded-full border border-white/10 bg-white/5 text-[11px] text-gray-400 mb-8">
+                <span class="w-1.5 h-1.5 rounded-full bg-white animate-pulse"></span>
+                <span>The new standard for video workflow</span>
             </div>
 
-            <h1 class="text-5xl md:text-7xl font-bold tracking-tight mb-6 leading-[1.1]">
-                <span class="text-gradient">Imran Square Studio</span><br>
-                <span class="text-brand-muted">Everything in your control.</span>
+            <h1 class="text-5xl md:text-7xl font-semibold tracking-tighter mb-6 text-white leading-[1.1]">
+                Your creative footage,<br>
+                <span class="text-gray-500">fully controlled.</span>
             </h1>
 
-            <p class="text-lg text-brand-muted max-w-xl mx-auto mb-10 leading-relaxed">
-                A simple, elegant interface so you can start managing raw footage in minutes. Fits right into your workflow with Google Drive and AI.
+            <p class="text-lg text-gray-400 max-w-xl mx-auto mb-10 leading-relaxed font-light">
+                Manage raw files, collaborate with AI, and secure your productions in one unified studio.
             </p>
 
-            <div class="flex flex-col sm:flex-row items-center justify-center gap-4 mb-16">
-                <a href="/login" class="h-12 px-8 rounded-full bg-white text-black font-semibold text-sm hover:scale-105 transition duration-300 flex items-center gap-2 shadow-[0_0_20px_rgba(255,255,255,0.2)]">
-                    Get Started <span>→</span>
+            <div class="flex flex-col sm:flex-row gap-4 justify-center mb-20">
+                <a href="/login" class="btn-glass h-12 px-8 rounded-full flex items-center justify-center text-sm font-semibold">
+                    Start Building ->
                 </a>
-                <button class="h-12 px-8 rounded-full border border-brand-border text-brand-muted font-medium text-sm hover:text-white hover:border-white/20 hover:bg-white/5 transition">
-                    View Documentation
+                <button class="h-12 px-8 rounded-full text-gray-500 hover:text-white transition text-sm font-medium">
+                    Read Documentation
                 </button>
             </div>
-
-            <div class="flex flex-wrap justify-center gap-4 text-xs text-brand-muted font-mono uppercase tracking-widest opacity-60">
-                <span>Node.js</span> • <span>Firebase</span> • <span>Google Drive</span> • <span>AI APIs</span> • <span>Tailwind</span>
-            </div>
         </div>
 
-        <div class="mt-20 max-w-6xl mx-auto relative group animate-fade-in-up" style="animation-delay: 0.2s;">
-            <div class="absolute -inset-1 bg-gradient-to-t from-brand-accent/20 via-transparent to-transparent rounded-xl blur-2xl opacity-20 group-hover:opacity-40 transition duration-1000"></div>
+        <div class="relative w-full max-w-4xl mx-auto animate-float">
+            <div class="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[60%] h-[60%] bg-white/10 blur-[100px] rounded-full"></div>
             
-            <div class="relative rounded-xl border border-brand-border bg-[#050505] overflow-hidden shadow-2xl">
-                <img src="/image_19c7f8.jpg" alt="Studio Dashboard" class="w-full h-auto opacity-90 group-hover:opacity-100 transition duration-700">
+            <div class="relative rounded-2xl overflow-hidden border border-white/10 shadow-2xl bg-black">
+                <img src="dashboard-preview.jpg" alt="Studio Abstract" class="w-full h-auto object-cover opacity-90 hover:opacity-100 transition duration-700">
                 
-                <div class="absolute inset-0 bg-gradient-to-t from-black via-transparent to-transparent opacity-60"></div>
+                <div class="absolute inset-0 bg-gradient-to-t from-black/80 via-transparent to-transparent"></div>
             </div>
         </div>
+
     </section>
 
-    <section class="py-12 border-b border-brand-border bg-black">
-        <div class="max-w-7xl mx-auto px-6 text-center">
-            <p class="text-xs text-brand-muted mb-8 uppercase tracking-widest">Companies of all sizes trust Imran Square</p>
-            <div class="flex flex-wrap justify-center gap-x-12 gap-y-6 opacity-40 grayscale hover:grayscale-0 transition-all duration-500">
-                <span class="text-sm font-bold text-white">Zero-Budget Startups</span>
-                <span class="text-sm font-bold text-white">Independent Creators</span>
-                <span class="text-sm font-bold text-white">Small Production Teams</span>
-                <span class="text-sm font-bold text-white">Content Studios</span>
-                <span class="text-sm font-bold text-white">Personal Archives</span>
-            </div>
-        </div>
-    </section>
-
-    <section id="features" class="py-24 px-6 border-b border-brand-border">
-        <div class="max-w-7xl mx-auto">
-            <div class="text-center mb-16">
-                <h2 class="text-3xl md:text-5xl font-bold mb-4">Full Visibility</h2>
-                <p class="text-brand-muted max-w-2xl mx-auto">Monitor upload progress, file statuses (10-40GB), and project timelines with a clean dashboard.</p>
-            </div>
-
-            <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
-                <div class="p-8 rounded-2xl glass-panel hover:border-brand-accent/30 transition group">
-                    <div class="w-10 h-10 rounded-full bg-orange-500/10 flex items-center justify-center mb-6 text-brand-accent">📊</div>
-                    <h3 class="text-xl font-semibold mb-2 text-white">Intuitive Analytics</h3>
-                    <p class="text-sm text-brand-muted leading-relaxed">Track raw footage uploads, admin actions, and user activity with real-time Firestore updates.</p>
-                </div>
-
-                <div class="p-8 rounded-2xl glass-panel hover:border-blue-500/30 transition group">
-                    <div class="w-10 h-10 rounded-full bg-blue-500/10 flex items-center justify-center mb-6 text-blue-500">👁</div>
-                    <h3 class="text-xl font-semibold mb-2 text-white">Real-time Status</h3>
-                    <p class="text-sm text-brand-muted leading-relaxed">Instantly know when your 40GB render is ready or if AI processing is complete.</p>
-                </div>
-
-                <div class="p-8 rounded-2xl glass-panel hover:border-green-500/30 transition group">
-                    <div class="w-10 h-10 rounded-full bg-green-500/10 flex items-center justify-center mb-6 text-green-500">🔐</div>
-                    <h3 class="text-xl font-semibold mb-2 text-white">Domain Auth</h3>
-                    <p class="text-sm text-brand-muted leading-relaxed">Secure Google OAuth + Email OTP ensures only authorized users access your projects.</p>
-                </div>
-            </div>
-        </div>
-    </section>
-
-    <section id="integration" class="py-24 px-6 bg-[#030303]">
-        <div class="max-w-7xl mx-auto grid grid-cols-1 lg:grid-cols-2 gap-16 items-center">
-            <div>
-                <h2 class="text-4xl md:text-5xl font-bold leading-tight mb-6">Integrate this <br><span class="text-gradient">weekend.</span></h2>
-                <p class="text-brand-muted text-lg mb-8">
-                    First-class developer experience. Our goal is to craft the video management platform we've always wished we had — one that just works.
-                </p>
-                <div class="flex flex-col gap-4">
-                    <div class="flex items-center gap-3">
-                        <div class="w-6 h-6 rounded-full bg-brand-accent/10 flex items-center justify-center text-xs text-brand-accent">✓</div>
-                        <span class="text-white">Seamless Google Drive Uploads</span>
-                    </div>
-                    <div class="flex items-center gap-3">
-                        <div class="w-6 h-6 rounded-full bg-brand-accent/10 flex items-center justify-center text-xs text-brand-accent">✓</div>
-                        <span class="text-white">Automated AI Metadata Tagging</span>
-                    </div>
-                    <div class="flex items-center gap-3">
-                        <div class="w-6 h-6 rounded-full bg-brand-accent/10 flex items-center justify-center text-xs text-brand-accent">✓</div>
-                        <span class="text-white">Real-time Collaboration</span>
-                    </div>
-                </div>
-            </div>
-
-            <div class="relative group">
-                <div class="absolute -inset-1 bg-gradient-to-r from-brand-accent/20 to-blue-500/20 rounded-2xl blur opacity-20"></div>
-                <div class="relative rounded-xl bg-[#0A0A0A] border border-brand-border overflow-hidden shadow-2xl">
-                    <div class="flex items-center gap-2 px-4 py-3 border-b border-brand-border bg-white/[0.02]">
-                        <div class="flex gap-1.5">
-                            <div class="w-3 h-3 rounded-full bg-[#2A2A2A]"></div>
-                            <div class="w-3 h-3 rounded-full bg-[#2A2A2A]"></div>
-                            <div class="w-3 h-3 rounded-full bg-[#2A2A2A]"></div>
-                        </div>
-                        <div class="ml-auto text-[10px] text-brand-muted font-mono">workflow.js</div>
-                    </div>
-                    <div class="p-6 overflow-x-auto bg-[#050505]">
-<pre class="font-mono text-sm leading-relaxed">
-<span class="text-gray-500">// 1. Upload raw footage to Google Drive</span>
-<span class="text-purple-400">const</span> <span class="text-blue-300">footage</span> = <span class="text-purple-400">await</span> <span class="text-yellow-200">uploadToGoogleDrive</span>(file);
-
-<span class="text-gray-500">// 2. Send to Studio timeline</span>
-<span class="text-purple-400">await</span> <span class="text-yellow-200">sendToStudio</span>({
-  <span class="text-red-300">projectId</span>: <span class="text-green-400">'p1'</span>,
-  <span class="text-red-300">title</span>: footage.title,
-  <span class="text-red-300">format</span>: <span class="text-green-400">'long'</span>,
-  <span class="text-red-300">tag</span>: <span class="text-green-400">'RAW'</span>
-});
-
-<span class="text-gray-500">// 3. AI Chat Integration</span>
-<span class="text-purple-400">const</span> <span class="text-blue-300">response</span> = <span class="text-purple-400">await</span> <span class="text-yellow-200">geminiChat</span>(query);
-</pre>
-                    </div>
-                    <div class="p-4 border-t border-brand-border bg-black font-mono text-xs">
-                        <div class="text-green-400 mb-1">HTTP 200: ✅ Footage uploaded</div>
-                        <div class="text-green-400 mb-1">HTTP 200: ✅ Metadata synced</div>
-                        <div class="text-blue-400">HTTP 200: 🤖 AI processing ready</div>
-                    </div>
-                </div>
-            </div>
-        </div>
-    </section>
-
-    <section class="py-32 px-6 border-t border-b border-brand-border">
-        <div class="max-w-4xl mx-auto text-center">
-            <h2 class="text-4xl md:text-6xl font-bold mb-10 tracking-tight text-white">
-                "Video reimagined.<br>Available today."
-            </h2>
-            <p class="text-brand-muted text-lg italic mb-10">
-                "The Imran Square team has built a great product in a space that hasn't seen much innovation for years. Engineering peers are raving about it — such a smooth dev experience."
-            </p>
-            <div class="flex items-center justify-center gap-4">
-                <div class="w-12 h-12 rounded-full bg-brand-surface border border-brand-border flex items-center justify-center text-xs text-brand-muted">
-                    FK
-                </div>
-                <div class="text-left">
-                    <p class="text-white font-semibold text-sm">Farhan Khan</p>
-                    <p class="text-brand-muted text-xs">Director at Aqlorium Creative Alliance</p>
-                </div>
-            </div>
-        </div>
-    </section>
-
-    <footer class="py-16 px-6 bg-black text-sm">
-        <div class="max-w-7xl mx-auto grid grid-cols-2 md:grid-cols-4 gap-10 mb-16">
-            <div>
-                <h4 class="font-bold text-white mb-4">Documentation</h4>
-                <ul class="space-y-2 text-brand-muted">
-                    <li><a href="#" class="hover:text-white transition">Getting Started</a></li>
-                    <li><a href="#" class="hover:text-white transition">API Reference</a></li>
-                    <li><a href="#" class="hover:text-white transition">Integrations</a></li>
-                </ul>
-            </div>
-            <div>
-                <h4 class="font-bold text-white mb-4">Resources</h4>
-                <ul class="space-y-2 text-brand-muted">
-                    <li><a href="#" class="hover:text-white transition">Changelog</a></li>
-                    <li><a href="#" class="hover:text-white transition">Pricing</a></li>
-                    <li><a href="#" class="hover:text-white transition">Security</a></li>
-                </ul>
-            </div>
-            <div class="col-span-2 md:col-span-1">
-                <h4 class="font-bold text-white mb-4">Studio</h4>
-                <address class="text-brand-muted not-italic mb-2">
-                    2261 Market Street #5039<br>Jaipur, RJ, India
-                </address>
-                <div class="text-xs text-brand-muted">Backed by: <span class="text-white">Aqlorium Creative Alliance</span></div>
-            </div>
-        </div>
-
-        <div class="max-w-7xl mx-auto pt-8 border-t border-brand-border flex flex-col md:flex-row justify-between items-center gap-4">
-            <div class="flex gap-6 text-brand-muted">
-                <a href="#" class="hover:text-white">X</a>
-                <a href="#" class="hover:text-white">LinkedIn</a>
-                <a href="#" class="hover:text-white">YouTube</a>
-            </div>
-            <div class="flex items-center gap-2">
-                <span class="relative flex h-2 w-2">
-                  <span class="animate-ping absolute inline-flex h-full w-full rounded-full bg-green-400 opacity-75"></span>
-                  <span class="relative inline-flex rounded-full h-2 w-2 bg-green-500"></span>
-                </span>
-                <span class="text-green-500 text-xs font-mono">All systems operational</span>
-            </div>
-        </div>
+    <footer class="py-8 text-center text-xs text-gray-600 border-t border-white/5">
+        © 2025 IMRAN SQUARE STUDIO
     </footer>
 
 </body>
