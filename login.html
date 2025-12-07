@@ -387,143 +387,81 @@
   <!-- JavaScript Logic -->
    </script>
   
-  <script>
-    // GLOBAL STATE
-    let currentProvider = null;
-    let contactValue = null;
-    let timerInterval = null;
+ <script>
+// GLOBAL STATE
+let currentProvider = null;
+let contactValue = null; // Email yahan store hoga verify hone ke baad
+let timerInterval = null;
 
-    // Helper
-    function $(id) {
-      return document.getElementById(id);
-    }
+// Helper
+function $(id) {
+  return document.getElementById(id);
+}
 
-    // API Base URL
-    const API_BASE = window.location.hostname === 'localhost' 
-      ? 'http://localhost:3000' 
-      : 'https://imran-square-studio.onrender.com';
+// API Base URL
+const API_BASE = window.location.hostname === 'localhost' 
+  ? 'http://localhost:10000' 
+  : 'https://imran-square-studio.onrender.com';
 
-    // Toast Notification - GLOBAL (so PWA code can access it)
-    function showToast(msg, timeout = 3000) {
-      const el = $('toast');
-      if (!el) {
-        alert(msg);
-        return;
-      }
-      el.textContent = msg;
-      el.classList.remove('hidden');
-      clearTimeout(window.__toastTimer);
-      window.__toastTimer = setTimeout(() => {
-        el.classList.add('hidden');
-      }, timeout);
-    }
+// Toast Notification
+function showToast(msg, timeout = 3000) {
+  const el = $('toast');
+  if (!el) { alert(msg); return; }
+  el.textContent = msg;
+  el.classList.remove('hidden');
+  clearTimeout(window.__toastTimer);
+  window.__toastTimer = setTimeout(() => {
+    el.classList.add('hidden');
+  }, timeout);
+}
 
-    // Show/Hide Steps
-    function showStep(stepId) {
-      const allIds = ['stepProviders', 'stepContact', 'stepOtp', 'stepRegister', 'stepUsernameLogin'];
-      allIds.forEach(id => {
-        const el = $(id);
-        if (el) el.classList.add('hidden');
-      });
-      const target = $(stepId);
-      if (target) target.classList.remove('hidden');
-    }
+// Show/Hide Steps
+function showStep(stepId) {
+  const allIds = ['stepProviders', 'stepContact', 'stepOtp', 'stepRegister', 'stepUsernameLogin'];
+  allIds.forEach(id => {
+    const el = $(id);
+    if (el) el.classList.add('hidden');
+  });
+  const target = $(stepId);
+  if (target) target.classList.remove('hidden');
+}
 
-    // Update Title
-    function setStepTitle(title, subtitle) {
-      const wrapper = $('stepTitle');
-      if (!wrapper) return;
-      const h1 = wrapper.querySelector('h1');
-      const p = wrapper.querySelector('p');
-      if (h1) h1.textContent = title;
-      if (p) p.textContent = subtitle;
-    }
+// Update Title
+function setStepTitle(title, subtitle) {
+  const wrapper = $('stepTitle');
+  if (!wrapper) return;
+  const h1 = wrapper.querySelector('h1');
+  const p = wrapper.querySelector('p');
+  if (h1) h1.textContent = title;
+  if (p) p.textContent = subtitle;
+}
 
-    // Timer
-    function startTimer(seconds = 60) {
-      const timer = $('timer');
-      const btnResendOtp = $('btnResendOtp');
-      if (!timer) return;
-      
-      let timeLeft = seconds;
-      timer.textContent = `${timeLeft}`;
-      if (btnResendOtp) btnResendOtp.disabled = true;
-      
+// Timer
+function startTimer(seconds = 60) {
+  const timer = $('timer');
+  const btnResendOtp = $('btnResendOtp');
+  if (!timer) return;
+  
+  let timeLeft = seconds;
+  timer.textContent = `${timeLeft}`;
+  if (btnResendOtp) btnResendOtp.disabled = true;
+  
+  clearInterval(timerInterval);
+  timerInterval = setInterval(() => {
+    timeLeft--;
+    timer.textContent = `${timeLeft}`;
+    if (timeLeft <= 0) {
       clearInterval(timerInterval);
-      timerInterval = setInterval(() => {
-        timeLeft--;
-        timer.textContent = `${timeLeft}`;
-        if (timeLeft <= 0) {
-          clearInterval(timerInterval);
-          if (btnResendOtp) btnResendOtp.disabled = false;
-        }
-      }, 1000);
+      if (btnResendOtp) btnResendOtp.disabled = false;
     }
+  }, 1000);
+}
 
-    // Registration Helpers
-    function getAllUsers() {
-      return JSON.parse(localStorage.getItem('imranUsers') || '[]');
-    }
+// DOM Ready
+document.addEventListener('DOMContentLoaded', function () {
+    console.log('✅ DOM Ready');
 
-    function isUsernameAvailable(username) {
-      if (!username) return false;
-      const list = getAllUsers();
-      return !list.some(u => (u.username || '').toLowerCase() === username.toLowerCase());
-    }
-
-    function validateRegisterForm() {
-      const first = $('firstName').value.trim();
-      const last = $('lastName').value.trim();
-      const user = $('username').value.trim();
-      const bro = $('brotherName').value.trim();
-      const pass = $('password').value;
-      const pass2 = $('passwordConfirm').value;
-
-      let ok = true;
-
-      if (!first || !last) ok = false;
-      if (!/^[a-z0-9_]{3,}$/.test(user)) ok = false;
-
-      if (!user || !isUsernameAvailable(user)) {
-        ok = false;
-        const hint = $('usernameHint');
-        if (user) {
-          hint.textContent = 'This username is already taken.';
-          hint.classList.remove('text-gray-500');
-          hint.classList.add('text-red-400');
-        } else {
-          hint.textContent = 'This must be unique.';
-          hint.classList.remove('text-red-400');
-          hint.classList.add('text-gray-500');
-        }
-      } else {
-        const hint = $('usernameHint');
-        hint.textContent = 'Great, this username is available.';
-        hint.classList.remove('text-red-400');
-        hint.classList.add('text-green-400');
-      }
-
-      if (bro !== 'IMRAN KHAN') ok = false;
-      if (!pass || pass.length < 8 || pass !== pass2) ok = false;
-
-      const btnReg = $('btnRegister');
-      if (btnReg) {
-        if (ok) {
-          btnReg.classList.remove('opacity-60', 'cursor-not-allowed');
-        } else {
-          btnReg.classList.add('opacity-60', 'cursor-not-allowed');
-        }
-      }
-
-      return ok;
-    }
-
-    // DOM Ready
-    document.addEventListener('DOMContentLoaded', function () {
-      console.log('✅ DOM Ready');
-
-      // All your existing event listeners...
-    // 1. Google Button Click
+    // 1. Google Button
     const btnGoogle = $('btnGoogle');
     if (btnGoogle) {
         btnGoogle.addEventListener('click', () => {
@@ -536,7 +474,7 @@
         });
     }
 
-    // 2. Email Login Button Click
+    // 2. Email Login
     const btnLoginGoogle = $('btnLoginGoogle');
     if (btnLoginGoogle) {
         btnLoginGoogle.addEventListener('click', () => {
@@ -549,7 +487,7 @@
         });
     }
 
-    // 3. Username Login Button Click
+    // 3. Username Login
     const btnUsername = $('btnUsername');
     if (btnUsername) {
         btnUsername.addEventListener('click', () => {
@@ -558,25 +496,14 @@
         });
     }
 
-    // 4. Back Button (From Contact Step)
+    // 4. Back Buttons
     const btnBackToProviders = $('btnBackToProviders');
-    if (btnBackToProviders) {
-        btnBackToProviders.addEventListener('click', () => {
-            showStep('stepProviders');
-            setStepTitle('Imran Square Studio', 'Create, manage & share your projects');
-        });
-    }
+    if (btnBackToProviders) btnBackToProviders.addEventListener('click', () => showStep('stepProviders'));
 
-    // 5. Back Button (From Username Step)
     const btnBackFromUsername = $('btnBackFromUsername');
-    if (btnBackFromUsername) {
-        btnBackFromUsername.addEventListener('click', () => {
-            showStep('stepProviders');
-            setStepTitle('Imran Square Studio', 'Create, manage & share your projects');
-        });
-    }
+    if (btnBackFromUsername) btnBackFromUsername.addEventListener('click', () => showStep('stepProviders'));
 
-    // 6. Send OTP Logic
+    // 5. SEND OTP Logic
     const btnSendOtp = $('btnSendOtp');
     if (btnSendOtp) {
         btnSendOtp.addEventListener('click', async () => {
@@ -588,7 +515,6 @@
             btnSendOtp.disabled = true;
 
             try {
-                // API Call
                 const res = await fetch(`${API_BASE}/api/send-otp`, {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
@@ -598,7 +524,7 @@
 
                 if (data.success) {
                     $('displayEmail').textContent = email;
-                    showToast('OTP Sent Successfully!');
+                    showToast('OTP Sent!');
                     showStep('stepOtp');
                     setStepTitle('Check your inbox', `Enter code sent to ${email}`);
                     startTimer(60);
@@ -615,7 +541,7 @@
         });
     }
 
-    // 7. Verify OTP Logic
+    // 6. VERIFY OTP Logic
     const btnVerifyOtp = $('btnVerifyOtp');
     if (btnVerifyOtp) {
         btnVerifyOtp.addEventListener('click', async () => {
@@ -634,14 +560,21 @@
                 const data = await res.json();
 
                 if (data.success) {
-                    // Save User Data
-                    localStorage.setItem('imranUser', JSON.stringify(data.user));
-                    localStorage.setItem('userId', data.user.userId);
+                    // Temporarily save email for registration step
+                    localStorage.setItem('tempEmail', contactValue);
+                    
+                    // Save User Data if exists
+                    if (data.user) {
+                        localStorage.setItem('imranUser', JSON.stringify(data.user));
+                        localStorage.setItem('userId', data.user.userId);
+                    }
 
                     if (data.isNew) {
+                        // NEW USER -> Register Screen
                         showStep('stepRegister');
                         setStepTitle('Complete Setup', 'Create your account details.');
                     } else {
+                        // OLD USER -> Dashboard
                         window.location.href = 'index.html';
                     }
                 } else {
@@ -657,7 +590,7 @@
         });
     }
 
-    // 8. Username Login Submit
+    // 7. USERNAME LOGIN Submit
     const btnUsernameLogin = $('btnUsernameLogin');
     if (btnUsernameLogin) {
         btnUsernameLogin.addEventListener('click', async () => {
@@ -694,102 +627,98 @@
         });
     }
 
-      console.log('✅ All handlers initialized');
-    });
+    // 8. CREATE ACCOUNT (Register) Logic -- [YE MISSING THA, AB ADD KIYA HAI]
+    const btnRegister = $('btnRegister');
+    if (btnRegister) {
+        btnRegister.addEventListener('click', async () => {
+            // Get Values
+            const firstName = $('firstName').value.trim();
+            const lastName = $('lastName').value.trim();
+            const username = $('username').value.trim();
+            const brotherName = $('brotherName').value.trim(); // Security Answer
+            const password = $('password').value;
+            const passwordConfirm = $('passwordConfirm').value;
+            const email = localStorage.getItem('tempEmail') || contactValue;
 
-    // ===== PWA INSTALL LOGIC (Outside DOMContentLoaded) =====
-    let deferredPrompt;
-
-    // Listen for install prompt
-    window.addEventListener('beforeinstallprompt', (e) => {
-      console.log('💡 PWA Install prompt available');
-      e.preventDefault();
-      deferredPrompt = e;
-      
-      const installBtn = $('pwaInstallBtn');
-      if (installBtn) {
-        installBtn.classList.add('visible');
-        console.log('✅ Install button visible');
-      }
-    });
-
-    // Track PWA installation
-    window.addEventListener('appinstalled', () => {
-      console.log('🎉 PWA installed on device');
-      const installBtn = $('pwaInstallBtn');
-      if (installBtn) {
-        installBtn.classList.remove('visible');
-      }
-      showToast('🎉 App installed! Open from home screen.');
-    });
-
-    // Handle install button click (when DOM is ready)
-    window.addEventListener('DOMContentLoaded', () => {
-      const installBtn = $('pwaInstallBtn');
-      
-      if (installBtn) {
-        installBtn.addEventListener('click', async () => {
-          console.log('🔘 Install button clicked');
-          
-          if (!deferredPrompt) {
-            console.log('⚠️ Install prompt not available');
-            
-            // iOS check
-            const isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent) && !window.MSStream;
-            if (isIOS) {
-              showToast('On iOS: Tap Share → Add to Home Screen');
-            } else {
-              showToast('App is already installed or browser does not support installation.');
+            // Validation
+            if (!firstName || !lastName || !username || !password) {
+                alert('Please fill all fields');
+                return;
             }
-            return;
-          }
-          
-          // Show the install prompt
-          deferredPrompt.prompt();
-          
-          // Wait for user response
-          const { outcome } = await deferredPrompt.userChoice;
-          console.log(`👤 User response: ${outcome}`);
-          
-          if (outcome === 'accepted') {
-            console.log('✅ PWA installed successfully');
-            showToast('✅ App installed successfully!');
-          } else {
-            console.log('❌ User cancelled installation');
-          }
-          
-          // Clear the saved prompt
-          deferredPrompt = null;
-          installBtn.classList.remove('visible');
+            if (password !== passwordConfirm) {
+                alert('Passwords do not match');
+                return;
+            }
+            if (brotherName !== 'IMRAN KHAN') { // Simple security check
+                alert('Security answer is incorrect (Bro Name?)');
+                return;
+            }
+
+            // Button State
+            btnRegister.textContent = 'Creating Account...';
+            btnRegister.disabled = true;
+
+            try {
+                const res = await fetch(`${API_BASE}/api/complete-registration`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        email,
+                        firstName,
+                        lastName,
+                        username,
+                        password,
+                        role: 'user'
+                    })
+                });
+
+                const data = await res.json();
+
+                if (data.success) {
+                    // Save User & Redirect
+                    localStorage.setItem('imranUser', JSON.stringify(data.user));
+                    localStorage.setItem('userId', data.user.userId);
+                    showToast('Account Created! Redirecting...');
+                    setTimeout(() => {
+                        window.location.href = 'index.html';
+                    }, 1000);
+                } else {
+                    alert(data.message || 'Registration failed');
+                    btnRegister.disabled = false;
+                    btnRegister.textContent = 'Create Account';
+                }
+            } catch (err) {
+                console.error(err);
+                alert('Server Error');
+                btnRegister.disabled = false;
+                btnRegister.textContent = 'Create Account';
+            }
         });
-      }
-
-      // Hide button if already in standalone mode
-      if (window.matchMedia('(display-mode: standalone)').matches) {
-        console.log('📱 Running in standalone mode');
-        if (installBtn) {
-          installBtn.style.display = 'none';
-        }
-      }
-
-      // iOS detection - show button always
-      const isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent) && !window.MSStream;
-      const isInStandaloneMode = ('standalone' in window.navigator) && (window.navigator.standalone);
-
-      if (isIOS && !isInStandaloneMode && installBtn) {
-        console.log('📱 iOS detected - showing install button');
-        installBtn.classList.add('visible');
-      }
-    });
-
-    // PWA Service Worker
-    if ('serviceWorker' in navigator) {
-      window.addEventListener('load', () => {
-        navigator.serviceWorker.register('/service-worker.js')
-          .then(reg => console.log('✅ SW registered:', reg.scope))
-          .catch(err => console.error('❌ SW failed:', err));
-      });
     }
-  </script>
+
+    // 9. PASSWORD TOGGLE (Eye Icon)
+    const togglePassword = $('togglePassword');
+    const passwordInput = $('password');
+    if (togglePassword && passwordInput) {
+        togglePassword.addEventListener('click', () => {
+            const type = passwordInput.type === 'password' ? 'text' : 'password';
+            passwordInput.type = type;
+            togglePassword.textContent = type === 'password' ? '🙈' : '👁️';
+        });
+    }
+
+    const togglePasswordConfirm = $('togglePasswordConfirm');
+    const passwordConfirmInput = $('passwordConfirm');
+    if (togglePasswordConfirm && passwordConfirmInput) {
+        togglePasswordConfirm.addEventListener('click', () => {
+            const type = passwordConfirmInput.type === 'password' ? 'text' : 'password';
+            passwordConfirmInput.type = type;
+            togglePasswordConfirm.textContent = type === 'password' ? '🙈' : '👁️';
+        });
+    }
+
+    console.log('✅ All handlers initialized');
+});
+</script>
 </body>
 </html>
