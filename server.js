@@ -328,65 +328,49 @@ app.post('/api/complete-registration', async (req, res) => {
 });
 
 // USERNAME + PASSWORD LOGIN
+// ➤ API: Login Username (SAFE VERSION)
 app.post('/api/login-username', async (req, res) => {
-  try {
     const { username, password } = req.body;
-
-    if (!username || !password) {
-      return res.status(400).json({ success: false, message: 'Username and password required' });
+    
+    // Check 1: DB Connected?
+    if(!db) {
+        console.error("❌ DB Not Connected");
+        return res.status(500).json({ success: false, message: "Database error (Check Env Vars)" });
     }
 
-    const usersRef = db.collection('users');
-    const snapshot = await usersRef
-      .where('username', '==', username)
-      .limit(1)
-      .get();
+    try {
+        // User dhoondo
+        const snapshot = await db.collection('users').where('username', '==', username).get();
+        
+        if (snapshot.empty) {
+            return res.status(400).json({ success: false, message: "User not found" });
+        }
 
-    if (snapshot.empty) {
-      return res.status(400).json({ success: false, message: 'Invalid username or password' });
+        const userDoc = snapshot.docs[0];
+        const user = userDoc.data();
+        const userId = userDoc.id;
+        
+        // Check 2: Kya User ke paas Password hai?
+        if (!user.password) {
+            return res.status(400).json({ 
+                success: false, 
+                message: "This account uses OTP Login. Please sign in with Email/Google first to set a password." 
+            });
+        }
+        
+        // Check 3: Password Match
+        const isMatch = await bcrypt.compare(password, user.password);
+        
+        if (isMatch) {
+            return res.json({ success: true, user: { ...user, userId } });
+        } else {
+            return res.status(400).json({ success: false, message: "Incorrect password" });
+        }
+    } catch (error) {
+        console.error("❌ Login Crash:", error);
+        return res.status(500).json({ success: false, message: "Server Error (Check Logs)" });
     }
-
-    const userDoc = snapshot.docs[0];
-    const data = userDoc.data();
-
-    if (!data.password) {
-      return res.status(400).json({
-        success: false,
-        message: 'This account does not have a password yet. Please login with email/OTP.'
-      });
-    }
-
-    const isMatch = await bcrypt.compare(password, data.password); // 'data' use karo
-    if (!match) {
-      return res.status(400).json({ success: false, message: 'Invalid username or password' });
-    }
-
-    // Update lastLogin
-    await usersRef.doc(userDoc.id).update({
-      lastLogin: admin.firestore.FieldValue.serverTimestamp()
-    });
-
-    const user = {
-      userId: userDoc.id,
-      email: data.email,
-      firstName: data.firstName,
-      lastName: data.lastName,
-      username: data.username,
-      role: data.role || 'user',
-      subscription: data.subscription || 'free'
-    };
-
-    return res.json({
-      success: true,
-      message: 'Login successful',
-      user
-    });
-  } catch (err) {
-    console.error('Login error:', err);
-    return res.status(500).json({ success: false, message: 'Server error while logging in' });
-  }
 });
-
 
 // UPLOAD AVATAR → Google Drive + Firestore
 app.post('/api/account/upload-avatar', upload.single('avatar'), async (req, res) => {
