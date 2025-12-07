@@ -22,7 +22,7 @@
                     keyframes: {
                         float: {
                             '0%, 100%': { transform: 'translateY(0)' },
-                            '50%': { transform: 'translateY(-15px)' },
+                            '50%': { transform: 'translateY(-12px)' },
                         }
                     }
                 }
@@ -36,61 +36,68 @@
         /* Glass Button */
         .btn-glass {
             background: rgba(255, 255, 255, 0.05);
-            border: 1px solid rgba(255, 255, 255, 0.1);
+            border: 1px solid rgba(255, 255, 255, 0.15);
             backdrop-filter: blur(10px);
             transition: all 0.3s ease;
         }
         .btn-glass:hover {
             background: rgba(255, 255, 255, 0.1);
             border-color: rgba(255, 255, 255, 0.5);
-            box-shadow: 0 0 20px rgba(255, 255, 255, 0.2);
-            transform: translateY(-2px);
+            box-shadow: 0 0 25px rgba(255, 255, 255, 0.15);
+            transform: translateY(-1px);
         }
 
-        /* 1. BLURRED HERO BACKGROUND */
+        /* 1. CINEMATIC HERO BACKGROUND (Fixed) */
         .hero-bg {
             position: absolute;
             top: 0; left: 0; width: 100%; height: 100vh;
             background-image: url('resources/hero-bg.jpg'); 
             background-size: cover;
             background-position: center;
-            /* Yahan Magic Hai: Blur aur Opacity */
-            filter: blur(8px) brightness(0.7); 
-            transform: scale(1.1); /* Blur edges ko chupane ke liye thoda zoom */
-            mask-image: linear-gradient(to bottom, black 20%, transparent 100%);
+            
+            /* ✅ UPDATED: Subtle Blur & Dark Opacity */
+            opacity: 0.3; /* 30% Visibility */
+            filter: blur(3px) brightness(0.6); /* Sharpness hatayi, lekin detail rakhi */
+            transform: scale(1.05); /* Edges chupane ke liye */
+            
+            mask-image: linear-gradient(to bottom, black 10%, transparent 90%);
             z-index: -2;
         }
 
-        /* 2. NOISE / GRAIN EFFECT OVERLAY */
+        /* 2. SUBTLE FILM GRAIN */
         .noise-overlay {
             position: fixed;
             top: 0; left: 0; width: 100%; height: 100%;
             pointer-events: none;
             z-index: -1;
-            opacity: 0.07; /* Grain ki strength */
-            background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noiseFilter'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.65' numOctaves='3' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noiseFilter)'/%3E%3C/svg%3E");
+            /* ✅ UPDATED: Very low opacity */
+            opacity: 0.04; 
+            background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noiseFilter'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.8' numOctaves='3' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noiseFilter)'/%3E%3C/svg%3E");
         }
     </style>
 </head>
 
 <body class="antialiased selection:bg-white/20">
 
-    <div class="hero-bg"></div>      <div class="noise-overlay"></div> <header class="fixed top-0 w-full z-50 border-b border-white/5 bg-black/50 backdrop-blur-md">
+    <div class="hero-bg"></div>
+    <div class="noise-overlay"></div>
+
+    <header class="fixed top-0 w-full z-50 border-b border-white/5 bg-black/40 backdrop-blur-md">
         <div class="max-w-6xl mx-auto px-6 h-16 flex items-center justify-between">
             
             <div class="flex items-center gap-3">
-                <img src="resources/logo.png" alt="IS" class="w-8 h-8 rounded border border-white/20">
-                <span class="font-medium text-sm text-white tracking-wide">Imran Square</span>
+                <img src="resources/logo.png" alt="IS" class="w-8 h-8 rounded border border-white/10 opacity-90">
+                <span class="font-medium text-sm text-white/90 tracking-wide">Imran Square</span>
             </div>
 
-            <nav class="hidden md:flex gap-8 text-sm text-gray-400 font-medium">
+            <nav class="hidden md:flex gap-8 text-sm text-gray-500 font-medium hover:text-gray-300 transition-colors">
                 <a href="#features" class="hover:text-white transition">Features</a>
                 <a href="#pricing" class="hover:text-white transition">Pricing</a>
                 <a href="#blog" class="hover:text-white transition">Blog</a>
             </nav>
 
             <div class="flex items-center gap-4">
-                <a href="/login" class="text-sm text-gray-400 hover:text-white transition">Sign in</a>
+                <a href="/login" class="text-sm text-gray-500 hover:text-white transition">Sign in</a>
                 <a href="/login" class="btn-glass px-5 py-2 rounded-full text-xs font-semibold text-white tracking-wide">
                     Get Started
                 </a>
@@ -100,18 +107,18 @@
 
     <section class="relative pt-32 pb-20 px-6 flex flex-col items-center text-center min-h-screen">
         
-        <div class="relative w-48 h-48 md:w-64 md:h-64 mb-12 animate-float mx-auto">
-            <div class="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[100%] h-[100%] bg-white/10 blur-[50px] rounded-full"></div>
+        <div class="relative w-48 h-48 md:w-56 md:h-56 mb-12 animate-float mx-auto">
+            <div class="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[90%] h-[90%] bg-white/10 blur-[40px] rounded-full"></div>
             
-            <div class="relative w-full h-full rounded-2xl overflow-hidden border border-white/10 shadow-2xl bg-black">
-                <img src="resources/dashboard-preview.jpg" alt="Studio Abstract" class="w-full h-full object-cover opacity-80 hover:opacity-100 transition duration-700">
-                <div class="absolute inset-0 bg-gradient-to-t from-black/80 via-transparent to-transparent"></div>
+            <div class="relative w-full h-full rounded-2xl overflow-hidden border border-white/10 shadow-[0_0_40px_-10px_rgba(255,255,255,0.1)] bg-black">
+                <img src="resources/dashboard-preview.jpg" alt="Studio Abstract" class="w-full h-full object-cover opacity-90">
+                <div class="absolute inset-0 bg-gradient-to-t from-black/50 via-transparent to-transparent"></div>
             </div>
         </div>
 
         <div class="max-w-3xl mx-auto relative z-10 animate-fade-in-up">
             
-            <h1 class="text-5xl md:text-7xl font-semibold tracking-tighter mb-6 text-white leading-[1.1] drop-shadow-xl">
+            <h1 class="text-5xl md:text-7xl font-semibold tracking-tighter mb-6 text-white leading-[1.1] drop-shadow-2xl">
                 Everything in <br>
                 <span class="text-gray-500">your control.</span>
             </h1>
@@ -132,7 +139,7 @@
 
     </section>
 
-    <footer class="py-8 text-center text-xs text-gray-600 border-t border-white/5 mt-auto relative z-10">
+    <footer class="py-8 text-center text-xs text-gray-700 border-t border-white/5 mt-auto relative z-10">
         © 2025 IMRAN SQUARE STUDIO
     </footer>
 
