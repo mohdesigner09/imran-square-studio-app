@@ -2,7 +2,8 @@
 
 // ===== USER AVATAR + MENU UI =====
 function setupUserMenu() {
- // In dashboard-advanced.js -> setupUserMenu()
+  // ✅ FIX: Agar naya header hai, to ye purana logic mat chalao
+  if (document.getElementById('userAvatarButton')) return;
 
 const btn = document.getElementById('userAvatarButton');
 const menu = document.getElementById('userMenu');
