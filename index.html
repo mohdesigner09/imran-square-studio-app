@@ -50,6 +50,304 @@
     <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@400;600;700&family=Inter:wght@300;400;500&family=JetBrains+Mono:wght@400&display=swap" rel="stylesheet">
     
     <style>
+    /* ===== THEME CONSISTENCY + PREMIUM BACKGROUNDS ===== */
+  :root {
+    --bg-primary: #000000;
+    --bg-secondary: #0a0a0a;
+    --text-primary: #ffffff;
+    --text-secondary: #888888;
+    --text-muted: #ededed;
+    --border-color: #2a2a2a;
+    --border-subtle: #1f1f1f;
+    --glass-bg: rgba(255, 255, 255, 0.03);
+    --glass-border: rgba(255, 255, 255, 0.08);
+    --glass-hover: rgba(255, 255, 255, 0.05);
+  }
+
+  * {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+  }
+
+  body {
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', sans-serif;
+    background-color: var(--bg-primary);
+    color: var(--text-muted);
+    overflow-x: hidden;
+    position: relative;
+  }
+
+  /* ===== BACKGROUND LAYER 1: Main Dashboard BG (hero-bg.jpg) ===== */
+  .bg-layer-main {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background-image: url('resources/hero-bg.jpg');
+    background-size: cover;
+    background-position: center;
+    background-repeat: no-repeat;
+    opacity: 0.15;
+    filter: blur(2px) brightness(0.7);
+    z-index: -3;
+  }
+
+  /* ===== BACKGROUND LAYER 2: Hero Section Overlay (dashboard-preview.jpg) ===== */
+  .bg-layer-hero {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 60vh;
+    background-image: url('resources/dashboard-preview.jpg');
+    background-size: cover;
+    background-position: center top;
+    opacity: 0.08;
+    mask-image: linear-gradient(to bottom, black 0%, transparent 100%);
+    -webkit-mask-image: linear-gradient(to bottom, black 0%, transparent 100%);
+    z-index: -2;
+  }
+
+  /* ===== BACKGROUND LAYER 3: Bottom Accent (3rd heavy curved.jpg) ===== */
+  .bg-layer-accent {
+    position: fixed;
+    bottom: 0;
+    left: 0;
+    width: 100%;
+    height: 50vh;
+    background-image: url('resources/3rd heavy curved.jpg');
+    background-size: cover;
+    background-position: center bottom;
+    opacity: 0.12;
+    filter: blur(3px);
+    mask-image: linear-gradient(to top, black 20%, transparent 100%);
+    -webkit-mask-image: linear-gradient(to top, black 20%, transparent 100%);
+    z-index: -1;
+    mix-blend-mode: screen;
+  }
+
+  /* ===== Dark Overlay for Better Readability ===== */
+  .overlay-dark {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background: linear-gradient(135deg, 
+      rgba(0,0,0,0.8) 0%, 
+      rgba(10,10,10,0.9) 50%, 
+      rgba(0,0,0,0.85) 100%);
+    z-index: -2;
+    pointer-events: none;
+  }
+
+  /* ===== Content Container ===== */
+  .content-wrapper {
+    position: relative;
+    z-index: 1;
+    min-height: 100vh;
+  }
+
+  /* Glass Cards - Match Landing Style */
+  .glass-card {
+    background: rgba(10, 10, 10, 0.6);
+    border: 1px solid var(--glass-border);
+    backdrop-filter: blur(10px);
+    -webkit-backdrop-filter: blur(10px);
+    border-radius: 12px;
+    transition: all 0.3s ease;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+  }
+
+  .glass-card:hover {
+    background: rgba(15, 15, 15, 0.7);
+    border-color: rgba(255, 255, 255, 0.2);
+    transform: translateY(-4px);
+    box-shadow: 0 8px 20px rgba(0, 0, 0, 0.5);
+  }
+
+  /* Buttons - Match Login Style */
+  .btn-primary {
+    background: linear-gradient(to bottom, #fafafa, #f5f5f5);
+    color: #000;
+    border: 1px solid #e5e5e5;
+    border-radius: 10px;
+    padding: 12px 20px;
+    font-size: 14px;
+    font-weight: 500;
+    cursor: pointer;
+    transition: all 0.15s ease;
+    box-shadow: 0 1px 2px rgba(0, 0, 0, 0.05);
+  }
+
+  .btn-primary:hover {
+    background: linear-gradient(to bottom, #f5f5f5, #efefef);
+    border-color: #d4d4d4;
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.08);
+    transform: translateY(-1px);
+  }
+
+  .btn-secondary {
+    background: rgba(26, 26, 26, 0.8);
+    color: #fff;
+    border: 1px solid var(--border-color);
+    border-radius: 10px;
+    padding: 12px 20px;
+    font-size: 14px;
+    font-weight: 500;
+    cursor: pointer;
+    transition: all 0.15s ease;
+    backdrop-filter: blur(5px);
+  }
+
+  .btn-secondary:hover {
+    background: rgba(42, 42, 42, 0.9);
+    border-color: #3a3a3a;
+    transform: translateY(-1px);
+  }
+
+  /* Input Fields - Match Login Style */
+  .input-field {
+    width: 100%;
+    padding: 12px 16px;
+    background-color: rgba(10, 10, 10, 0.8);
+    border: 1px solid var(--border-color);
+    border-radius: 10px;
+    color: var(--text-primary);
+    font-size: 14px;
+    transition: all 0.2s;
+    backdrop-filter: blur(5px);
+  }
+
+  .input-field:focus {
+    outline: none;
+    border-color: #4a4a4a;
+    background-color: rgba(15, 15, 15, 0.9);
+  }
+
+  .input-field::placeholder {
+    color: var(--text-secondary);
+  }
+
+  /* Project Cards */
+  .project-card {
+    background: rgba(10, 10, 10, 0.6);
+    border: 1px solid var(--glass-border);
+    border-radius: 12px;
+    padding: 20px;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    backdrop-filter: blur(10px);
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+  }
+
+  .project-card:hover {
+    background: rgba(15, 15, 15, 0.7);
+    border-color: rgba(255, 255, 255, 0.2);
+    transform: translateY(-4px);
+    box-shadow: 0 8px 20px rgba(0, 0, 0, 0.5);
+  }
+
+  /* Navigation/Header */
+  .nav-header {
+    background: rgba(0, 0, 0, 0.7);
+    backdrop-filter: blur(15px);
+    -webkit-backdrop-filter: blur(15px);
+    border-bottom: 1px solid var(--border-subtle);
+  }
+
+  /* Modal/Dialog */
+  .modal-overlay {
+    background: rgba(0, 0, 0, 0.9);
+    backdrop-filter: blur(8px);
+  }
+
+  .modal-content {
+    background: rgba(10, 10, 10, 0.95);
+    border: 1px solid var(--border-color);
+    border-radius: 16px;
+    backdrop-filter: blur(20px);
+    box-shadow: 0 10px 30px rgba(0, 0, 0, 0.5);
+  }
+
+  /* Stats/Badges */
+  .stat-badge {
+    background: rgba(255, 255, 255, 0.05);
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    border-radius: 8px;
+    padding: 8px 12px;
+    font-size: 12px;
+    color: var(--text-secondary);
+    backdrop-filter: blur(5px);
+  }
+
+  /* Search Bar */
+  .search-bar {
+    background: rgba(10, 10, 10, 0.8);
+    border: 1px solid var(--border-color);
+    border-radius: 10px;
+    padding: 10px 16px;
+    color: var(--text-primary);
+    backdrop-filter: blur(10px);
+  }
+
+  .search-bar:focus {
+    border-color: #4a4a4a;
+    outline: none;
+    background: rgba(15, 15, 15, 0.9);
+  }
+
+  /* Scrollbar Styling */
+  ::-webkit-scrollbar {
+    width: 8px;
+    height: 8px;
+  }
+
+  ::-webkit-scrollbar-track {
+    background: rgba(10, 10, 10, 0.5);
+  }
+
+  ::-webkit-scrollbar-thumb {
+    background: #2a2a2a;
+    border-radius: 4px;
+  }
+
+  ::-webkit-scrollbar-thumb:hover {
+    background: #3a3a3a;
+  }
+
+  /* Floating Animation for Cards */
+  @keyframes floatCard {
+    0%, 100% {
+      transform: translateY(0);
+    }
+    50% {
+      transform: translateY(-8px);
+    }
+  }
+
+  .project-card:hover {
+    animation: floatCard 2s ease-in-out infinite;
+  }
+
+  /* Fade In Animation */
+  @keyframes fadeIn {
+    from {
+      opacity: 0;
+      transform: translateY(20px);
+    }
+    to {
+      opacity: 1;
+      transform: translateY(0);
+    }
+  }
+
+  .fade-in {
+    animation: fadeIn 0.6s ease-out;
+  }
+
         body.theme-basic {
   background: #f3f4f6;
   color: #111827;
@@ -156,6 +454,32 @@ body.theme-advanced {
 </head>
 <body>
     <canvas class="film-grain" id="filmGrain"></canvas>
+    
+  <!-- ===== PREMIUM BACKGROUND LAYERS ===== -->
+  <div class="bg-layer-main"></div>
+  <div class="overlay-dark"></div>
+  <div class="bg-layer-hero"></div>
+  <div class="bg-layer-accent"></div>
+
+  <!-- ===== MAIN CONTENT WRAPPER ===== -->
+  <div class="content-wrapper">
+    
+    <!-- Your existing dashboard content here -->
+    <header class="nav-header">
+      <!-- Header content -->
+    </header>
+
+    <main class="px-6 py-8">
+      <!-- Dashboard content -->
+      <div id="projectCards" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+        <!-- Project cards will render here -->
+      </div>
+    </main>
+
+  </div>
+  
+  <!-- Modals, scripts, etc. -->
+
 
 <header class="sticky top-0 z-30 bg-black/80 backdrop-blur-md border-b border-white/5">
         <div class="max-w-7xl mx-auto px-4 sm:px-6 h-16 flex items-center justify-between">
