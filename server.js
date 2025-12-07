@@ -1,16 +1,16 @@
-// ===== 1. IMPORTS (Sabse Top Pe) =====
+// ===== 1. IMPORTS =====
 import express from 'express';
 import cors from 'cors';
 import dotenv from 'dotenv';
-import multer from 'multer'; // 👈 YE MISSING THA (Ab laga diya)
+import multer from 'multer';
 import nodemailer from 'nodemailer';
 import axios from 'axios';
 import admin from 'firebase-admin';
 import { google } from 'googleapis';
 import path from 'path';
 import { fileURLToPath } from 'url';
-import { readFileSync } from 'fs'; // Ye bhi add kar diya safety ke liye
-import bcrypt from 'bcryptjs';
+import { readFileSync } from 'fs';
+import bcrypt from 'bcryptjs'; // ✅ Fixed: Bcryptjs used
 // ===== 2. CONFIGURATION =====
 dotenv.config();
 
@@ -108,10 +108,14 @@ const credentials = {
   client_id: process.env.GOOGLE_CLIENT_ID,
 };
 
+// Credentials aur Auth ke neeche dhoondo
 const auth = new google.auth.GoogleAuth({
   credentials,
   scopes: SCOPES,
 });
+
+// 👇 YE LINE MISSING HAI - ISKO ADD KARO
+const drive = google.drive({ version: 'v3', auth });
 
 // Folder ID bhi ab setting se aayega
 const AVATAR_FOLDER_ID = process.env.DRIVE_FOLDER_ID;
@@ -352,7 +356,7 @@ app.post('/api/login-username', async (req, res) => {
       });
     }
 
-    const isMatch = await bcrypt.compare(password, user.password);
+    const isMatch = await bcrypt.compare(password, data.password); // 'data' use karo
     if (!match) {
       return res.status(400).json({ success: false, message: 'Invalid username or password' });
     }
@@ -889,29 +893,37 @@ app.post('/api/chat', async (req, res) => {
   }
 });
 
-// ===== FOOTAGE METADATA API =====
+// 1. FOOTAGE CREATE ROUTE (Isko pehle band karo)
 app.post('/api/footage/create', async (req, res) => {
   try {
-const { projectId, userId, fileName, fileSize, duration, title, thumbnail, format } = req.body;
+    const { projectId, userId, fileName, fileSize, duration, title, format } = req.body;
 
-const footageData = {
-  projectId,
-  userId,
-  fileName,
-  fileSize: fileSize || 0,
-  duration: duration || '00:00',
-  title: title || fileName,
-  // thumbnailDataUrl: thumbnail || '',   // ❌ is line ko comment/remove karo
-  format: format || 'long',
-  status: 'queued',
-  kind: 'raw',
-  rawDriveLink: '',
-  editedDriveLink: '',
-  createdAt: new Date().toISOString(),
-  updatedAt: new Date().toISOString()
-};
+    const footageData = {
+      projectId,
+      userId,
+      fileName,
+      fileSize: fileSize || 0,
+      duration: duration || '00:00',
+      title: title || fileName,
+      format: format || 'long',
+      status: 'queued',
+      kind: 'raw',
+      rawDriveLink: '',
+      editedDriveLink: '',
+      createdAt: new Date().toISOString(),
+      updatedAt: new Date().toISOString()
+    };
 
-// List footage for a project
+    const docRef = await db.collection('footage').add(footageData);
+    res.json({ success: true, footageId: docRef.id });
+
+  } catch (err) {
+    console.error('Footage create error:', err);
+    res.status(500).json({ error: 'Failed to create footage doc' });
+  }
+});
+
+// 2. FOOTAGE LIST ROUTE (Isko alag se neeche likho)
 app.get('/api/footage/list', async (req, res) => {
   try {
     const { projectId } = req.query;
@@ -935,16 +947,6 @@ app.get('/api/footage/list', async (req, res) => {
 });
 
 
-
-
-    const docRef = await db.collection('footage').add(footageData);
-
-    res.json({ success: true, footageId: docRef.id });
-  } catch (err) {
-    console.error('Footage create error:', err);
-    res.status(500).json({ error: 'Failed to create footage doc' });
-  }
-});
 
 
 const PORT = process.env.PORT || 3000;
