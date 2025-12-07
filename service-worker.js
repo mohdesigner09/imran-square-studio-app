@@ -1,4 +1,6 @@
-const CACHE_NAME = 'imran-square-safe-v1';
+// Sirf ye line change karo:
+const CACHE_NAME = 'imran-square-resend-v100'; // Version naam badal diya
+// ... baaki code same rahega ...
 const urlsToCache = [
   '/',
   '/index.html',
