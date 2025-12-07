@@ -191,32 +191,39 @@
     z-index: 2;
 }
 
-/* Install App Button - Resend Style */
-.install-btn {
-    display: none; /* Hidden by default, JS will show it */
-    padding: 8px 14px;
-    background: linear-gradient(to bottom, #fafafa, #f5f5f5);
-    color: #000;
-    border: 1px solid #e5e5e5;
-    border-radius: 8px;
-    font-size: 12px;
-    font-weight: 500;
-    cursor: pointer;
-    align-items: center;
-    gap: 6px;
-    transition: all 0.15s ease;
-    box-shadow: 0 1px 2px rgba(0, 0, 0, 0.05);
-}
+/* Updated Install Button CSS */
+        .install-btn {
+            display: flex; /* Pehle none tha, ab flex kar diya taaki hamesha dikhe */
+            padding: 8px 14px;
+            background: rgba(255, 255, 255, 0.05);
+            color: #a3a3a3;
+            border: 1px solid #333;
+            border-radius: 8px;
+            font-size: 12px;
+            font-weight: 500;
+            cursor: pointer;
+            align-items: center;
+            gap: 6px;
+            transition: all 0.2s ease;
+            pointer-events: auto; /* Zaroori hai click ke liye */
+            text-decoration: none;
+        }
 
-.install-btn:hover {
-    background: linear-gradient(to bottom, #f5f5f5, #efefef);
-    border-color: #d4d4d4;
-    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.08);
-}
+        .install-btn:hover {
+            background: rgba(255, 255, 255, 0.1);
+            color: #fff;
+            border-color: #555;
+        }
 
-.install-btn.visible {
-    display: flex;
-}
+        /* Mobile Adjustments */
+        @media (max-width: 640px) {
+            .install-btn span {
+                display: none; /* Mobile pe text chupao, sirf icon dikhao */
+            }
+            .install-btn {
+                padding: 8px;
+            }
+        }
 
 
 
@@ -227,21 +234,20 @@
   <div class="bg-glow"></div>
 
 <!-- Header - Back Button + Install App -->
-<div class="absolute top-0 left-0 w-full p-6 flex items-start justify-between z-10">
-  <!-- Back Button (Left) -->
+<div class="absolute top-0 left-0 w-full p-6 flex items-start justify-between z-50 pointer-events-none">
+  
   <a href="landing.html" class="flex items-center gap-2 text-gray-500 hover:text-white transition text-sm pointer-events-auto">
     <svg fill="currentColor" viewBox="0 0 20 20" class="w-4 h-4">
       <path fill-rule="evenodd" d="M9.707 16.707a1 1 0 01-1.414 0l-6-6a1 1 0 010-1.414l6-6a1 1 0 011.414 1.414L5.414 9H17a1 1 0 110 2H5.414l4.293 4.293a1 1 0 010 1.414z"/>
     </svg>
-    Home
+    <span class="hidden sm:inline">Home</span>
   </a>
 
-  <!-- Install App Button (Right) -->
   <button id="pwaInstallBtn" class="install-btn pointer-events-auto">
     <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
       <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"/>
     </svg>
-    Install App
+    <span>Install App</span>
   </button>
 </div>
 
@@ -717,8 +723,34 @@ document.addEventListener('DOMContentLoaded', function () {
         });
     }
 
+    // 10. INSTALL APP BUTTON LOGIC (Ye naya code hai)
+    const installBtn = $('pwaInstallBtn');
+    if (installBtn) {
+        installBtn.addEventListener('click', async () => {
+            console.log('🔘 Install Button Clicked');
+            
+            // Agar browser ne install prompt pakad rakha hai (Android/Chrome)
+            if (deferredPrompt) {
+                deferredPrompt.prompt();
+                const { outcome } = await deferredPrompt.userChoice;
+                console.log(`User response: ${outcome}`);
+                // Prompt use ho gaya, ab null kar do
+                deferredPrompt = null;
+            } else {
+                // Agar browser ready nahi hai ya iOS hai
+                const isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent) && !window.MSStream;
+                if (isIOS) {
+                    alert("📲 To Install on iOS:\n1. Tap the 'Share' icon below\n2. Scroll down & tap 'Add to Home Screen'");
+                } else {
+                    alert("To install, use your browser's menu (⋮) and select 'Add to Home Screen' or 'Install App'.");
+                }
+            }
+        });
+    }
     console.log('✅ All handlers initialized');
 });
+
+
 </script>
 </body>
 </html>
