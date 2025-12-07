@@ -1,159 +1,173 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <script>
-  // Auth Guard: Agar user pehle se login hai, to Dashboard par bhejo
-  const user = localStorage.getItem('imranUser');
-  if (user) {
-    window.location.href = 'index.html';
-  }
-</script>
-
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Log in - Imran Square</title>
-  <meta name="theme-color" content="#000000">
-  <link rel="manifest" href="/manifest.json">
-  <link rel="icon" type="image/png" sizes="32x32" href="/resources/icon-32.png">
-  <link rel="shortcut icon" href="/resources/favicon.ico">
-  <script src="https://cdn.tailwindcss.com"></script>
-  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600&family=JetBrains+Mono:wght@400&display=swap" rel="stylesheet">
-  
-  <script>
-    tailwind.config = {
-        theme: {
-            extend: {
-                fontFamily: { 
-                    sans: ['Inter', 'sans-serif'],
-                    mono: ['JetBrains Mono', 'monospace']
-                },
-                colors: { 
-                    brand: { bg: '#000000', surface: '#0A0A0A', border: '#1C1C1C', text: '#EDEDED', muted: '#888888' } 
-                }
-            }
-        }
-    }
-  </script>
-
-  <style>
-    body { background: #000; color: #ededed; overflow-x: hidden; height: 100vh; display: flex; flex-direction: column; }
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Sign in - Imran Square Studio</title>
+    <script src="https://cdn.tailwindcss.com"></script>
     
-    /* Resend Style Glow */
-    .bg-glow {
-        position: fixed;
-        top: -50%;
-        left: 50%;
-        transform: translateX(-50%);
-        width: 100vw;
-        height: 100vh;
-        background: radial-gradient(circle, rgba(255,255,255,0.08) 0%, transparent 60%);
-        pointer-events: none;
-        z-index: -1;
-    }
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
 
-    /* Resend Input Field */
-    .input-resend {
-        background: #050505;
-        border: 1px solid #222;
-        color: white;
-        padding: 12px 16px;
-        border-radius: 8px;
-        width: 100%;
-        font-size: 14px;
-        transition: all 0.2s;
-        outline: none;
-    }
-    .input-resend:focus {
-        border-color: #555;
-        box-shadow: 0 0 0 1px #333;
-    }
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', 'Oxygen', 'Ubuntu', sans-serif;
+            background-color: #0a0a0a;
+            color: #fff;
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+        }
 
-    /* Primary Button (White) */
-    .btn-primary {
-        background: white;
-        color: black;
-        font-weight: 500;
-        padding: 12px;
-        border-radius: 8px;
-        width: 100%;
-        font-size: 14px;
-        transition: all 0.2s;
-        border: 1px solid white;
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        gap: 8px;
-    }
-    .btn-primary:hover {
-        opacity: 0.9;
-        box-shadow: 0 0 20px rgba(255,255,255,0.15);
-        transform: translateY(-1px);
-    }
-    .btn-primary:disabled {
-        opacity: 0.6;
-        cursor: not-allowed;
-    }
+        /* Background Image */
+        .bg-glow {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background-image: url('resources/hero-bg.jpg');
+            background-size: cover;
+            background-position: center;
+            background-repeat: no-repeat;
+            opacity: 0.12;
+            z-index: 0;
+        }
 
-    /* Secondary Button (Dark) */
-    .btn-secondary {
-        background: transparent;
-        color: #ededed;
-        border: 1px solid #333;
-        padding: 12px;
-        border-radius: 8px;
-        width: 100%;
-        font-size: 14px;
-        font-weight: 500;
-        transition: all 0.2s;
-    }
-    .btn-secondary:hover {
-        border-color: #666;
-        background: #111;
-        color: white;
-    }
+        /* Resend Style Buttons */
+        .btn-primary {
+            width: 100%;
+            padding: 12px 16px;
+            background-color: #fff;
+            color: #000;
+            border: 1px solid #2a2a2a;
+            border-radius: 8px;
+            font-size: 15px;
+            font-weight: 500;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 10px;
+            transition: all 0.2s;
+        }
 
-    /* Hide Scrollbar */
-    ::-webkit-scrollbar { width: 0px; }
-  </style>
+        .btn-primary:hover {
+            background-color: #f5f5f5;
+        }
+
+        .btn-primary:disabled {
+            opacity: 0.6;
+            cursor: not-allowed;
+        }
+
+        .btn-secondary {
+            width: 100%;
+            padding: 12px 16px;
+            background-color: #1a1a1a;
+            color: #fff;
+            border: 1px solid #2a2a2a;
+            border-radius: 8px;
+            font-size: 15px;
+            font-weight: 500;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+
+        .btn-secondary:hover {
+            background-color: #2a2a2a;
+            border-color: #3a3a3a;
+        }
+
+        /* Resend Style Input */
+        .input-resend {
+            width: 100%;
+            padding: 12px 16px;
+            background-color: #0a0a0a;
+            border: 1px solid #2a2a2a;
+            border-radius: 8px;
+            color: #fff;
+            font-size: 15px;
+            transition: all 0.2s;
+        }
+
+        .input-resend:focus {
+            outline: none;
+            border-color: #4a4a4a;
+            background-color: #111;
+        }
+
+        .input-resend::placeholder {
+            color: #555;
+        }
+
+        /* Animate fade in */
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(10px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        .animate-fade-in {
+            animation: fadeIn 0.3s ease-out;
+        }
+    </style>
 </head>
 
 <body class="selection:bg-white/20 relative">
   <div class="bg-glow"></div>
 
+  <!-- Header with Logo -->
   <div class="absolute top-0 left-0 w-full p-6 flex justify-between items-start z-10 pointer-events-none">
-    <div class="w-24"></div> 
+    <div class="w-24 pointer-events-auto">
+      <a href="landing.html" class="flex items-center gap-2 text-gray-400 hover:text-white transition text-sm">
+        <svg fill="currentColor" viewBox="0 0 20 20" class="w-4 h-4">
+          <path fill-rule="evenodd" d="M9.707 16.707a1 1 0 01-1.414 0l-6-6a1 1 0 010-1.414l6-6a1 1 0 011.414 1.414L5.414 9H17a1 1 0 110 2H5.414l4.293 4.293a1 1 0 010 1.414z"/>
+        </svg>
+        Home
+      </a>
+    </div>
     
     <div class="flex items-center gap-2 pointer-events-auto mt-2">
       <img src="resources/logo.png" alt="Logo" class="w-8 h-8 rounded border border-white/10 opacity-90">
-      <span class="font-medium text-sm tracking-wide text-white/90">Imran Square</span>
+      <span class="font-medium text-sm tracking-wide text-white/90">Imran Square Studio</span>
     </div>
 
     <div class="w-24 flex justify-end pointer-events-auto">
-        <button id="pwaInstallBtn" class="hidden px-3 py-1.5 bg-white/10 border border-white/10 rounded-full text-[10px] font-medium text-gray-300 hover:bg-white/20 transition">
-            Install App
-        </button>
+      <button id="pwaInstallBtn" class="hidden px-3 py-1.5 bg-white/10 border border-white/10 rounded-full text-[10px] font-medium text-gray-300 hover:bg-white/20 transition">
+        Install App
+      </button>
     </div>
   </div>
 
+  <!-- Main Content -->
   <main class="flex-1 flex flex-col items-center justify-center px-4">
-    
-    <div class="w-full max-w-[380px] animate-fade-in relative z-20">
+    <div class="w-full max-w-[420px] animate-fade-in relative z-20">
       
+      <!-- Title -->
       <div id="stepTitle" class="text-center mb-10">
-        <h1 class="text-2xl font-semibold text-white mb-2 tracking-tight">Sign in to continue</h1>
-        <p class="text-sm text-brand-muted">Manage your documentary projects</p>
+        <h1 class="text-3xl font-semibold text-white mb-2 tracking-tight">Sign in to continue</h1>
+        <p class="text-sm text-gray-400">Manage your documentary projects</p>
       </div>
 
-      <div id="stepProviders" class="space-y-4">
+      <!-- Step 1: Providers -->
+      <div id="stepProviders" class="space-y-3">
         <button id="btnGoogle" class="btn-primary">
-            <svg class="w-4 h-4" viewBox="0 0 24 24"><path fill="currentColor" d="M21.35 11.1h-9.17v2.73h6.51c-.33 3.81-3.5 5.44-6.5 5.44C8.36 19.27 5 16.25 5 12c0-4.1 3.2-7.27 7.2-7.27c3.09 0 4.9 1.97 4.9 1.97L19 4.72S16.56 2 12.1 2C6.42 2 2.03 6.8 2.03 12c0 5.05 4.13 10 10.22 10c5.35 0 9.25-3.67 9.25-9.09c0-1.15-.15-1.81-.15-1.81Z"/></svg>
-            Sign in with Google
+          <svg class="w-4 h-4" viewBox="0 0 24 24">
+            <path fill="#4285F4" d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z"/>
+            <path fill="#34A853" d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z"/>
+            <path fill="#FBBC05" d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l2.85-2.22.81-.62z"/>
+            <path fill="#EA4335" d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z"/>
+          </svg>
+          Sign in with Google
         </button>
 
-        <div class="relative flex items-center py-2">
-            <div class="flex-grow border-t border-[#222]"></div>
-            <span class="flex-shrink-0 mx-4 text-xs text-[#444] uppercase font-medium">Existing User</span>
-            <div class="flex-grow border-t border-[#222]"></div>
+        <div class="relative flex items-center py-3">
+          <div class="flex-grow border-t border-[#222]"></div>
+          <span class="flex-shrink-0 mx-4 text-xs text-[#555] uppercase font-medium tracking-wide">Existing User</span>
+          <div class="flex-grow border-t border-[#222]"></div>
         </div>
 
         <button id="btnLoginGoogle" class="btn-secondary">
@@ -164,851 +178,595 @@
         </button>
       </div>
 
+      <!-- Step 2: Contact Input -->
       <div id="stepContact" class="hidden space-y-4">
         <div>
-            <label id="contactLabel" class="text-xs text-gray-500 mb-1.5 block ml-1">Email Address</label>
-            <input id="contactInput" type="email" placeholder="name@example.com" class="input-resend">
-            <p id="contactHint" class="text-[10px] text-gray-600 mt-1.5 ml-1">We'll send you a secure code.</p>
+          <label id="contactLabel" class="text-xs text-gray-400 mb-2 block ml-1 font-medium">Email Address</label>
+          <input id="contactInput" type="email" placeholder="name@example.com" class="input-resend">
+          <p id="contactHint" class="text-[11px] text-gray-500 mt-2 ml-1">We'll send you a secure code.</p>
         </div>
         <button id="btnSendOtp" class="btn-primary">Send Code</button>
-        <button id="btnBackToProviders" class="w-full text-xs text-gray-500 hover:text-white py-2 transition">← Back</button>
+        <button id="btnBackToProviders" class="w-full text-sm text-gray-500 hover:text-white py-2 transition">
+          ← Back
+        </button>
       </div>
 
+      <!-- Step 3: OTP Verification -->
       <div id="stepOtp" class="hidden space-y-5 text-center">
-        <div class="space-y-2">
-            <input id="otpInput" type="text" maxlength="6" placeholder="000000" class="input-resend text-center text-2xl tracking-[0.5em] font-mono py-4">
-            <p class="text-[11px] text-gray-500">Sent to <span id="displayEmail" class="text-white">email</span></p>
+        <div class="space-y-3">
+          <input id="otpInput" type="text" maxlength="6" placeholder="000000" class="input-resend text-center text-2xl tracking-[0.5em] font-mono py-4">
+          <p class="text-xs text-gray-500">Sent to <span id="displayEmail" class="text-white font-medium">email</span></p>
         </div>
         
         <button id="btnVerifyOtp" class="btn-primary">Verify Code</button>
         
         <div class="flex items-center justify-between px-2">
-            <span id="timer" class="text-xs text-gray-500 font-mono">60</span>
-            <button id="btnResendOtp" class="text-xs text-gray-500 hover:text-white transition" disabled>Resend Code</button>
+          <span id="timer" class="text-xs text-gray-500 font-mono">60</span>
+          <button id="btnResendOtp" class="text-xs text-gray-500 hover:text-white transition" disabled>Resend Code</button>
         </div>
       </div>
 
+      <!-- Step 4: Username Login -->
       <div id="stepUsernameLogin" class="hidden space-y-4">
         <input id="loginUsername" type="text" placeholder="Username" class="input-resend">
         <input id="loginPassword" type="password" placeholder="Password" class="input-resend">
         
         <button id="btnUsernameLogin" class="btn-primary">Sign In</button>
-        <button id="btnBackFromUsername" class="w-full text-xs text-gray-500 hover:text-white py-2 transition">← Back</button>
+        <button id="btnBackFromUsername" class="w-full text-sm text-gray-500 hover:text-white py-2 transition">
+          ← Back
+        </button>
       </div>
 
+      <!-- Step 5: Registration -->
       <div id="stepRegister" class="hidden space-y-3">
         <div class="grid grid-cols-2 gap-3">
-            <input id="firstName" placeholder="First Name" class="input-resend">
-            <input id="lastName" placeholder="Last Name" class="input-resend">
+          <input id="firstName" placeholder="First Name" class="input-resend">
+          <input id="lastName" placeholder="Last Name" class="input-resend">
         </div>
         
         <div>
-            <input id="username" placeholder="Username" class="input-resend">
-            <p id="usernameHint" class="text-[10px] text-gray-600 mt-1 ml-1"></p>
+          <input id="username" placeholder="Username" class="input-resend">
+          <p id="usernameHint" class="text-[10px] text-gray-500 mt-1.5 ml-1"></p>
         </div>
 
         <input id="brotherName" placeholder="Security Answer (Who is Bro?)" class="input-resend">
 
         <div class="relative">
-            <input id="password" type="password" placeholder="Password" class="input-resend pr-10">
-            <button id="togglePassword" class="absolute right-3 top-3 text-gray-500 hover:text-white">👁️</button>
+          <input id="password" type="password" placeholder="Password" class="input-resend pr-10">
+          <button type="button" id="togglePassword" class="absolute right-3 top-3.5 text-gray-500 hover:text-white text-lg">
+            👁️
+          </button>
         </div>
+        
         <div class="relative">
-            <input id="passwordConfirm" type="password" placeholder="Confirm Password" class="input-resend pr-10">
-            <button id="togglePasswordConfirm" class="absolute right-3 top-3 text-gray-500 hover:text-white">👁️</button>
+          <input id="passwordConfirm" type="password" placeholder="Confirm Password" class="input-resend pr-10">
+          <button type="button" id="togglePasswordConfirm" class="absolute right-3 top-3.5 text-gray-500 hover:text-white text-lg">
+            👁️
+          </button>
         </div>
 
-        <button id="btnRegister" class="btn-primary mt-2">Create Account</button>
+        <button id="btnRegister" class="btn-primary mt-3">Create Account</button>
+      </div>
+
+      <!-- Footer -->
+      <div class="mt-8 text-center text-xs text-gray-600">
+        By signing up, you agree to our 
+        <a href="#" class="text-gray-500 underline hover:text-gray-400">Terms</a>, 
+        <a href="#" class="text-gray-500 underline hover:text-gray-400">Acceptable Use</a>, and 
+        <a href="#" class="text-gray-500 underline hover:text-gray-400">Privacy Policy</a>.
       </div>
 
     </div>
   </main>
 
-  <div id="toast" class="hidden fixed bottom-10 left-1/2 -translate-x-1/2 px-5 py-2.5 bg-white text-black text-sm font-medium rounded-full shadow-[0_0_20px_rgba(255,255,255,0.2)] z-50"></div>
+  <!-- Toast Notification -->
+  <div id="toast" class="hidden fixed bottom-10 left-1/2 -translate-x-1/2 px-5 py-3 bg-white text-black text-sm font-medium rounded-full shadow-2xl z-50"></div>
 
-  <script src="landing-logic.js"></script> 
- 
-<script>
-// GLOBAL STATE
-let currentProvider = null;
-let contactValue = null;
-let timerInterval = null;
+  <!-- JavaScript Logic -->
+  <script>
+    // GLOBAL STATE
+    let currentProvider = null;
+    let contactValue = null;
+    let timerInterval = null;
 
-// Simple helper like jQuery
-function $(id) {
-  return document.getElementById(id);
-}
-
-// API base URL - automatically uses current domain
-const API_BASE = window.location.hostname === 'localhost' 
-  ? 'http://localhost:3000' 
-  : 'https://imran-square-studio.onrender.com';
-
-
-// YAHAN YE 4 LINES ADD KARO 👇
-const stepProviders = $('stepProviders');
-const stepContact   = $('stepContact');
-const stepOtp       = $('stepOtp');
-const stepRegister  = $('stepRegister');
-
-
-function showStep(stepId) {
-  const allIds = [
-    'stepProviders',
-    'stepContact',
-    'stepOtp',
-    'stepRegister',
-    'stepUsernameLogin'
-  ];
-  allIds.forEach(id => {
-    const el = $(id);
-    if (el) el.classList.add('hidden');
-  });
-  const target = $(stepId);
-  if (target) target.classList.remove('hidden');
-}
-
-
-
-
-
-
-function setStepTitle(title, subtitle) {
-  const wrapper = $('stepTitle');
-  if (!wrapper) return;
-  const h1 = wrapper.querySelector('h1');
-  const p = wrapper.querySelector('p');
-  if (h1) h1.textContent = title;
-  if (p) p.textContent = subtitle;
-}
-
-function showToast(msg, timeout = 3000) {
-  const el = $('toast');
-  if (!el) {
-    alert(msg);
-    return;
-  }
-  el.textContent = msg;
-  el.classList.remove('hidden');
-
-  clearTimeout(window.__toastTimer);
-  window.__toastTimer = setTimeout(() => {
-    el.classList.add('hidden');
-  }, timeout);
-}
-
-
-function startTimer(seconds = 60) {
-  const timer = $('timer');
-  const btnResendOtp = $('btnResendOtp');
-  
-  if (!timer) return;
-  
-  let timeLeft = seconds;
-  timer.textContent = `${timeLeft}`;
-  
-  if (btnResendOtp) btnResendOtp.disabled = true;
-  
-  clearInterval(timerInterval);
-  timerInterval = setInterval(() => {
-    timeLeft--;
-    timer.textContent = `${timeLeft}`;
-    if (timeLeft <= 0) {
-      clearInterval(timerInterval);
-      if (btnResendOtp) btnResendOtp.disabled = false;
-    }
-  }, 1000);
-}
-
-// ===== REGISTRATION HELPERS =====
-function getAllUsers() {
-  return JSON.parse(localStorage.getItem('imranUsers') || '[]');
-}
-
-function isUsernameAvailable(username) {
-  if (!username) return false;
-  const list = getAllUsers();
-  return !list.some(u => (u.username || '').toLowerCase() === username.toLowerCase());
-}
-
-function validateRegisterForm() {
-  const first = $('firstName').value.trim();
-  const last = $('lastName').value.trim();
-  const user = $('username').value.trim();
-  const bro = $('brotherName').value.trim();
-  const pass = $('password').value;
-  const pass2 = $('passwordConfirm').value;
-
-  let ok = true;
-
-  if (!first || !last) ok = false;
-  if (!/^[a-z0-9_]{3,}$/.test(user)) ok = false;
-
-  if (!user || !isUsernameAvailable(user)) {
-    ok = false;
-    const hint = $('usernameHint');
-    if (user) {
-      hint.textContent = 'This username is already taken.';
-      hint.classList.remove('text-gray-500');
-      hint.classList.add('text-red-400');
-    } else {
-      hint.textContent = 'This must be unique.';
-      hint.classList.remove('text-red-400');
-      hint.classList.add('text-gray-500');
-    }
-  } else {
-    const hint = $('usernameHint');
-    hint.textContent = 'Great, this username is available.';
-    hint.classList.remove('text-red-400');
-    hint.classList.add('text-green-400');
-  }
-
-  if (bro !== 'IMRAN KHAN') ok = false;
-  if (!pass || pass.length < 8 || pass !== pass2) ok = false;
-
-  const btnReg = $('btnRegister');
-  if (btnReg) {
-    if (ok) {
-        // Resend Style: Enable state is just removing disabled look
-      btnReg.classList.remove('opacity-60', 'cursor-not-allowed');
-    } else {
-      btnReg.classList.add('opacity-60', 'cursor-not-allowed');
-    }
-  }
-
-  return ok;
-}
-
-
-// ===== DOM READY =====
-document.addEventListener('DOMContentLoaded', function () {
-  console.log('✅ DOM Ready');
-
-  // Default view on first load
-  showStep('stepProviders');
-  setStepTitle('Sign in to continue', 'Manage your documentary projects');
-
-  // STEP SWITCHER
-  function showStep(stepId) {
-    const allIds = [
-      'stepProviders',
-      'stepContact',
-      'stepOtp',
-      'stepRegister',
-      'stepUsernameLogin'
-    ];
-    allIds.forEach(id => {
-      const el = $(id);
-      if (el) el.classList.add('hidden');
-    });
-    const target = $(stepId);
-    if (target) target.classList.remove('hidden');
-  }
-
-  // Primary Google sign-in (new or first-time users)
-  const btnGoogle = $('btnGoogle');
-  if (btnGoogle) {
-    btnGoogle.addEventListener('click', () => {
-      currentProvider = 'google';
-      setStepTitle('Sign in with Google', 'We will send a one-time code to your Gmail.');
-      const cl = $('contactLabel'); if(cl) cl.textContent = 'Google email';
-      const ci = $('contactInput'); 
-      if(ci) {
-        ci.placeholder = 'you@gmail.com';
-        ci.value = '';
-      }
-      const ch = $('contactHint'); if(ch) ch.textContent = 'A 6-digit code will be sent to this Gmail address.';
-      showStep('stepContact');
-    });
-  }
-
-  // Existing user: Login with Google (same OTP flow, different copy)
-  const btnLoginGoogle = $('btnLoginGoogle');
-  if (btnLoginGoogle) {
-    btnLoginGoogle.addEventListener('click', () => {
-      currentProvider = 'google';
-      setStepTitle('Login with Google', 'Enter the Gmail linked to your account.');
-      const cl = $('contactLabel'); if(cl) cl.textContent = 'Google email';
-      const ci = $('contactInput'); 
-      if(ci) {
-        ci.placeholder = 'you@gmail.com';
-        ci.value = '';
-      }
-      const ch = $('contactHint'); if(ch) ch.textContent = 'You will receive a 6-digit login code.';
-      showStep('stepContact');
-    });
-  }
-// Existing user: Login with Username button (providers screen)
-const btnUsername = $('btnUsername');
-if (btnUsername) {
-  btnUsername.addEventListener('click', () => {
-    setStepTitle('Login with username', 'Use your username and password.');
-    showStep('stepUsernameLogin');
-  });
-}
-
-
-// USERNAME + PASSWORD LOGIN SUBMIT
-const btnUsernameLogin = $('btnUsernameLogin');
-if (btnUsernameLogin) {
-  btnUsernameLogin.addEventListener('click', async () => {
-    const user = $('loginUsername').value.trim();
-    const pass = $('loginPassword').value;
-
-    if (!user || !pass) {
-      alert('Enter username and password');
-      return;
+    // Helper
+    function $(id) {
+      return document.getElementById(id);
     }
 
-    btnUsernameLogin.disabled = true;
-    btnUsernameLogin.textContent = 'Signing in...';
-    try {
-      const res = await fetch(`${API_BASE}/api/login-username`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ username: user, password: pass })
+    // API Base URL
+    const API_BASE = window.location.hostname === 'localhost' 
+      ? 'http://localhost:3000' 
+      : 'https://imran-square-studio.onrender.com';
+
+    // Show/Hide Steps
+    function showStep(stepId) {
+      const allIds = ['stepProviders', 'stepContact', 'stepOtp', 'stepRegister', 'stepUsernameLogin'];
+      allIds.forEach(id => {
+        const el = $(id);
+        if (el) el.classList.add('hidden');
       });
-
-
-      const data = await res.json();
-      console.log('USERNAME LOGIN RESPONSE:', data);
-
-      if (!data.success || !data.user) {
-        alert(data.message || 'Login failed');
-        btnUsernameLogin.disabled = false;
-        btnUsernameLogin.textContent = 'Sign In';
-        return;
-      }
-
-      localStorage.setItem('imranUser', JSON.stringify(data.user));
-      localStorage.setItem('userEmail', data.user.email);
-      localStorage.setItem('userId', data.user.userId || '');
-
-      window.location.href = 'index.html';
-    } catch (err) {
-      console.error('Username login error:', err);
-      alert('Login error, please try again.');
-      btnUsernameLogin.disabled = false;
-      btnUsernameLogin.textContent = 'Sign In';
-    }
-  });
-}
-
-
-
-  // ---- Back button (from contact step) ----
-  const btnBackToProviders = $('btnBackToProviders');
-  if (btnBackToProviders) {
-    btnBackToProviders.addEventListener('click', () => {
-      currentProvider = null;
-      contactValue = null;
-      setStepTitle('Sign in to continue', 'Manage your documentary projects');
-      showStep('stepProviders');
-    });
-  }
-
-  // ---- SEND OTP ----
-  const btnSendOtp = $('btnSendOtp');
-  if (btnSendOtp) {
-    btnSendOtp.addEventListener('click', async () => {
-      if (!currentProvider) {
-        alert('Choose a sign-in method first');
-        return;
-      }
-
-      const contactInput = $('contactInput');
-      const contact = contactInput ? contactInput.value.trim() : '';
-
-      if (!contact) {
-        alert('Please enter your email or phone number');
-        return;
-      }
-
-      contactValue = contact;
-      console.log('📧 CONTACT SAVED:', contactValue);
-
-      btnSendOtp.disabled = true;
-      btnSendOtp.textContent = 'Sending...';
-
-       try {
-        const res = await fetch(`${API_BASE}/api/send-otp`, {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ email: contact })
-        });
-
-
-        const data = await res.json();
-        console.log('✉️ SEND OTP RESPONSE:', data);
-
-        if (!data.success) {
-          alert(data.message || 'Failed to send OTP');
-          btnSendOtp.disabled = false;
-          btnSendOtp.textContent = 'Send Code';
-          return;
-        }
-
-        // success case:
-        showToast('OTP sent successfully');
-
-
-        const displayEmail = $('displayEmail');
-        if (displayEmail) displayEmail.textContent = contact;
-
-        showToast('OTP sent successfully'); 
-        
-        showStep('stepOtp');
-        setStepTitle('Check your inbox', `Enter the 6-digit code sent to ${contact}.`);
-        $('otpInput').value = '';
-        startTimer(60);
-
-        btnSendOtp.disabled = false;
-        btnSendOtp.textContent = 'Send Code';
-      } catch (err) {
-        console.error('❌ SEND OTP ERROR:', err);
-        alert('Failed to send OTP. Please try again.');
-        btnSendOtp.disabled = false;
-        btnSendOtp.textContent = 'Send Code';
-      }
-    });
-  }
-
-// ---- VERIFY OTP ----
-const btnVerifyOtp = $('btnVerifyOtp');
-if (btnVerifyOtp) {
-  btnVerifyOtp.addEventListener('click', async () => {
-    const code = $('otpInput').value.trim();
-    console.log('DEBUG OTP:', { code, contactValue, currentProvider });
-
-    if (!code || !contactValue) {
-      alert('Enter the OTP first');
-      return;
+      const target = $(stepId);
+      if (target) target.classList.remove('hidden');
     }
 
-    btnVerifyOtp.disabled = true;
-    btnVerifyOtp.textContent = 'Verifying...';
-
-  try {
-  const res = await fetch(`${API_BASE}/api/verify-otp`, {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({
-      email: contactValue,
-      code
-    })
-  });
-
-
-      const data = await res.json();
-      console.log('VERIFY RESPONSE:', data);
-
-      if (data.success) {
-        const u = data.user;
-        const isNew = data.isNew;
-
-        if (!u) {
-          alert('Login error. Please try again.');
-          btnVerifyOtp.disabled = false;
-          btnVerifyOtp.textContent = 'Verify Code';
-          return;
-        }
-
-        if (isNew) {
-          // 🆕 New user → registration form
-          console.log('✅ OTP VERIFIED, NEW user → registration');
-          localStorage.setItem('userEmail', contactValue);
-          setStepTitle('Complete your profile', 'Just a few details to set up your studio.');
-          showStep('stepRegister');
-        } else {
-          // ✅ Existing user → direct dashboard
-          console.log('✅ OTP VERIFIED, EXISTING user → dashboard');
-        localStorage.setItem('imranUser', JSON.stringify(u));
-        localStorage.setItem('userEmail', u.email);
-        localStorage.setItem('userId', u.userId || '');
-        localStorage.setItem('imranWelcome', '1');   // <-- add
-
-        window.location.href = 'index.html';
-
-        }
-      } else {
-        alert(data.message || 'Invalid OTP');
-        btnVerifyOtp.disabled = false;
-        btnVerifyOtp.textContent = 'Verify Code';
-      }
-    } catch (err) {
-      console.error('VERIFY ERROR:', err);
-      alert('Verification failed');
-      btnVerifyOtp.disabled = false;
-      btnVerifyOtp.textContent = 'Verify Code';
+    // Update Title
+    function setStepTitle(title, subtitle) {
+      const wrapper = $('stepTitle');
+      if (!wrapper) return;
+      const h1 = wrapper.querySelector('h1');
+      const p = wrapper.querySelector('p');
+      if (h1) h1.textContent = title;
+      if (p) p.textContent = subtitle;
     }
-  });
-}
 
-
-  // ---- RESEND OTP ----
-  const btnResendOtp = $('btnResendOtp');
-  if (btnResendOtp) {
-    btnResendOtp.addEventListener('click', async () => {
-      if (!contactValue || !currentProvider) {
-        alert('Session expired. Please start again.');
+    // Toast Notification
+    function showToast(msg, timeout = 3000) {
+      const el = $('toast');
+      if (!el) {
+        alert(msg);
         return;
       }
+      el.textContent = msg;
+      el.classList.remove('hidden');
+      clearTimeout(window.__toastTimer);
+      window.__toastTimer = setTimeout(() => {
+        el.classList.add('hidden');
+      }, timeout);
+    }
 
-      btnResendOtp.disabled = true;
-      btnResendOtp.textContent = 'Sending...';
-
-        try {
-        const res = await fetch(`${API_BASE}/api/send-otp`, {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ email: contactValue })
-        });
-
-
-        const data = await res.json();
-        if (data.success) {
-          showToast('OTP resent successfully');
-          startTimer(60);
-        } else {
-          alert(data.message || 'Failed to resend OTP');
+    // Timer
+    function startTimer(seconds = 60) {
+      const timer = $('timer');
+      const btnResendOtp = $('btnResendOtp');
+      if (!timer) return;
+      
+      let timeLeft = seconds;
+      timer.textContent = `${timeLeft}`;
+      if (btnResendOtp) btnResendOtp.disabled = true;
+      
+      clearInterval(timerInterval);
+      timerInterval = setInterval(() => {
+        timeLeft--;
+        timer.textContent = `${timeLeft}`;
+        if (timeLeft <= 0) {
+          clearInterval(timerInterval);
+          if (btnResendOtp) btnResendOtp.disabled = false;
         }
-      } catch (err) {
-        console.error(err);
-        alert('Failed to resend OTP');
-      } finally {
-        btnResendOtp.disabled = false;
-        btnResendOtp.textContent = 'Resend Code';
-      }
-    });
-  }
+      }, 1000);
+    }
 
-  // ---- REGISTRATION FORM VALIDATION ----
-  ['firstName', 'lastName', 'username', 'brotherName', 'password', 'passwordConfirm'].forEach(id => {
-    const el = $(id);
-    if (el) el.addEventListener('input', validateRegisterForm);
-  });
+    // Registration Helpers
+    function getAllUsers() {
+      return JSON.parse(localStorage.getItem('imranUsers') || '[]');
+    }
 
-  // ---- COMPLETE REGISTRATION ----
-  const btnRegister = $('btnRegister');
-  if (btnRegister) {
-    btnRegister.addEventListener('click', async () => {
-      if (!validateRegisterForm()) {
-        alert('Please complete all required fields correctly.');
-        return;
-      }
+    function isUsernameAvailable(username) {
+      if (!username) return false;
+      const list = getAllUsers();
+      return !list.some(u => (u.username || '').toLowerCase() === username.toLowerCase());
+    }
 
+    function validateRegisterForm() {
       const first = $('firstName').value.trim();
       const last = $('lastName').value.trim();
-      const username = $('username').value.trim();
-      const role = null; // Removed role selector logic as it wasn't present in HTML
-      const email = localStorage.getItem('userEmail');
+      const user = $('username').value.trim();
+      const bro = $('brotherName').value.trim();
+      const pass = $('password').value;
+      const pass2 = $('passwordConfirm').value;
 
-      if (!email) {
-        alert('Email not found. Please login again.');
-        return;
-      }
+      let ok = true;
 
-      btnRegister.disabled = true;
-      btnRegister.textContent = 'Creating account...';
+      if (!first || !last) ok = false;
+      if (!/^[a-z0-9_]{3,}$/.test(user)) ok = false;
 
-      try {
-        const res = await fetch(`${API_BASE}/api/complete-registration`, {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ 
-            email, 
-            firstName: first, 
-            lastName: last, 
-            username, 
-            role,
-            password: $('password').value
-          })
-        });
-
-
-
-        
-
-        const data = await res.json();
-
- if (data.success && data.user) {
-    localStorage.setItem('imranUser', JSON.stringify(data.user));
-    localStorage.setItem('userEmail', data.user.email);
-    localStorage.setItem('userId', data.user.userId || '');
-    localStorage.setItem('imranWelcome', '1');   // <-- new
-
-    window.location.href = 'index.html';
- }
-          
-         else {
-          alert(data.message || 'Failed to complete registration');
-          btnRegister.disabled = false;
-          btnRegister.textContent = 'Create Account';
+      if (!user || !isUsernameAvailable(user)) {
+        ok = false;
+        const hint = $('usernameHint');
+        if (user) {
+          hint.textContent = 'This username is already taken.';
+          hint.classList.remove('text-gray-500');
+          hint.classList.add('text-red-400');
+        } else {
+          hint.textContent = 'This must be unique.';
+          hint.classList.remove('text-red-400');
+          hint.classList.add('text-gray-500');
         }
-      } catch (err) {
-        console.error('❌ Registration error:', err);
-        alert('Failed to create account. Check console.');
-        btnRegister.disabled = false;
-        btnRegister.textContent = 'Create Account';
+      } else {
+        const hint = $('usernameHint');
+        hint.textContent = 'Great, this username is available.';
+        hint.classList.remove('text-red-400');
+        hint.classList.add('text-green-400');
       }
-    });
-  }
 
-  // ---- PASSWORD TOGGLE ----
-  const togglePassword = $('togglePassword');
-  const passwordInput = $('password');
-  if (togglePassword && passwordInput) {
-    togglePassword.addEventListener('click', () => {
-      const type = passwordInput.type === 'password' ? 'text' : 'password';
-      passwordInput.type = type;
-      togglePassword.textContent = type === 'password' ? '👁️' : '🙈';
-    });
-  }
+      if (bro !== 'IMRAN KHAN') ok = false;
+      if (!pass || pass.length < 8 || pass !== pass2) ok = false;
 
-  const togglePasswordConfirm = $('togglePasswordConfirm');
-  const passwordConfirmInput = $('passwordConfirm');
-  if (togglePasswordConfirm && passwordConfirmInput) {
-    togglePasswordConfirm.addEventListener('click', () => {
-      const type = passwordConfirmInput.type === 'password' ? 'text' : 'password';
-      passwordConfirmInput.type = type;
-      togglePasswordConfirm.textContent = type === 'password' ? '👁️' : '🙈';
-    });
-  }
+      const btnReg = $('btnRegister');
+      if (btnReg) {
+        if (ok) {
+          btnReg.classList.remove('opacity-60', 'cursor-not-allowed');
+        } else {
+          btnReg.classList.add('opacity-60', 'cursor-not-allowed');
+        }
+      }
 
-  // ---- BACK TO LOGIN ----
- const btnBackToLogin = $('btnBackToLogin');
-if (btnBackToLogin) {
-  btnBackToLogin.addEventListener('click', () => {
-    showStep('stepProviders');
-    setStepTitle('Sign in to continue', 'Manage your documentary projects');
-  });
-}
+      return ok;
+    }
 
-  // ---- BACK FROM USERNAME LOGIN ----
-  const btnBackFromUsername = $('btnBackFromUsername');
-  if (btnBackFromUsername) {
-    btnBackFromUsername.addEventListener('click', () => {
-      showStep('stepProviders');
-      setStepTitle('Sign in to continue', 'Manage your documentary projects');
-    });
-  }
+    // DOM Ready
+    document.addEventListener('DOMContentLoaded', function () {
+      console.log('✅ DOM Ready');
 
-  console.log('✅ All handlers initialized');
-});
-  </script>
-
-      <script>
-      if ('serviceWorker' in navigator) {
-        window.addEventListener('load', () => {
-          navigator.serviceWorker
-            .register('/service-worker.js')
-            .then((registration) => {
-              console.log('✅ ServiceWorker registered:', registration.scope);
-            })
-            .catch((error) => {
-              console.error('❌ ServiceWorker registration failed:', error);
-            });
+      // Google Sign-in (New Users)
+      const btnGoogle = $('btnGoogle');
+      if (btnGoogle) {
+        btnGoogle.addEventListener('click', () => {
+          currentProvider = 'google';
+          setStepTitle('Sign in with Google', 'We will send a one-time code to your Gmail.');
+          const cl = $('contactLabel'); if(cl) cl.textContent = 'Google email';
+          const ci = $('contactInput'); 
+          if(ci) {
+            ci.placeholder = 'you@gmail.com';
+            ci.value = '';
+          }
+          const ch = $('contactHint'); if(ch) ch.textContent = 'A 6-digit code will be sent to this Gmail address.';
+          showStep('stepContact');
         });
       }
-    </script>
 
-    <script>
-      let deferredPrompt;
-      const installBtn = document.getElementById('pwaInstallBtn');
+      // Login with Google (Existing Users)
+      const btnLoginGoogle = $('btnLoginGoogle');
+      if (btnLoginGoogle) {
+        btnLoginGoogle.addEventListener('click', () => {
+          currentProvider = 'google';
+          setStepTitle('Login with Google', 'Enter the Gmail linked to your account.');
+          const cl = $('contactLabel'); if(cl) cl.textContent = 'Google email';
+          const ci = $('contactInput'); 
+          if(ci) {
+            ci.placeholder = 'you@gmail.com';
+            ci.value = '';
+          }
+          const ch = $('contactHint'); if(ch) ch.textContent = 'You will receive a 6-digit login code.';
+          showStep('stepContact');
+        });
+      }
 
-      // Listen for beforeinstallprompt event
-      window.addEventListener('beforeinstallprompt', (e) => {
-        console.log('💡 PWA Install prompt available');
-        // Prevent the mini-infobar from appearing on mobile
-        e.preventDefault();
-        // Save the event for later use
-        deferredPrompt = e;
-        // Show install button
-        if (installBtn) {
-          installBtn.classList.remove('hidden');
-          console.log('✅ Install button visible');
-        }
-      });
+      // Login with Username
+      const btnUsername = $('btnUsername');
+      if (btnUsername) {
+        btnUsername.addEventListener('click', () => {
+          setStepTitle('Login with username', 'Use your username and password.');
+          showStep('stepUsernameLogin');
+        });
+      }
 
-      // Handle install button click
-      if (installBtn) {
-        installBtn.addEventListener('click', async () => {
-          console.log('🔘 Install button clicked');
-          
-          if (!deferredPrompt) {
-            console.log('⚠️ Install prompt not available');
-            alert('App is already installed or browser does not support PWA installation.');
+      // Username Login Submit
+      const btnUsernameLogin = $('btnUsernameLogin');
+      if (btnUsernameLogin) {
+        btnUsernameLogin.addEventListener('click', async () => {
+          const user = $('loginUsername').value.trim();
+          const pass = $('loginPassword').value;
+
+          if (!user || !pass) {
+            showToast('Enter username and password');
             return;
           }
-          
-          // Show the install prompt
-          deferredPrompt.prompt();
-          
-          // Wait for user response
-          const { outcome } = await deferredPrompt.userChoice;
-          console.log(`👤 User response: ${outcome}`);
-          
-          if (outcome === 'accepted') {
-            console.log('✅ PWA installed successfully');
-            // Show success message
-            showToast('✅ IMRAN SQUARE installed successfully!');
-          } else {
-            console.log('❌ User cancelled installation');
-            showToast('Installation cancelled');
+
+          btnUsernameLogin.disabled = true;
+          btnUsernameLogin.textContent = 'Signing in...';
+          try {
+            const res = await fetch(`${API_BASE}/api/login-username`, {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({ username: user, password: pass })
+            });
+
+            const data = await res.json();
+            console.log('USERNAME LOGIN RESPONSE:', data);
+
+            if (!data.success || !data.user) {
+              showToast(data.message || 'Login failed');
+              btnUsernameLogin.disabled = false;
+              btnUsernameLogin.textContent = 'Sign In';
+              return;
+            }
+
+            localStorage.setItem('imranUser', JSON.stringify(data.user));
+            localStorage.setItem('userEmail', data.user.email);
+            localStorage.setItem('userId', data.user.userId || '');
+
+            window.location.href = 'index.html';
+          } catch (err) {
+            console.error('Username login error:', err);
+            showToast('Login error, please try again.');
+            btnUsernameLogin.disabled = false;
+            btnUsernameLogin.textContent = 'Sign In';
           }
-          
-          // Clear the saved prompt
-          deferredPrompt = null;
-          installBtn.classList.add('hidden');
         });
       }
 
-      // Track PWA installation
-      window.addEventListener('appinstalled', () => {
-        console.log('🎉 PWA installed on device');
-        if (installBtn) {
-          installBtn.classList.add('hidden');
-        }
-        showToast('🎉 App installed! Open from home screen.');
+      // Back to Providers
+      const btnBackToProviders = $('btnBackToProviders');
+      if (btnBackToProviders) {
+        btnBackToProviders.addEventListener('click', () => {
+          currentProvider = null;
+          contactValue = null;
+          setStepTitle('Sign in to continue', 'Manage your documentary projects');
+          showStep('stepProviders');
+        });
+      }
+
+      // Send OTP
+      const btnSendOtp = $('btnSendOtp');
+      if (btnSendOtp) {
+        btnSendOtp.addEventListener('click', async () => {
+          if (!currentProvider) {
+            showToast('Choose a sign-in method first');
+            return;
+          }
+
+          const contactInput = $('contactInput');
+          const contact = contactInput ? contactInput.value.trim() : '';
+
+          if (!contact) {
+            showToast('Please enter your email');
+            return;
+          }
+
+          contactValue = contact;
+          console.log('📧 CONTACT SAVED:', contactValue);
+
+          btnSendOtp.disabled = true;
+          btnSendOtp.textContent = 'Sending...';
+
+          try {
+            const res = await fetch(`${API_BASE}/api/send-otp`, {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({ email: contact })
+            });
+
+            const data = await res.json();
+            console.log('✉️ SEND OTP RESPONSE:', data);
+
+            if (!data.success) {
+              showToast(data.message || 'Failed to send OTP');
+              btnSendOtp.disabled = false;
+              btnSendOtp.textContent = 'Send Code';
+              return;
+            }
+
+            showToast('OTP sent successfully');
+
+            const displayEmail = $('displayEmail');
+            if (displayEmail) displayEmail.textContent = contact;
+
+            showStep('stepOtp');
+            setStepTitle('Check your inbox', `Enter the 6-digit code sent to ${contact}.`);
+            $('otpInput').value = '';
+            startTimer(60);
+
+            btnSendOtp.disabled = false;
+            btnSendOtp.textContent = 'Send Code';
+          } catch (err) {
+            console.error('❌ SEND OTP ERROR:', err);
+            showToast('Failed to send OTP. Please try again.');
+            btnSendOtp.disabled = false;
+            btnSendOtp.textContent = 'Send Code';
+          }
+        });
+      }
+
+      // Verify OTP
+      const btnVerifyOtp = $('btnVerifyOtp');
+      if (btnVerifyOtp) {
+        btnVerifyOtp.addEventListener('click', async () => {
+          const code = $('otpInput').value.trim();
+          console.log('DEBUG OTP:', { code, contactValue, currentProvider });
+
+          if (!code || !contactValue) {
+            showToast('Enter the OTP first');
+            return;
+          }
+
+          btnVerifyOtp.disabled = true;
+          btnVerifyOtp.textContent = 'Verifying...';
+
+          try {
+            const res = await fetch(`${API_BASE}/api/verify-otp`, {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({
+                email: contactValue,
+                code
+              })
+            });
+
+            const data = await res.json();
+            console.log('VERIFY RESPONSE:', data);
+
+            if (data.success) {
+              const u = data.user;
+              const isNew = data.isNew;
+
+              if (!u) {
+                showToast('Login error. Please try again.');
+                btnVerifyOtp.disabled = false;
+                btnVerifyOtp.textContent = 'Verify Code';
+                return;
+              }
+
+              if (isNew) {
+                console.log('✅ OTP VERIFIED, NEW user → registration');
+                localStorage.setItem('userEmail', contactValue);
+                setStepTitle('Complete your profile', 'Just a few details to set up your studio.');
+                showStep('stepRegister');
+              } else {
+                console.log('✅ OTP VERIFIED, EXISTING user → dashboard');
+                localStorage.setItem('imranUser', JSON.stringify(u));
+                localStorage.setItem('userEmail', u.email);
+                localStorage.setItem('userId', u.userId || '');
+                localStorage.setItem('imranWelcome', '1');
+
+                window.location.href = 'index.html';
+              }
+            } else {
+              showToast(data.message || 'Invalid OTP');
+              btnVerifyOtp.disabled = false;
+              btnVerifyOtp.textContent = 'Verify Code';
+            }
+          } catch (err) {
+            console.error('VERIFY ERROR:', err);
+            showToast('Verification failed');
+            btnVerifyOtp.disabled = false;
+            btnVerifyOtp.textContent = 'Verify Code';
+          }
+        });
+      }
+
+      // Resend OTP
+      const btnResendOtp = $('btnResendOtp');
+      if (btnResendOtp) {
+        btnResendOtp.addEventListener('click', async () => {
+          if (!contactValue || !currentProvider) {
+            showToast('Session expired. Please start again.');
+            return;
+          }
+
+          btnResendOtp.disabled = true;
+          btnResendOtp.textContent = 'Sending...';
+
+          try {
+            const res = await fetch(`${API_BASE}/api/send-otp`, {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({ email: contactValue })
+            });
+
+            const data = await res.json();
+            if (data.success) {
+              showToast('OTP resent successfully');
+              startTimer(60);
+            } else {
+              showToast(data.message || 'Failed to resend OTP');
+            }
+          } catch (err) {
+            console.error(err);
+            showToast('Failed to resend OTP');
+          } finally {
+            btnResendOtp.disabled = false;
+            btnResendOtp.textContent = 'Resend Code';
+          }
+        });
+      }
+
+      // Registration Form Validation
+      ['firstName', 'lastName', 'username', 'brotherName', 'password', 'passwordConfirm'].forEach(id => {
+        const el = $(id);
+        if (el) el.addEventListener('input', validateRegisterForm);
       });
 
-      // Detect if app is running in standalone mode (already installed)
-      if (window.matchMedia('(display-mode: standalone)').matches) {
-        console.log('📱 Running in standalone mode');
-        if (installBtn) {
-          installBtn.classList.add('hidden');
-        }
+      // Complete Registration
+      const btnRegister = $('btnRegister');
+      if (btnRegister) {
+        btnRegister.addEventListener('click', async () => {
+          if (!validateRegisterForm()) {
+            showToast('Please complete all required fields correctly.');
+            return;
+          }
+
+          const first = $('firstName').value.trim();
+          const last = $('lastName').value.trim();
+          const username = $('username').value.trim();
+          const email = localStorage.getItem('userEmail');
+
+          if (!email) {
+            showToast('Email not found. Please login again.');
+            return;
+          }
+
+          btnRegister.disabled = true;
+          btnRegister.textContent = 'Creating account...';
+
+          try {
+            const res = await fetch(`${API_BASE}/api/complete-registration`, {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({ 
+                email, 
+                firstName: first, 
+                lastName: last, 
+                username, 
+                role: null,
+                password: $('password').value
+              })
+            });
+
+            const data = await res.json();
+
+            if (data.success && data.user) {
+              localStorage.setItem('imranUser', JSON.stringify(data.user));
+              localStorage.setItem('userEmail', data.user.email);
+              localStorage.setItem('userId', data.user.userId || '');
+              localStorage.setItem('imranWelcome', '1');
+
+              window.location.href = 'index.html';
+            } else {
+              showToast(data.message || 'Failed to complete registration');
+              btnRegister.disabled = false;
+              btnRegister.textContent = 'Create Account';
+            }
+          } catch (err) {
+            console.error('❌ Registration error:', err);
+            showToast('Failed to create account. Check console.');
+            btnRegister.disabled = false;
+            btnRegister.textContent = 'Create Account';
+          }
+        });
       }
 
-      // iOS detection and standalone check
-      const isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent) && !window.MSStream;
-      const isInStandaloneMode = ('standalone' in window.navigator) && (window.navigator.standalone);
-      
-      if (isIOS && !isInStandaloneMode) {
-        console.log('📱 iOS detected - showing install button for manual instructions');
-        // On iOS, show button that opens instructions modal
-        if (installBtn) {
-          installBtn.classList.remove('hidden');
-          installBtn.innerHTML = `Install`;
-          // Override click to show iOS instructions
-          installBtn.addEventListener('click', (e) => {
-            e.stopPropagation();
-            const modal = document.getElementById('iosInstallModal');
-            if (modal) modal.classList.remove('hidden');
-          }, { once: false });
-        }
+      // Password Toggle
+      const togglePassword = $('togglePassword');
+      const passwordInput = $('password');
+      if (togglePassword && passwordInput) {
+        togglePassword.addEventListener('click', () => {
+          const type = passwordInput.type === 'password' ? 'text' : 'password';
+          passwordInput.type = type;
+          togglePassword.textContent = type === 'password' ? '👁️' : '🙈';
+        });
       }
 
-      // Helper function for toast notifications
-      function showToast(message) {
-        const toast = document.createElement('div');
-        toast.className = 'fixed bottom-6 left-1/2 -translate-x-1/2 px-6 py-3 rounded-full bg-white text-black text-sm font-medium shadow-2xl z-50 animate-bounce';
-        toast.textContent = message;
-        document.body.appendChild(toast);
-        
-        setTimeout(() => {
-          toast.style.opacity = '0';
-          toast.style.transition = 'opacity 0.3s';
-          setTimeout(() => toast.remove(), 300);
-        }, 3000);
+      const togglePasswordConfirm = $('togglePasswordConfirm');
+      const passwordConfirmInput = $('passwordConfirm');
+      if (togglePasswordConfirm && passwordConfirmInput) {
+        togglePasswordConfirm.addEventListener('click', () => {
+          const type = passwordConfirmInput.type === 'password' ? 'text' : 'password';
+          passwordConfirmInput.type = type;
+          togglePasswordConfirm.textContent = type === 'password' ? '👁️' : '🙈';
+        });
       }
-    </script>
 
-<div id="iosInstallModal" class="hidden fixed inset-0 bg-black/90 backdrop-blur-sm z-50 flex items-center justify-center p-4">
-  <div class="bg-gradient-to-b from-gray-900 to-black rounded-3xl max-w-md w-full p-8 border border-white/10 shadow-2xl relative">
-    
-    <div class="absolute -inset-1 bg-gradient-to-r from-white/10 to-gray-500/10 rounded-3xl blur-xl"></div>
-    
-    <div class="relative">
-      <div class="flex items-center justify-between mb-6">
-        <div>
-          <h3 class="text-xl font-bold text-white">Install on iPhone</h3>
-          <p class="text-xs text-gray-400 mt-1">Add to your home screen</p>
-        </div>
-        <button id="closeIosModal" class="w-10 h-10 rounded-full bg-white/10 hover:bg-white/20 flex items-center justify-center text-gray-300 transition">
-          <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/>
-          </svg>
-        </button>
-      </div>
-      
-      <div class="space-y-4 text-gray-300 text-sm">
-        
-        <div class="flex items-start gap-4 bg-white/5 p-4 rounded-xl border border-white/10">
-          <div class="flex-shrink-0 w-8 h-8 rounded-full bg-white text-black font-bold flex items-center justify-center">1</div>
-          <div class="flex-1">
-            <p class="text-white font-semibold mb-2">Tap the Share button</p>
-            <p class="text-xs text-gray-400">Look for the <strong>share icon</strong> at the bottom of Safari</p>
-          </div>
-        </div>
-        
-        <div class="flex items-start gap-4 bg-white/5 p-4 rounded-xl border border-white/10">
-          <div class="flex-shrink-0 w-8 h-8 rounded-full bg-white text-black font-bold flex items-center justify-center">2</div>
-          <div class="flex-1">
-            <p class="text-white font-semibold mb-2">Select "Add to Home Screen"</p>
-            <p class="text-xs text-gray-400">Scroll down in the share menu and tap this option</p>
-          </div>
-        </div>
-        
-        <div class="flex items-start gap-4 bg-white/5 p-4 rounded-xl border border-white/10">
-          <div class="flex-shrink-0 w-8 h-8 rounded-full bg-white text-black font-bold flex items-center justify-center">3</div>
-          <div class="flex-1">
-            <p class="text-white font-semibold mb-2">Tap "Add"</p>
-            <p class="text-xs text-gray-400">Confirm by tapping <strong>Add</strong> in the top right corner</p>
-          </div>
-        </div>
-        
-      </div>
-      
-      <button id="iosModalGotIt" class="w-full mt-6 py-3 bg-white text-black rounded-xl font-semibold hover:bg-gray-200 transition-all">
-        Got it!
-      </button>
-    </div>
-  </div>
-</div>
+      // Back from Username Login
+      const btnBackFromUsername = $('btnBackFromUsername');
+      if (btnBackFromUsername) {
+        btnBackFromUsername.addEventListener('click', () => {
+          showStep('stepProviders');
+          setStepTitle('Sign in to continue', 'Manage your documentary projects');
+        });
+      }
 
-<script>
-  // iOS Install Modal Logic
-  const iosModal = document.getElementById('iosInstallModal');
-  const closeIosModal = document.getElementById('closeIosModal');
-  const iosModalGotIt = document.getElementById('iosModalGotIt');
-  
-  // Close modal handlers
-  if (closeIosModal) {
-    closeIosModal.addEventListener('click', () => {
-      if (iosModal) iosModal.classList.add('hidden');
+      console.log('✅ All handlers initialized');
     });
-  }
-  
-  if (iosModalGotIt) {
-    iosModalGotIt.addEventListener('click', () => {
-      if (iosModal) iosModal.classList.add('hidden');
-    });
-  }
-  
-  // Close on outside click
-  if (iosModal) {
-    iosModal.addEventListener('click', (e) => {
-      if (e.target === iosModal) {
-        iosModal.classList.add('hidden');
-      }
-    });
-  }
 
-
-   // Quick UI helper just in case
-   const $ = (id) => document.getElementById(id);
-   const showStep = (id) => {
-     ['stepProviders', 'stepContact', 'stepOtp', 'stepUsernameLogin', 'stepRegister'].forEach(s => $(s)?.classList.add('hidden'));
-     $(id)?.classList.remove('hidden');
-   };
-
-   // Simple wiring if main.js doesn't auto-attach
-   if($('btnBackFromUsername')) $('btnBackFromUsername').onclick = () => showStep('stepProviders');
-   if($('btnBackToProviders')) $('btnBackToProviders').onclick = () => showStep('stepProviders');
-
-
-</script>
-
+    // PWA Install
+    if ('serviceWorker' in navigator) {
+      window.addEventListener('load', () => {
+        navigator.serviceWorker.register('/service-worker.js')
+          .then(reg => console.log('✅ SW registered:', reg.scope))
+          .catch(err => console.error('❌ SW failed:', err));
+      });
+    }
+  </script>
 </body>
 </html>
