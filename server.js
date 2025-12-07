@@ -21,22 +21,30 @@ const __dirname = path.dirname(__filename);
 // ===== 3. APP INITIALIZATION =====
 const app = express();
 
-// ===== 4. SECURITY UNLOCK (CSP Fix) =====
+// ✅ GLOBAL SECURITY UNLOCK (Ye code sabse upar hona chahiye)
 app.use((req, res, next) => {
+  // Purane headers ko force-delete karo
   res.removeHeader("Content-Security-Policy");
   res.removeHeader("X-Content-Security-Policy");
-  res.setHeader("Access-Control-Allow-Origin", "*");
+  
+  // Naya Header: "Sabko Aane Do" (Wildcard *)
   res.setHeader(
     "Content-Security-Policy", 
     "default-src * 'unsafe-inline' 'unsafe-eval' data: blob:;"
   );
+  
+  // CORS bhi khol do
+  res.setHeader("Access-Control-Allow-Origin", "*");
+  res.setHeader("Access-Control-Allow-Methods", "GET, POST, PUT, DELETE, OPTIONS");
+  res.setHeader("Access-Control-Allow-Headers", "Content-Type, Authorization");
+  
   next();
 });
 
-// ===== 5. MIDDLEWARES =====
+// Iske baad middlewares aayenge
 app.use(cors());
 app.use(express.json({ limit: '10mb' }));
-app.use(express.urlencoded({ limit: '10mb', extended: true }));
+// ... baaki code ...
 
 // Static Files
 app.use(express.static(__dirname));
