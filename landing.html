@@ -1,6 +1,15 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
+
+  <script>
+  // Auth Guard: Agar user pehle se login hai, to Dashboard par bhejo
+  const user = localStorage.getItem('imranUser');
+  if (user) {
+    window.location.href = 'index.html';
+  }
+</script>
+
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Welcome - IMRAN SQUARE</title>

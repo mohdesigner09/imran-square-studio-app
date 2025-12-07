@@ -2,6 +2,14 @@
 <html lang="en">
 <head>
 
+<script>
+  // Auth Guard: Agar user login nahi hai, to Landing Page par bhejo
+  const user = localStorage.getItem('imranUser');
+  if (!user) {
+    window.location.href = 'landing.html';
+  }
+</script>
+
 
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -149,93 +157,53 @@ body.theme-advanced {
 <body>
     <canvas class="film-grain" id="filmGrain"></canvas>
 
+<header class="sticky top-0 z-30 bg-black/80 backdrop-blur-md border-b border-white/5">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 h-16 flex items-center justify-between">
 
-    <!-- Top Sticky Header -->
-    <header class="sticky top-0 z-30 bg-black/70 backdrop-blur border-b border-white/5">
-  <div class="max-w-6xl mx-auto flex items-center justify-between px-4 sm:px-6 py-2.5 sm:py-3">
-
-            <!-- Left: Logo + title -->
-            <div class="flex items-center gap-3">
-                <div class="w-9 h-9 rounded-lg border border-orange-500/50 shadow-[0_0_15px_rgba(255,107,53,0.6)] bg-black overflow-hidden">
-                    <img src="resources/imran square logo.png" alt="Logo" class="w-full h-full object-cover">
-                </div>
-                <div class="leading-tight hidden xs:block">
-                    <h1 class="font-display text-lg sm:text-xl font-bold bg-gradient-to-r from-orange-500 via-orange-300 to-white bg-clip-text text-transparent tracking-[0.25em]">
-                        IMRAN SQUARE
-                    </h1>
-                    <p class="text-[10px] sm:text-xs text-gray-400 font-mono tracking-wider">
-                        DOCUMENTARY CREATOR STUDIO
-                    </p>
-                </div>
-            </div>
-
-            <!-- Center: Search (desktop) -->
-            <div class="hidden md:block flex-1 max-w-md mx-6">
-                <div class="relative">
-                    <div class="absolute top-1/2 left-3 -translate-y-1/2 pointer-events-none">
-                        <svg class="w-4 h-4 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
-                                  d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"/>
-                        </svg>
+            <div class="flex items-center gap-4">
+                
+                <div class="flex items-center gap-3">
+                    <div class="w-9 h-9 rounded-xl border border-orange-500/30 bg-white/5 flex items-center justify-center overflow-hidden">
+                        <img src="resources/icon-32.png" alt="Logo" class="w-5 h-5 opacity-90">
                     </div>
-                    <input
-                        type="text"
-                        placeholder="Search projects..."
-                        class="w-full bg-[#1a1a1a] border border-[#2a2a2a] text-white pl-9 pr-3 py-2 rounded-lg text-xs sm:text-sm focus:border-orange-500 focus:outline-none"
-                    >
                 </div>
-            </div>
 
-            <!-- Right: greeting + info + avatar -->
-            <div class="hidden sm:flex flex-col items-end leading-tight text-[11px] sm:text-xs">
-  <span class="text-gray-400">Welcome back,</span>
-  <span class="text-orange-400 font-semibold" id="dashboardUserName">Imran Square</span>
-</div>
-
- <div class="relative inline-block">
-    <div id="userAvatarButton" class="w-8 h-8 rounded-full border border-orange-400/60 overflow-hidden cursor-pointer flex items-center justify-center bg-black/70">
-        <span id="userAvatarFallback" class="text-xs text-orange-300 font-semibold">i</span>
-        <img id="userAvatarImg" src="" alt="User avatar" class="w-full h-full object-cover hidden">
-    </div>
-
-    <div id="userMenu" class="hidden absolute right-0 mt-2 w-60 bg-black/95 border border-orange-500/40 rounded-xl shadow-xl z-50 text-sm">
-        <div class="px-4 py-3 border-b border-white/10">
-            <p id="userMenuName" class="font-semibold text-white">User</p>
-            <p id="userMenuEmail" class="text-xs text-gray-400 truncate">email@example.com</p>
-            <span id="userMenuRole" class="inline-block mt-1 px-2 py-0.5 rounded-full text-[10px] uppercase tracking-wide bg-orange-500/10 text-orange-300 border border-orange-500/40">User</span>
-        </div>
-        <button id="userMenuAccount" class="w-full text-left px-4 py-2 hover:bg-white/5 text-gray-200">
-            Account settings
-        </button>
-        <button id="userMenuSignOut" class="w-full text-left px-4 py-2 hover:bg-white/5 text-red-300 border-t border-white/5">
-            Sign out
-        </button>
-    </div>
-</div>
-
-
-<div id="dashToast" class="hidden fixed bottom-6 left-1/2 -translate-x-1/2 px-4 py-2 rounded-full bg-white/90 text-xs text-black shadow-lg z-50">
-  Welcome back.
-</div>
-
-
-
-                <!-- Avatar shell for Firebase user -->
                 <div class="relative">
-                    <div
-                        class="w-8 h-8 rounded-full bg-white/10 flex items-center justify-center text-xs text-white font-semibold">
-                        ME
+                    <button id="userAvatarButton" class="w-9 h-9 rounded-full bg-gradient-to-br from-orange-600 to-orange-800 border border-orange-400/30 flex items-center justify-center text-xs font-bold text-white shadow-lg hover:scale-105 transition">
+                        <span id="userAvatarFallback">IS</span>
+                        <img id="userAvatarImg" src="" class="hidden w-full h-full object-cover rounded-full">
+                    </button>
+
+                    <div id="userMenu" class="hidden absolute top-12 left-0 w-60 bg-[#111] border border-white/10 rounded-xl shadow-2xl z-50">
+                        <div class="p-4 border-b border-white/5">
+                            <p id="userMenuName" class="text-white font-semibold text-sm">User</p>
+                            <p id="userMenuEmail" class="text-xs text-gray-500 truncate">email@example.com</p>
+                        </div>
+                        <button id="userMenuAccount" class="w-full text-left px-4 py-3 text-sm text-gray-300 hover:bg-white/5 transition">
+                            Account Settings
+                        </button>
+                        <button id="userMenuSignOut" class="w-full text-left px-4 py-3 text-sm text-red-400 hover:bg-white/5 transition border-t border-white/5">
+                            Sign Out
+                        </button>
                     </div>
-                    <img
-                        id="userAvatar"
-                        class="hidden absolute inset-0 w-8 h-8 rounded-full object-cover"
-                        alt="User avatar">
+                </div>
+
+                <div class="hidden md:block leading-tight">
+                    <p class="text-[10px] text-gray-500 uppercase tracking-wider">Welcome back</p>
+                    <p id="dashboardUserName" class="text-xs font-bold text-white">Imran Square</p>
                 </div>
             </div>
+
+            <div class="flex-1 max-w-md flex justify-end">
+                <div class="relative w-full max-w-[250px] hidden sm:block">
+                    <input type="text" placeholder="Search..." 
+                        class="w-full bg-white/5 border border-white/10 rounded-full py-2 pl-4 pr-10 text-xs text-white focus:outline-none focus:border-orange-500/50 transition">
+                    <svg class="w-4 h-4 text-gray-500 absolute right-3 top-2.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"/></svg>
+                </div>
+            </div>
+
         </div>
     </header>
-
-    <!-- Main hero/layout -->
        <!-- Main hero/layout -->
     <div class="hero-bg flex flex-col">
         <div
