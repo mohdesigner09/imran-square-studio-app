@@ -23,6 +23,20 @@ const __dirname = path.dirname(__filename);
 // Express app
 const app = express();
 
+// ✅ FIX: Allow External Scripts (Google, Tailwind, AnimeJS, etc.)
+app.use((req, res, next) => {
+  res.setHeader(
+    "Content-Security-Policy",
+    "default-src 'self'; " +
+    "script-src 'self' 'unsafe-inline' 'unsafe-eval' https://cdn.tailwindcss.com https://cdnjs.cloudflare.com https://accounts.google.com https://apis.google.com; " +
+    "style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; " +
+    "font-src 'self' https://fonts.gstatic.com; " +
+    "img-src 'self' data: https://*.googleusercontent.com https://*.google.com; " +
+    "frame-src 'self' https://accounts.google.com;"
+  );
+  next();
+});
+
 // Static files (HTML, JS, CSS, images)
 app.use(express.static(__dirname));
 

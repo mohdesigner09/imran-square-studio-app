@@ -560,57 +560,77 @@ body.theme-advanced {
         });
       }
     </script>
+
 <script>
   document.addEventListener('DOMContentLoaded', () => {
-    
-    // 1. Avatar Menu Toggle
+    console.log("✅ Main Script Loaded: Fixing Avatar Button...");
+
+    // 1. IDs Define karo (Jo humne Header mein diye the)
     const avatarBtn = document.getElementById('userAvatarButton');
     const userMenu = document.getElementById('userMenu');
     
-    if(avatarBtn && userMenu) {
-        avatarBtn.addEventListener('click', (e) => {
-            e.stopPropagation(); // Menu turant band hone se roko
+    // 2. Data Load karo (LocalStorage se)
+    const userStr = localStorage.getItem('imranUser');
+    
+    if (userStr) {
+        const user = JSON.parse(userStr);
+        
+        // A. Initials Set karo (Header mein)
+        const initials = (user.firstName?.[0] || '') + (user.lastName?.[0] || '');
+        const fallbackEl = document.getElementById('userAvatarFallback');
+        if(fallbackEl) fallbackEl.textContent = initials || 'IS';
+
+        // B. Menu ke andar Naam/Email Set karo
+        if(document.getElementById('userMenuName')) 
+            document.getElementById('userMenuName').textContent = user.username || 'User';
+        
+        if(document.getElementById('userMenuEmail')) 
+            document.getElementById('userMenuEmail').textContent = user.email || '';
+
+        // C. Welcome Text Set karo
+        if(document.getElementById('dashboardUserName'))
+            document.getElementById('dashboardUserName').textContent = user.username || 'Creator';
+    }
+
+    // 3. Button Click Logic (Hammer Fix 🔨)
+    if (avatarBtn && userMenu) {
+        // Clone node to remove old broken listeners from dashboard-advanced.js
+        const newAvatarBtn = avatarBtn.cloneNode(true);
+        avatarBtn.parentNode.replaceChild(newAvatarBtn, avatarBtn);
+
+        // Naya listener lagao
+        newAvatarBtn.addEventListener('click', (e) => {
+            e.preventDefault();
+            e.stopPropagation();
+            console.log("🔘 Avatar Clicked!"); 
             userMenu.classList.toggle('hidden');
         });
 
-        // Bahar click karne par menu band karo
+        // Bahar click karne par band karo
         document.addEventListener('click', (e) => {
-            if (!avatarBtn.contains(e.target) && !userMenu.contains(e.target)) {
+            if (!newAvatarBtn.contains(e.target) && !userMenu.contains(e.target)) {
                 userMenu.classList.add('hidden');
             }
         });
+        
+        console.log("✅ Avatar Button Logic Attached Successfully");
+    } else {
+        console.error("❌ Avatar Button or Menu NOT found in HTML");
     }
 
-    // 2. Sign Out Logic
+    // 4. Sign Out Logic
     const signOutBtn = document.getElementById('userMenuSignOut');
-    if(signOutBtn) {
-        signOutBtn.addEventListener('click', () => {
-            // Data saaf karo
+    if (signOutBtn) {
+        signOutBtn.addEventListener('click', (e) => {
+            e.preventDefault();
+            console.log("👋 Signing Out...");
             localStorage.removeItem('imranUser');
             localStorage.removeItem('userEmail');
-            // Landing page par bhejo
             window.location.href = 'landing.html';
         });
     }
-
-    // 3. User Data Load (Header mein Naam dikhane ke liye)
-    const userStr = localStorage.getItem('imranUser');
-    if(userStr) {
-        const user = JSON.parse(userStr);
-        // Initials (e.g. FK for Farhan Khan)
-        const initials = (user.firstName?.[0] || '') + (user.lastName?.[0] || '');
-        
-        // Update DOM
-        if(document.getElementById('userAvatarFallback')) 
-            document.getElementById('userAvatarFallback').textContent = initials || 'IS';
-        
-        if(document.getElementById('userMenuName')) 
-            document.getElementById('userMenuName').textContent = user.username || 'User';
-            
-        if(document.getElementById('userMenuEmail')) 
-            document.getElementById('userMenuEmail').textContent = user.email || '';
-    }
   });
 </script>
+
 </body>
 </html>
