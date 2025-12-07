@@ -523,8 +523,176 @@
       console.log('✅ DOM Ready');
 
       // All your existing event listeners...
-      // (Google Sign-in, Login, Username, OTP, Registration, etc.)
-      // ... (tumhara pura existing code yahan rahega)
+    // 1. Google Button Click
+    const btnGoogle = $('btnGoogle');
+    if (btnGoogle) {
+        btnGoogle.addEventListener('click', () => {
+            currentProvider = 'google';
+            setStepTitle('Sign in with Google', 'We will send a one-time code to your Gmail.');
+            const ci = $('contactInput');
+            if(ci) { ci.placeholder = 'you@gmail.com'; ci.value = ''; }
+            $('contactLabel').textContent = 'Google email';
+            showStep('stepContact');
+        });
+    }
+
+    // 2. Email Login Button Click
+    const btnLoginGoogle = $('btnLoginGoogle');
+    if (btnLoginGoogle) {
+        btnLoginGoogle.addEventListener('click', () => {
+            currentProvider = 'email';
+            setStepTitle('Login with Email', 'Enter your email address to continue.');
+            const ci = $('contactInput');
+            if(ci) { ci.placeholder = 'name@example.com'; ci.value = ''; }
+            $('contactLabel').textContent = 'Email address';
+            showStep('stepContact');
+        });
+    }
+
+    // 3. Username Login Button Click
+    const btnUsername = $('btnUsername');
+    if (btnUsername) {
+        btnUsername.addEventListener('click', () => {
+            setStepTitle('Login with Username', 'Enter your username and password.');
+            showStep('stepUsernameLogin');
+        });
+    }
+
+    // 4. Back Button (From Contact Step)
+    const btnBackToProviders = $('btnBackToProviders');
+    if (btnBackToProviders) {
+        btnBackToProviders.addEventListener('click', () => {
+            showStep('stepProviders');
+            setStepTitle('Imran Square Studio', 'Create, manage & share your projects');
+        });
+    }
+
+    // 5. Back Button (From Username Step)
+    const btnBackFromUsername = $('btnBackFromUsername');
+    if (btnBackFromUsername) {
+        btnBackFromUsername.addEventListener('click', () => {
+            showStep('stepProviders');
+            setStepTitle('Imran Square Studio', 'Create, manage & share your projects');
+        });
+    }
+
+    // 6. Send OTP Logic
+    const btnSendOtp = $('btnSendOtp');
+    if (btnSendOtp) {
+        btnSendOtp.addEventListener('click', async () => {
+            const email = $('contactInput').value.trim();
+            if (!email) { alert('Please enter an email address'); return; }
+
+            contactValue = email;
+            btnSendOtp.textContent = 'Sending...';
+            btnSendOtp.disabled = true;
+
+            try {
+                // API Call
+                const res = await fetch(`${API_BASE}/api/send-otp`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ email })
+                });
+                const data = await res.json();
+
+                if (data.success) {
+                    $('displayEmail').textContent = email;
+                    showToast('OTP Sent Successfully!');
+                    showStep('stepOtp');
+                    setStepTitle('Check your inbox', `Enter code sent to ${email}`);
+                    startTimer(60);
+                } else {
+                    alert(data.message || 'Failed to send OTP');
+                }
+            } catch (err) {
+                console.error(err);
+                alert('Connection error');
+            } finally {
+                btnSendOtp.textContent = 'Send Code';
+                btnSendOtp.disabled = false;
+            }
+        });
+    }
+
+    // 7. Verify OTP Logic
+    const btnVerifyOtp = $('btnVerifyOtp');
+    if (btnVerifyOtp) {
+        btnVerifyOtp.addEventListener('click', async () => {
+            const code = $('otpInput').value.trim();
+            if (!code) { alert('Enter the 6-digit code'); return; }
+
+            btnVerifyOtp.textContent = 'Verifying...';
+            btnVerifyOtp.disabled = true;
+
+            try {
+                const res = await fetch(`${API_BASE}/api/verify-otp`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ email: contactValue, code })
+                });
+                const data = await res.json();
+
+                if (data.success) {
+                    // Save User Data
+                    localStorage.setItem('imranUser', JSON.stringify(data.user));
+                    localStorage.setItem('userId', data.user.userId);
+
+                    if (data.isNew) {
+                        showStep('stepRegister');
+                        setStepTitle('Complete Setup', 'Create your account details.');
+                    } else {
+                        window.location.href = 'index.html';
+                    }
+                } else {
+                    alert(data.message || 'Invalid Code');
+                }
+            } catch (err) {
+                console.error(err);
+                alert('Verification Failed');
+            } finally {
+                btnVerifyOtp.textContent = 'Verify Code';
+                btnVerifyOtp.disabled = false;
+            }
+        });
+    }
+
+    // 8. Username Login Submit
+    const btnUsernameLogin = $('btnUsernameLogin');
+    if (btnUsernameLogin) {
+        btnUsernameLogin.addEventListener('click', async () => {
+            const username = $('loginUsername').value.trim();
+            const password = $('loginPassword').value;
+
+            if(!username || !password) { alert('Enter username & password'); return; }
+
+            btnUsernameLogin.textContent = 'Signing in...';
+            btnUsernameLogin.disabled = true;
+
+            try {
+                const res = await fetch(`${API_BASE}/api/login-username`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ username, password })
+                });
+                const data = await res.json();
+
+                if (data.success) {
+                    localStorage.setItem('imranUser', JSON.stringify(data.user));
+                    localStorage.setItem('userId', data.user.userId);
+                    window.location.href = 'index.html';
+                } else {
+                    alert(data.message || 'Login failed');
+                }
+            } catch(err) {
+                console.error(err);
+                alert('Login error');
+            } finally {
+                btnUsernameLogin.textContent = 'Sign In';
+                btnUsernameLogin.disabled = false;
+            }
+        });
+    }
 
       console.log('✅ All handlers initialized');
     });
