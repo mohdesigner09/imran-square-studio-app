@@ -1023,6 +1023,51 @@ app.post('/api/admin/update-user-details', requireAdmin, async (req, res) => {
     }
 });
 
+
+// 5. 👻 GHOST MODE (Impersonate User)
+app.post('/api/admin/ghost-login', requireAdmin, async (req, res) => {
+    const { targetUserId } = req.body;
+    try {
+        const doc = await db.collection('users').doc(targetUserId).get();
+        if (!doc.exists) return res.status(404).json({ success: false, message: "User not found" });
+        
+        // Return user data (Simulating a login)
+        return res.json({ success: true, user: { userId: doc.id, ...doc.data() } });
+    } catch(e) { 
+        console.error(e);
+        return res.status(500).json({ success: false, message: "Ghost login failed" }); 
+    }
+});
+
+// 6. 📢 SET ANNOUNCEMENT (Admin Only)
+app.post('/api/admin/announce', requireAdmin, async (req, res) => {
+    const { message, type } = req.body; // type: 'info', 'warning', 'success'
+    try {
+        // Save to a specific document in 'system' collection
+        await db.collection('system').doc('global_announcement').set({
+            message: message, // If empty, it clears the announcement
+            type: type || 'info',
+            timestamp: admin.firestore.FieldValue.serverTimestamp(),
+            active: !!message
+        });
+        return res.json({ success: true, message: "Announcement updated." });
+    } catch(e) { 
+        console.error(e);
+        return res.status(500).json({ success: false }); 
+    }
+});
+
+// 7. 📡 GET ANNOUNCEMENT (Public API for all users)
+app.get('/api/get-announcement', async (req, res) => {
+    try {
+        const doc = await db.collection('system').doc('global_announcement').get();
+        if (doc.exists && doc.data().active) {
+            return res.json({ success: true, announcement: doc.data() });
+        }
+        return res.json({ success: false });
+    } catch(e) { return res.json({ success: false }); }
+});
+
 // ==========================================
 const PORT = process.env.PORT || 3000;
 
