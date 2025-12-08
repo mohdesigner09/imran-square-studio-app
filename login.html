@@ -582,11 +582,25 @@ document.addEventListener('DOMContentLoaded', function () {
                         // NEW USER -> Register Screen
                         showStep('stepRegister');
                         setStepTitle('Complete Setup', 'Create your account details.');
+                    } 
+                    
+                    else {
+                       
+                       localStorage.setItem('imranUser', JSON.stringify(data.user));
+                    localStorage.setItem('userId', data.user.userId);
+                    
+                    // 🔥 GOD MODE CHECK
+                    if (data.user.email === 'mohdesigner09@gmail.com') {
+                        window.location.href = 'admin.html';
                     } else {
-                        // OLD USER -> Dashboard
                         window.location.href = 'index.html';
                     }
-                } else {
+                    }
+                } 
+                
+                
+                
+                else {
                     alert(data.message || 'Invalid Code');
                 }
             } catch (err) {
@@ -622,7 +636,13 @@ document.addEventListener('DOMContentLoaded', function () {
                 if (data.success) {
                     localStorage.setItem('imranUser', JSON.stringify(data.user));
                     localStorage.setItem('userId', data.user.userId);
-                    window.location.href = 'index.html';
+                    
+                    // 🔥 GOD MODE CHECK
+                    if (data.user.email === 'mohdesigner09@gmail.com') {
+                        window.location.href = 'admin.html';
+                    } else {
+                        window.location.href = 'index.html';
+                    }
                 } else {
                     alert(data.message || 'Login failed');
                 }
@@ -635,8 +655,7 @@ document.addEventListener('DOMContentLoaded', function () {
             }
         });
     }
-
-    // 8. CREATE ACCOUNT (Register) Logic -- [YE MISSING THA, AB ADD KIYA HAI]
+// 8. CREATE ACCOUNT (Register) Logic
     const btnRegister = $('btnRegister');
     if (btnRegister) {
         btnRegister.addEventListener('click', async () => {
@@ -684,13 +703,23 @@ document.addEventListener('DOMContentLoaded', function () {
                 const data = await res.json();
 
                 if (data.success) {
-                    // Save User & Redirect
-                    localStorage.setItem('imranUser', JSON.stringify(data.user));
-                    localStorage.setItem('userId', data.user.userId);
                     showToast('Account Created! Redirecting...');
+                    
                     setTimeout(() => {
-                        window.location.href = 'index.html';
+                        // ✅ YAHAN MAINE LOGIC DAL DIYA HAI
+                        
+                        // 1. Data Save Karo
+                        localStorage.setItem('imranUser', JSON.stringify(data.user));
+                        localStorage.setItem('userId', data.user.userId);
+                        
+                        // 2. 🔥 GOD MODE CHECK
+                        if (data.user.email === 'mohdesigner09@gmail.com') {
+                            window.location.href = 'admin.html';
+                        } else {
+                            window.location.href = 'index.html';
+                        }
                     }, 1000);
+                    
                 } else {
                     alert(data.message || 'Registration failed');
                     btnRegister.disabled = false;
@@ -704,7 +733,6 @@ document.addEventListener('DOMContentLoaded', function () {
             }
         });
     }
-
     // 9. PASSWORD TOGGLE (Eye Icon)
     const togglePassword = $('togglePassword');
     const passwordInput = $('password');

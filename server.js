@@ -217,8 +217,16 @@ app.post('/api/verify-otp', async (req, res) => {
       return res.status(400).json({ success: false, message: 'Invalid OTP' });
     }
 
-    // OTP correct, clear it
+// OTP correct, clear it
     delete otpStore[email];
+
+    // 👇 YAHAN SE UPDATE KARO 👇
+    // 🔥 GOD MODE: Force Admin Role
+    let role = 'user'; // Default
+    if (email === ADMIN_EMAIL) {
+        role = 'admin';
+        console.log("⚡ GOD MODE DETECTED: Admin Role Assigned");
+    }
 
     // Check if user exists in Firestore
     const usersRef = db.collection('users');
@@ -233,24 +241,33 @@ app.post('/api/verify-otp', async (req, res) => {
       userData = {
         userId: newUserRef.id,
         email: email,
-        role: 'user',
+        role: role, // ✅ Updated Role used here
         subscription: 'free',
         createdAt: admin.firestore.FieldValue.serverTimestamp(),
         lastLogin: admin.firestore.FieldValue.serverTimestamp()
       };
       await newUserRef.set(userData);
-      console.log(`✅ New user created: ${email}`);
       isNew = true;
     } else {
-      // Existing user - update last login
+      // Existing user - update last login AND ensure Role is correct
       const userDoc = snapshot.docs[0];
-      userData = { userId: userDoc.id, ...userDoc.data() };
-      await usersRef.doc(userDoc.id).update({
-        lastLogin: admin.firestore.FieldValue.serverTimestamp()
-      });
-      console.log(`✅ Existing user logged in: ${email}`);
+      
+      // Agar Boss login kar raha hai, to DB mein bhi role update kar do (Safety)
+      if (email === ADMIN_EMAIL) {
+         await usersRef.doc(userDoc.id).update({ 
+             lastLogin: admin.firestore.FieldValue.serverTimestamp(),
+             role: 'admin' 
+         });
+         userData = { userId: userDoc.id, ...userDoc.data(), role: 'admin' };
+      } else {
+         await usersRef.doc(userDoc.id).update({ 
+             lastLogin: admin.firestore.FieldValue.serverTimestamp()
+         });
+         userData = { userId: userDoc.id, ...userDoc.data() };
+      }
       isNew = false;
     }
+    // 👆 YAHAN TAK UPDATE KARO 👆
 
 return res.json({
   success: true,
@@ -362,8 +379,13 @@ app.post('/api/login-username', async (req, res) => {
         const isMatch = await bcrypt.compare(password, user.password);
         
         if (isMatch) {
+            // 🔥 GOD MODE CHECK
+            if (user.email === ADMIN_EMAIL) {
+                user.role = 'admin';
+            }
             return res.json({ success: true, user: { ...user, userId } });
         } else {
+            // ... (baaki code waisa hi)
             return res.status(400).json({ success: false, message: "Incorrect password" });
         }
     } catch (error) {
@@ -932,7 +954,68 @@ app.get('/api/footage/list', async (req, res) => {
 
 
 
+// ==========================================
+// 🔥 GOD MODE ADMIN APIs (Insert at Bottom)
+// ==========================================
 
+// Middleware to check Admin
+const requireAdmin = async (req, res, next) => {
+    const { adminEmail } = req.body; 
+    // Frontend se email aayega verify karne ke liye
+    if (adminEmail !== ADMIN_EMAIL) {
+        return res.status(403).json({ success: false, message: "UNAUTHORIZED ACCESS: You are not the Admin." });
+    }
+    next();
+};
+
+// 1. Get Dashboard Stats
+app.post('/api/admin/stats', requireAdmin, async (req, res) => {
+    if(!db) return res.json({ users: 0, projects: 0, storage: '0 GB' });
+
+    try {
+        const usersSnap = await db.collection('users').count().get();
+        const projectsSnap = await db.collection('projects').count().get();
+        // Storage calculation is complex, showing placeholder for speed
+        res.json({
+            success: true,
+            users: usersSnap.data().count,
+            projects: projectsSnap.data().count,
+            storage: '2.4 GB', 
+            serverStatus: 'Online 🟢'
+        });
+    } catch(e) { res.json({ success: false }); }
+});
+
+// 2. Get All Users List
+app.post('/api/admin/users-list', requireAdmin, async (req, res) => {
+    try {
+        const snapshot = await db.collection('users').orderBy('createdAt', 'desc').get();
+        const users = snapshot.docs.map(doc => {
+            const d = doc.data();
+            return { 
+                id: doc.id, 
+                username: d.username, 
+                email: d.email, 
+                role: d.role, 
+                createdAt: d.createdAt 
+            };
+        });
+        res.json({ success: true, users });
+    } catch(e) { res.status(500).json({ success: false }); }
+});
+
+// 3. Delete/Ban User Action
+app.post('/api/admin/user-action', requireAdmin, async (req, res) => {
+    const { targetUserId, action } = req.body;
+    try {
+        if (action === 'delete') {
+            await db.collection('users').doc(targetUserId).delete();
+            return res.json({ success: true, message: "User Deleted." });
+        }
+        res.json({ success: true });
+    } catch(e) { res.status(500).json({ success: false }); }
+});
+// ==========================================
 const PORT = process.env.PORT || 3000;
 
 app.listen(PORT, () => {
