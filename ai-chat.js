@@ -388,65 +388,70 @@ window.addEventListener('DOMContentLoaded', () => {
     });
   });
 
-  // hero: Enter
+   // ✅ HERO: Enter Key
   heroInput?.addEventListener('keydown', e => {
     if (e.key === 'Enter' && !e.shiftKey) {
       e.preventDefault();
       const text = heroInput.value.trim();
-      if (text) {
-        sendMessage(text);
+      const imageData = heroImageData; // ✅ Ye line hai?
+      
+      if (text || imageData) {
+        sendMessage(text, imageData);
         heroInput.value = '';
         heroInput.style.height = '24px';
+        
+        // Clear image after sending
+        if (imageData) {
+          const heroImageInput = document.getElementById('heroImageInput');
+          const heroImagePreview = document.getElementById('heroImagePreview');
+          clearImage('hero', heroImageInput, heroImagePreview);
+        }
       }
     }
   });
 
-// hero: button
-heroSendBtn?.addEventListener('click', () => {
-  const text = heroInput?.value.trim();
-  const imageData = heroImageData;
-  
-  if (text || imageData) {
-    sendMessage(text, imageData);
-    heroInput.value = '';
-    heroInput.style.height = '24px';
+  // ✅ HERO: Button Click
+  heroSendBtn?.addEventListener('click', () => {
+    const text = heroInput?.value.trim();
+    const imageData = heroImageData; // ✅ Ye line hai?
     
-    // Clear image after sending
-    if (imageData) {
-      clearImage('hero', document.getElementById('heroImageInput'), document.getElementById('heroImagePreview'));
-    }
-  }
-});
-
-  // bottom: Enter
-  bottomInput?.addEventListener('keydown', e => {
-    if (e.key === 'Enter' && !e.shiftKey) {
-      e.preventDefault();
-      const text = bottomInput.value.trim();
-      if (text) {
-        sendMessage(text);
-        bottomInput.value = '';
-        bottomInput.style.height = '24px';
+    console.log('🖱️ Hero button clicked!', { text, imageData }); // ✅ Debug log
+    
+    if (text || imageData) {
+      sendMessage(text, imageData);
+      heroInput.value = '';
+      heroInput.style.height = '24px';
+      
+      // Clear image after sending
+      if (imageData) {
+        const heroImageInput = document.getElementById('heroImageInput');
+        const heroImagePreview = document.getElementById('heroImagePreview');
+        clearImage('hero', heroImageInput, heroImagePreview);
       }
     }
   });
 
-// bottom: button
-bottomSendBtn?.addEventListener('click', () => {
-  const text = bottomInput?.value.trim();
-  const imageData = bottomImageData;
-  
-  if (text || imageData) {
-    sendMessage(text, imageData);
-    bottomInput.value = '';
-    bottomInput.style.height = '24px';
+  // ✅ BOTTOM: Button Click (same pattern)
+  bottomSendBtn?.addEventListener('click', () => {
+    const text = bottomInput?.value.trim();
+    const imageData = bottomImageData;
     
-    // Clear image after sending
-    if (imageData) {
-      clearImage('bottom', document.getElementById('bottomImageInput'), document.getElementById('bottomImagePreview'));
+    console.log('🖱️ Bottom button clicked!', { text, imageData }); // ✅ Debug log
+    
+    if (text || imageData) {
+      sendMessage(text, imageData);
+      bottomInput.value = '';
+      bottomInput.style.height = '24px';
+      
+      if (imageData) {
+        const bottomImageInput = document.getElementById('bottomImageInput');
+        const bottomImagePreview = document.getElementById('bottomImagePreview');
+        clearImage('bottom', bottomImageInput, bottomImagePreview);
+      }
     }
-  }
-});
+  });
+
+
 
   // new chat
   newChatBtn?.addEventListener('click', startNewChat);
