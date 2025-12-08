@@ -50,110 +50,169 @@
     <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@400;600;700&family=Inter:wght@300;400;500&family=JetBrains+Mono:wght@400&display=swap" rel="stylesheet">
     
     <style>
-      
-        body.theme-basic {
-  background: #f3f4f6;
-  color: #111827;
-}
+    /* =========================================
+       🔥 THEME: DARK CINEMATIC (Black & White)
+       ========================================= */
 
-body.theme-basic .glass-panel,
-body.theme-basic .project-card {
-  background: rgba(255,255,255,0.9);
-  color: #111827;
-}
+    :root { 
+        --primary-dark: #030303; /* Pitch Black */
+        --secondary-dark: #0a0a0a; 
+        --accent-glow: #ffffff; /* Pure White Glow (Replaces Orange) */
+        --accent-silver: #a3a3a3; /* Silver for secondary highlights */
+        --text-primary: #ededed; 
+        --border-subtle: #262626; 
+    }
 
-body.theme-advanced {
-  background: #050505;
-  color: #f9fafb;
-}
+    /* 1. MAIN BACKGROUND SETUP (Using bold.jpg) */
+    body { 
+        background-color: #030303 !important;
+        color: var(--text-primary); 
+        font-family: 'Inter', sans-serif; 
+        overflow-x: hidden; 
+        position: relative;
+    }
 
-        :root { --primary-dark: #050505; --secondary-dark: #1a1a1a; --accent-orange: #ff6b35; --text-primary: #ffffff; --border-subtle: #2a2a2a; }
-        body { background: var(--primary-dark); color: var(--text-primary); font-family: 'Inter', sans-serif; overflow-x: hidden; }
-        .font-display { font-family: 'Playfair Display', serif; }
-        .font-mono { font-family: 'JetBrains Mono', monospace; }
+    /* The Cinematic Overlay */
+    body::before {
+        content: "";
+        position: fixed;
+        top: 0; 
+        left: 0;
+        width: 100%;
+        height: 100%;
+        background-image: url('resources/bold.jpg'); 
+        background-size: cover;
+        background-position: center;
+        background-repeat: no-repeat;
         
-        /* Background */
-        .hero-bg { background: linear-gradient(135deg, #020202 0%, #0a0a0a 50%, #000000 100%); position: relative; min-height: 100vh; }
-        .hero-bg::before { content: ''; position: absolute; top: 0; left: 0; right: 0; bottom: 0; background: url('resources/hero-film-studio.png') center/cover; opacity: 0.2; z-index: 0; }
-        .content-layer { position: relative; z-index: 2; }
-        
-        /* --- SOLID PREMIUM CARD --- */
-        .project-card { 
-            background: linear-gradient(180deg, #141414 0%, #050505 100%);
-            border: 1px solid rgba(255, 255, 255, 0.15);
-            border-radius: 16px;
-            position: relative; z-index: 10;
-            transition: transform 0.4s cubic-bezier(0.34, 1.56, 0.64, 1), box-shadow 0.3s ease, border-color 0.3s ease;
-            will-change: transform, opacity;
-            transform-style: preserve-3d;
-            box-shadow: inset 0 1px 0 0 rgba(255, 255, 255, 0.25), 0 20px 40px -15px rgba(0, 0, 0, 1);
-        }
-        .project-card:hover { 
-            border-color: var(--accent-orange); 
-            transform: translateY(-10px) scale(1.02); 
-            z-index: 50 !important; 
-            box-shadow: inset 0 1px 0 0 rgba(255, 107, 53, 0.4), 0 30px 60px -15px rgba(0, 0, 0, 1), 0 0 20px rgba(255, 107, 53, 0.1);
-        }
+        /* ✨ Magic Blend Settings */
+        opacity: 0.4; 
+        mix-blend-mode: screen; 
+        z-index: -50;
+        pointer-events: none;
+    }
 
-        /* Scroll Area */
-        .scroll-wrapper {
-    position: relative;
-    height: 500px;
-    overflow: hidden;
-    perspective: 1500px;
-    /* -webkit-mask-image: linear-gradient(to bottom, transparent 0%, black 10%, black 90%, transparent 100%);
-    mask-image: linear-gradient(to bottom, transparent 0%, black 10%, black 90%, transparent 100%); */
-}
+    .font-display { font-family: 'Playfair Display', serif; }
+    .font-mono { font-family: 'JetBrains Mono', monospace; }
 
-        .custom-scroll { height: 100%; overflow-y: auto; padding: 60px 5px; scroll-behavior: smooth; }
-        .custom-scroll::-webkit-scrollbar { width: 0px; }
+    /* Legacy Theme Support (Overridden) */
+    body.theme-basic { background: #f3f4f6; color: #111827; }
+    body.theme-basic .glass-panel, body.theme-basic .project-card { background: rgba(255,255,255,0.9); color: #111827; }
+    body.theme-advanced { background: #050505; color: #f9fafb; }
 
-        /* Edit Mode */
-        .delete-btn { display: none !important; } 
-        body.edit-mode .delete-btn { display: flex !important; } 
-        body.edit-mode .project-card { border: 1px dashed var(--accent-orange); cursor: move; transform: none !important; }
-        [contenteditable="true"] { border-bottom: 1px dashed var(--accent-orange); outline: none; }
+    /* Hero Section (Transparent now to show bold.jpg) */
+    .hero-bg { 
+        background: transparent; 
+        position: relative; 
+        min-height: 100vh; 
+    }
+    
+    .content-layer { position: relative; z-index: 2; }
 
-        /* Animation */
-        @keyframes unfoldIn { 0% { opacity: 0; transform: scale(0.8) translateY(50px) perspective(600px) rotateX(70deg); filter: blur(8px); } 70% { transform: scale(1.02) translateY(-5px) perspective(600px) rotateX(-5deg); filter: blur(0px); } 100% { opacity: 1; transform: scale(1) translateY(0) perspective(600px) rotateX(0deg); } }
-        .animate-paper-unfold { animation: unfoldIn 0.6s cubic-bezier(0.34, 1.56, 0.64, 1) forwards; transform-origin: center bottom; }
-        
-        .progress-ring { transform: rotate(-90deg); }
-        .progress-ring-circle { stroke: var(--accent-orange); stroke-linecap: round; }
-        .film-grain { position: fixed; top: 0; left: 0; width: 100%; height: 100%; pointer-events: none; opacity: 0.03; z-index: 1; }
-        .nav-bottom { background: rgba(26, 26, 26, 0.95); backdrop-filter: blur(10px); border-top: 1px solid #2a2a2a; }
-        .nav-item.active { color: var(--accent-orange); }
-        /* Dashboard Card Glow */
-.dashboard-card {
-    background: linear-gradient(180deg, #141414 0%, #050505 100%);
-    border: 1px solid rgba(255, 255, 255, 0.08);
-    border-top: 1px solid rgba(255, 255, 255, 0.2);
-    border-radius: 16px;
-    box-shadow: 0 10px 30px -10px rgba(0,0,0,0.8);
-    transition: all 0.3s cubic-bezier(0.25, 0.8, 0.25, 1);
-}
+    /* --- SOLID PREMIUM CARD (Updated Glows) --- */
+    .project-card { 
+        background: rgba(15, 15, 15, 0.6); /* Semi-transparent black */
+        backdrop-filter: blur(12px);
+        border: 1px solid rgba(255, 255, 255, 0.08);
+        border-radius: 16px;
+        position: relative; z-index: 10;
+        transition: transform 0.4s cubic-bezier(0.34, 1.56, 0.64, 1), box-shadow 0.3s ease, border-color 0.3s ease;
+        will-change: transform, opacity;
+        transform-style: preserve-3d;
+        box-shadow: 0 10px 30px -10px rgba(0, 0, 0, 0.8);
+    }
 
-   .dashboard-card:hover {
-    border-color: #ff6b35;
-    transform: scale(1.005);  
-    box-shadow: 
-        inset 0 1px 0 0 rgba(255, 107, 53, 0.3),
-        0 20px 50px -10px rgba(255, 107, 53, 0.15);
-}
+    /* 🔥 HOVER EFFECT: WHITE GLOW */
+    .project-card:hover { 
+        border-color: rgba(255, 255, 255, 0.5); 
+        transform: translateY(-10px) scale(1.02); 
+        z-index: 50 !important; 
+        box-shadow: 
+            inset 0 1px 0 0 rgba(255, 255, 255, 0.2), 
+            0 30px 60px -15px rgba(0, 0, 0, 1), 
+            0 0 25px rgba(255, 255, 255, 0.15); /* White Glow */
+    }
 
-/* My/All Toggle Active State */
-#projectScopeToggle button.active-scope {
-  background: rgba(255, 107, 53, 0.2);
-  color: #ff6b35;
-  font-weight: 600;
-}
+    /* Scroll Area */
+    .scroll-wrapper {
+        position: relative;
+        height: 500px;
+        overflow: hidden;
+        perspective: 1500px;
+    }
 
-#projectScopeToggle button:not(.active-scope):hover {
-  background: rgba(255, 255, 255, 0.05);
-}
+    .custom-scroll { height: 100%; overflow-y: auto; padding: 60px 5px; scroll-behavior: smooth; }
+    .custom-scroll::-webkit-scrollbar { width: 0px; }
 
+    /* Edit Mode (Updated Colors) */
+    .delete-btn { display: none !important; } 
+    body.edit-mode .delete-btn { display: flex !important; } 
+    body.edit-mode .project-card { 
+        border: 1px dashed var(--accent-glow); /* White Dashed */
+        cursor: move; 
+        transform: none !important; 
+    }
+    [contenteditable="true"] { border-bottom: 1px dashed var(--accent-glow); outline: none; }
 
-   </style>
+    /* Animation */
+    @keyframes unfoldIn { 
+        0% { opacity: 0; transform: scale(0.8) translateY(50px) perspective(600px) rotateX(70deg); filter: blur(8px); } 
+        70% { transform: scale(1.02) translateY(-5px) perspective(600px) rotateX(-5deg); filter: blur(0px); } 
+        100% { opacity: 1; transform: scale(1) translateY(0) perspective(600px) rotateX(0deg); } 
+    }
+    .animate-paper-unfold { animation: unfoldIn 0.6s cubic-bezier(0.34, 1.56, 0.64, 1) forwards; transform-origin: center bottom; }
+
+    /* Progress Ring (White) */
+    .progress-ring { transform: rotate(-90deg); }
+    .progress-ring-circle { stroke: var(--accent-glow); stroke-linecap: round; }
+
+    /* Global UI Elements */
+    .film-grain { display: none; } /* Removed old grain to use bold.jpg */
+    
+    .nav-bottom { 
+        background: rgba(0, 0, 0, 0.8); 
+        backdrop-filter: blur(20px); 
+        border-top: 1px solid rgba(255,255,255,0.1); 
+    }
+    .nav-item.active { color: var(--accent-glow); text-shadow: 0 0 10px rgba(255,255,255,0.4); }
+
+    /* Dashboard Card Glow (Updated) */
+    .dashboard-card {
+        background: linear-gradient(180deg, rgba(20,20,20,0.8) 0%, rgba(5,5,5,0.9) 100%);
+        backdrop-filter: blur(10px);
+        border: 1px solid rgba(255, 255, 255, 0.08);
+        border-top: 1px solid rgba(255, 255, 255, 0.15);
+        border-radius: 16px;
+        box-shadow: 0 10px 30px -10px rgba(0,0,0,0.8);
+        transition: all 0.3s cubic-bezier(0.25, 0.8, 0.25, 1);
+    }
+
+    .dashboard-card:hover {
+        border-color: rgba(255, 255, 255, 0.4);
+        transform: scale(1.005);  
+        box-shadow: 
+            inset 0 1px 0 0 rgba(255, 255, 255, 0.1),
+            0 20px 50px -10px rgba(255, 255, 255, 0.1); /* Silver Glow */
+    }
+
+    /* My/All Toggle Active State (White Theme) */
+    #projectScopeToggle button.active-scope {
+        background: rgba(255, 255, 255, 0.15);
+        color: #ffffff;
+        font-weight: 600;
+        border: 1px solid rgba(255,255,255,0.2);
+        box-shadow: 0 0 15px rgba(255,255,255,0.1);
+    }
+
+    #projectScopeToggle button:not(.active-scope) {
+        color: #888;
+    }
+
+    #projectScopeToggle button:not(.active-scope):hover {
+        background: rgba(255, 255, 255, 0.05);
+        color: #fff;
+    }
+</style>
 </head>
 <body>
     <canvas class="film-grain" id="filmGrain"></canvas>
@@ -760,5 +819,7 @@ body.theme-advanced {
 
     })();
 </script>
+
+
 </body>
 </html>
