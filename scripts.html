@@ -23,7 +23,8 @@
     
     <!-- External Scripts -->
     <script src="https://cdnjs.cloudflare.com/ajax/libs/animejs/3.2.1/anime.min.js"></script>
-    
+    <script src="main.js"></script>
+
     <script>
         tailwind.config = {
             theme: {
@@ -39,7 +40,7 @@
             }
         }
     </script>
-    <script src="main.js"></script>
+    
 
     <style>
         /* =========================================
@@ -555,54 +556,41 @@ He pulls out a crumpled photograph.
 
         // --- 2. INIT & RENDER ---
     // --- 2. INIT & RENDER ---
-(function initPage() {
-    const params = new URLSearchParams(window.location.search);
-    const projectId = params.get('id');
-
-    // ✅ FIX: Use GLOBAL projects from main.js (not local)
-    if (!window.projects || !Array.isArray(window.projects)) {
-        console.error('❌ main.js not loaded! projects array missing');
+// Wait for DOM and main.js to load
+document.addEventListener('DOMContentLoaded', function() {
+    // Check if main.js loaded
+    if (typeof window.projects === 'undefined') {
+        console.error('❌ main.js not loaded!');
         alert('Error: Please include main.js before scripts.html');
         return;
     }
     
-    const projects = window.projects;  // ✅ Use global
-    const project = projects.find(p => p.id === projectId);
-
-    if (project) {
-        document.getElementById('scriptTitle').textContent = (project.title || 'UNTITLED').toUpperCase();
-        
-        // ✅ FIX: Load sections from project
-        if (project.sections && Array.isArray(project.sections)) {
-            sectionsData = project.sections;
-            console.log('✅ Loaded sections from project:', sectionsData.length);
-        } else {
-            // ✅ Initialize default sections for new project
-            sectionsData = [
-                { id: 1, name: "Screenplays", files: [] },
-                { id: 2, name: "Research", files: [] },
-                { id: 3, name: "Character Notes", files: [] },
-                { id: 4, name: "Locations", files: [] },
-                { id: 5, name: "Legal Docs", files: [] },
-                { id: 6, name: "Misc", files: [] }
-            ];
+    // Initialize page
+    const params = new URLSearchParams(window.location.search);
+    const projectId = params.get('id');
+    
+    if (projectId) {
+        const project = window.projects.find(p => p.id === projectId);
+        if (project) {
+            const titleEl = document.getElementById('scriptTitle');
+            if (titleEl) {
+                titleEl.textContent = (project.title || 'UNTITLED').toUpperCase();
+            }
             
-            // Save to project
-            project.sections = sectionsData;
-            localStorage.setItem('imranProjects', JSON.stringify(projects));
-            console.log('✅ Created default sections for new project');
-        }
-    } else {
-        // If project not found but ID exists (preview), use dummy
-        if(projectId) {
-            document.getElementById('scriptTitle').textContent = "DEMO PROJECT";
-            console.warn('⚠️ Project not found, using demo sections');
+            // Load sections
+            if (project.sections && Array.isArray(project.sections)) {
+                sectionsData = project.sections;
+            }
         }
     }
 
+    
+    
+    // Render
     renderSections();
-    switchMode('files');  // ✅ Default to files view
-})();
+    switchMode('files');
+});
+
 
 function renderSections() {
     // Load from main projects array
@@ -688,6 +676,7 @@ const MAX_PAGE_HEIGHT = 11 * 96; // 11 inches in pixels (96 DPI)
 function initAutoPages() {
     const editor = document.getElementById('scriptEditor');
     if (!editor) return;
+    
     
     // Monitor text input
     editor.addEventListener('input', debounce(checkPageOverflow, 300));

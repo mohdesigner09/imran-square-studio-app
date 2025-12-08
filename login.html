@@ -470,6 +470,57 @@ function startTimer(seconds = 60) {
 document.addEventListener('DOMContentLoaded', function () {
     console.log('✅ DOM Ready');
 
+    // ============================================
+    // 🔥 YE CODE YAHAN ADD KARO - LINE 2 PE
+    // ============================================
+    
+    // PWA INSTALL PROMPT CAPTURE
+    let deferredPrompt = null;
+
+    window.addEventListener('beforeinstallprompt', (e) => {
+        console.log('✅ beforeinstallprompt event fired!');
+        e.preventDefault();
+        deferredPrompt = e;
+        
+        const installBtn = document.getElementById('pwaInstallBtn');
+        if (installBtn) {
+            installBtn.style.display = 'flex';
+            console.log('✅ Install button ready');
+        }
+    });
+
+    window.addEventListener('appinstalled', () => {
+        console.log('✅ PWA installed!');
+        deferredPrompt = null;
+        const installBtn = document.getElementById('pwaInstallBtn');
+        if (installBtn) {
+            installBtn.style.display = 'none';
+        }
+    });
+
+    // Install Button Click Handler
+    const installBtn = document.getElementById('pwaInstallBtn');
+    if (installBtn) {
+        installBtn.addEventListener('click', async () => {
+            console.log('🔘 Install Button Clicked');
+            
+            if (deferredPrompt) {
+                console.log('✅ Triggering Native Prompt');
+                deferredPrompt.prompt();
+                const outcome = await deferredPrompt.userChoice;
+                console.log('User response:', outcome);
+                deferredPrompt = null;
+            } else {
+                console.log('❌ No native prompt available');
+                const isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent) && !window.MSStream;
+                if (isIOS) {
+                    alert('Install on iPhone:\n1. Tap the Share icon (bottom center)\n2. Scroll down & tap "Add to Home Screen"');
+                } else {
+                    alert('App is likely already installed or your browser doesn\'t support automatic installation. Try checking your browser menu for "Install App".');
+                }
+            }
+        });
+    }
     // 1. Google Button
     const btnGoogle = $('btnGoogle');
     if (btnGoogle) {
@@ -482,6 +533,7 @@ document.addEventListener('DOMContentLoaded', function () {
             showStep('stepContact');
         });
     }
+
 
     // 2. Email Login
     const btnLoginGoogle = $('btnLoginGoogle');
@@ -754,35 +806,6 @@ document.addEventListener('DOMContentLoaded', function () {
         });
     }
 
-  // 10. INSTALL APP BUTTON LOGIC (Fixed)
-    const installBtn = document.getElementById('pwaInstallBtn');
-    
-    if (installBtn) {
-        installBtn.addEventListener('click', async () => {
-            console.log('🔘 Install Button Clicked');
-            
-            // Case 1: Browser ne Install Prompt pakad rakha hai (Android/Chrome)
-            if (deferredPrompt) {
-                console.log('🚀 Triggering Native Prompt');
-                deferredPrompt.prompt();
-                const { outcome } = await deferredPrompt.userChoice;
-                console.log(`User response: ${outcome}`);
-                deferredPrompt = null;
-            } 
-            // Case 2: iOS ya Unsupported Browser
-            else {
-                console.log('⚠️ No native prompt available');
-                const isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent) && !window.MSStream;
-                
-                if (isIOS) {
-                    alert("📲 Install on iPhone:\n1. Tap the 'Share' icon (bottom center)\n2. Scroll down & tap 'Add to Home Screen'");
-                } else {
-                    alert("App is likely already installed or your browser doesn't support automatic installation.\n\nTry checking your browser menu (⋮) for 'Install App'.");
-                }
-            }
-        });
-    }
-    console.log('✅ All handlers initialized');
 });
 
 
