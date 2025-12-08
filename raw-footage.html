@@ -103,6 +103,49 @@
             border-color: #fff; font-weight: 700;
         }
 
+        /* --- STORIES BAR (New) --- */
+        .stories-container {
+            display: flex; gap: 16px; overflow-x: auto; padding: 10px 4px;
+            scrollbar-width: none;
+        }
+        .stories-container::-webkit-scrollbar { display: none; }
+
+        .story-item {
+            display: flex; flex-direction: column; align-items: center; gap: 6px;
+            cursor: pointer; position: relative;
+        }
+        
+        .story-ring {
+            width: 64px; height: 64px;
+            border-radius: 50%; padding: 3px;
+            position: relative; transition: transform 0.2s;
+        }
+        
+        /* Neon Rings */
+        .ring-admin { background: linear-gradient(45deg, #fff, #aaa); box-shadow: 0 0 15px rgba(255,255,255,0.4); }
+        .ring-tips { background: linear-gradient(45deg, #00ff88, #00ccff); box-shadow: 0 0 10px rgba(0, 255, 136, 0.4); }
+        .ring-bts { background: linear-gradient(45deg, #ff00cc, #333399); box-shadow: 0 0 10px rgba(255, 0, 204, 0.4); }
+
+        .story-item:hover .story-ring { transform: scale(1.05); }
+
+        .story-avatar {
+            width: 100%; height: 100%;
+            border-radius: 50%; border: 3px solid #000;
+            object-fit: cover; background: #111;
+            display: flex; align-items: center; justify-content: center;
+        }
+        
+        .story-add-icon {
+            background: #fff; color: #000;
+            position: absolute; bottom: 0; right: 0;
+            width: 20px; height: 20px; border-radius: 50%;
+            border: 2px solid #000;
+            display: flex; align-items: center; justify-content: center;
+            font-size: 14px; font-weight: bold;
+        }
+
+        .story-text { font-size: 10px; color: #ccc; text-align: center; max-width: 70px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+
         /* --- TOGGLE SWITCH (Shorts/Longs) --- */
         .type-switch {
             display: flex; gap: 4px; 
@@ -167,6 +210,25 @@
             .grid-longs { grid-template-columns: repeat(3, 1fr); }
         }
 
+            /* --- STORY VIEWER MODAL --- */
+        #storyViewer { transition: opacity 0.3s ease; }
+        .story-content { height: 100%; aspect-ratio: 9/16; max-height: 90vh; background: black; border-radius: 12px; position: relative; }
+        .story-progress-bar { position: absolute; top: 10px; left: 10px; right: 10px; height: 2px; background: rgba(255,255,255,0.3); border-radius: 2px; overflow: hidden; display: flex; gap: 4px; }
+        .progress-segment { height: 100%; flex: 1; background: rgba(255,255,255,0.3); border-radius: 2px; }
+        .progress-fill { height: 100%; background: white; width: 0%; }
+
+        /* FAB Upload */
+        .fab-upload {
+            position: fixed; bottom: 30px; right: 30px;
+            width: 56px; height: 56px; border-radius: 50%;
+            background: #fff; color: #000; display: flex; align-items: center; justify-content: center;
+            box-shadow: 0 0 30px rgba(255,255,255,0.3); z-index: 50;
+            transition: all 0.3s; cursor: pointer; border: 1px solid rgba(255,255,255,0.5);
+        }
+        .fab-upload:hover { transform: scale(1.1) rotate(90deg); box-shadow: 0 0 50px rgba(255,255,255,0.6); }
+
+       
+    
         /* FAB Upload */
         .fab-upload {
             position: fixed; bottom: 30px; right: 30px;
@@ -188,6 +250,7 @@
 
         /* Helpers */
         .hidden-grid { display: none !important; }
+        .hidden { display: none !important; }
         ::-webkit-scrollbar { width: 4px; }
         ::-webkit-scrollbar-thumb { background: rgba(255,255,255,0.2); border-radius: 10px; }
         
@@ -235,6 +298,23 @@
             <button class="filter-pill" onclick="filterBy('bts', this)">BTS</button>
         </div>
 
+        <!-- STORY UPLOAD & VIEWER -->
+    <input type="file" id="storyFileInput" class="hidden" accept="image/*,video/*">
+    <div id="storyViewer" class="fixed inset-0 bg-black z-[70] hidden flex items-center justify-center">
+        <button onclick="closeStory()" class="absolute top-4 right-4 text-white z-50 p-2"><svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/></svg></button>
+        <div class="story-content" id="storyContentBox">
+            <div class="story-progress-bar" id="storyProgress"></div>
+            <img id="storyImage" class="w-full h-full object-cover rounded-xl hidden">
+            <video id="storyVideo" class="w-full h-full object-cover rounded-xl hidden" playsinline></video>
+            <div class="absolute bottom-0 w-full p-4 bg-gradient-to-t from-black/80 to-transparent">
+                <h3 class="text-white font-bold text-sm" id="storyCaption"></h3>
+            </div>
+            <div class="absolute inset-y-0 left-0 w-1/3 z-10" onclick="prevStorySlide()"></div>
+            <div class="absolute inset-y-0 right-0 w-1/3 z-10" onclick="nextStorySlide()"></div>
+        </div>
+    </div>
+
+        
         <!-- Type Switcher -->
         <div class="type-switch" id="formatToggle">
             <button class="type-btn active" onclick="switchType('shorts', this)">Shorts</button>
@@ -350,88 +430,6 @@
         </div>
     </div>
 
-<!-- STORIES SECTION (Paste this inside your main container) -->
-<div class="mb-8">
-    
-    <!-- Scrollable Container -->
-    <div class="flex gap-4 overflow-x-auto pb-4 px-1 no-scrollbar" id="storiesContainer">
-        
-        <!-- 1. ADMIN ADD STORY (Hidden for normal users via JS) -->
-        <div class="story-item group flex-shrink-0" id="adminStoryBtn" style="display: none;">
-            <div class="relative w-16 h-16 rounded-full p-[2px] bg-gradient-to-tr from-white via-gray-400 to-gray-600 animate-pulse cursor-pointer hover:scale-105 transition-transform" onclick="document.getElementById('storyFileInput').click()">
-                <div class="w-full h-full rounded-full bg-black border-2 border-black flex items-center justify-center relative overflow-hidden">
-                    <!-- User Avatar or Icon -->
-                    <div class="w-full h-full bg-zinc-800 flex items-center justify-center">
-                        <svg class="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"/></svg>
-                    </div>
-                    <!-- Plus Badge -->
-                    <div class="absolute bottom-0 right-0 w-5 h-5 bg-blue-500 rounded-full border-2 border-black flex items-center justify-center text-white text-[10px] font-bold">+</div>
-                </div>
-            </div>
-            <span class="text-[10px] text-gray-400 mt-1 text-center font-medium group-hover:text-white transition-colors">Add Story</span>
-        </div>
-
-        <!-- 2. STORY: SET UPDATES (Green Neon) -->
-        <div class="story-item group flex-shrink-0 cursor-pointer" onclick="openStory(0)">
-            <div class="w-16 h-16 rounded-full p-[2px] bg-gradient-to-tr from-green-400 via-emerald-500 to-teal-600 hover:scale-105 transition-transform shadow-[0_0_15px_rgba(16,185,129,0.4)]">
-                <div class="w-full h-full rounded-full bg-black border-2 border-black overflow-hidden">
-                    <img src="https://images.unsplash.com/photo-1492691527719-9d1e07e534b4?auto=format&fit=crop&w=100&q=80" class="w-full h-full object-cover opacity-80 group-hover:opacity-100 transition-opacity">
-                </div>
-            </div>
-            <span class="text-[10px] text-gray-400 mt-1 text-center font-medium group-hover:text-green-400 transition-colors">Updates</span>
-        </div>
-
-        <!-- 3. STORY: BTS (Pink Neon) -->
-        <div class="story-item group flex-shrink-0 cursor-pointer" onclick="openStory(1)">
-            <div class="w-16 h-16 rounded-full p-[2px] bg-gradient-to-tr from-pink-500 via-purple-500 to-indigo-500 hover:scale-105 transition-transform shadow-[0_0_15px_rgba(236,72,153,0.4)]">
-                <div class="w-full h-full rounded-full bg-black border-2 border-black overflow-hidden flex items-center justify-center bg-zinc-900">
-                    <svg class="w-6 h-6 text-pink-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 10l4.553-2.276A1 1 0 0121 8.618v6.764a1 1 0 01-1.447.894L15 14M5 18h8a2 2 0 002-2V8a2 2 0 00-2-2H5a2 2 0 00-2 2v8a2 2 0 002 2z"/></svg>
-                </div>
-            </div>
-            <span class="text-[10px] text-gray-400 mt-1 text-center font-medium group-hover:text-pink-400 transition-colors">BTS Leaks</span>
-        </div>
-
-        <!-- 4. STORY: TIPS (Blue Neon) -->
-        <div class="story-item group flex-shrink-0 cursor-pointer" onclick="openStory(2)">
-            <div class="w-16 h-16 rounded-full p-[2px] bg-gradient-to-tr from-blue-400 via-cyan-400 to-sky-500 hover:scale-105 transition-transform shadow-[0_0_15px_rgba(14,165,233,0.4)]">
-                <div class="w-full h-full rounded-full bg-black border-2 border-black overflow-hidden flex items-center justify-center bg-zinc-900">
-                    <svg class="w-6 h-6 text-cyan-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9.663 17h4.673M12 3v1m6.364 1.636l-.707.707M21 12h-1M4 12H3m3.343-5.657l-.707-.707m2.828 9.9a5 5 0 117.072 0l-.548.547A3.374 3.374 0 0014 18.469V19a2 2 0 11-4 0v-.531c0-.895-.356-1.754-.988-2.386l-.548-.547z"/></svg>
-                </div>
-            </div>
-            <span class="text-[10px] text-gray-400 mt-1 text-center font-medium group-hover:text-cyan-400 transition-colors">Pro Tips</span>
-        </div>
-
-    </div>
-</div>
-
-<!-- Admin Upload Input (Hidden) -->
-<input type="file" id="storyFileInput" class="hidden" accept="image/*,video/*">
-
-<!-- Story Viewer Overlay (Hidden by default) -->
-<div id="storyViewer" class="fixed inset-0 bg-black z-[100] hidden flex items-center justify-center">
-    <button onclick="closeStory()" class="absolute top-4 right-4 text-white z-50 p-2 bg-black/20 rounded-full backdrop-blur-md"><svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/></svg></button>
-    
-    <div class="w-full h-full md:max-w-md md:max-h-[80vh] md:rounded-2xl relative overflow-hidden bg-zinc-900">
-        <!-- Progress Bar -->
-        <div class="absolute top-2 left-2 right-2 flex gap-1 z-20" id="storyProgressBars">
-            <!-- Bars injected via JS -->
-        </div>
-
-        <!-- Content -->
-        <img id="storyImage" class="w-full h-full object-cover hidden">
-        <video id="storyVideo" class="w-full h-full object-cover hidden" playsinline autoplay muted></video>
-
-        <!-- Overlay Text -->
-        <div class="absolute bottom-0 inset-x-0 p-6 bg-gradient-to-t from-black/90 to-transparent z-20">
-            <h3 class="text-white font-bold text-sm" id="storyCaption">Story Title</h3>
-            <p class="text-gray-300 text-xs mt-1">Uploaded just now</p>
-        </div>
-
-        <!-- Tap Zones -->
-        <div class="absolute inset-y-0 left-0 w-1/3 z-10" onclick="prevStory()"></div>
-        <div class="absolute inset-y-0 right-0 w-1/3 z-10" onclick="nextStory()"></div>
-    </div>
-</div>
 
 
     <!-- JS LOGIC -->
@@ -470,6 +468,83 @@
             
             renderVideos();
         })();
+
+
+         // --- STORIES LOGIC ---
+        function renderStories() {
+            const container = document.getElementById('storiesContainer');
+            container.innerHTML = '';
+
+            // 1. Admin Add Button
+            if(isAdmin) {
+                const addBtn = document.createElement('div');
+                addBtn.className = 'story-item flex-shrink-0';
+                addBtn.onclick = () => document.getElementById('storyFileInput').click();
+                addBtn.innerHTML = `
+                    <div class="story-ring ring-admin">
+                        <div class="story-avatar">
+                            <svg class="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"/></svg>
+                        </div>
+                        <div class="story-add-icon">+</div>
+                    </div>
+                    <span class="story-text">Add Story</span>
+                `;
+                container.appendChild(addBtn);
+            }
+
+            // 2. Render Stories
+            stories.forEach((story, index) => {
+                const item = document.createElement('div');
+                item.className = 'story-item flex-shrink-0';
+                item.onclick = () => openStory(index);
+                
+                let iconSvg = story.id === 1 ? 
+                    `<svg class="w-5 h-5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9.663 17h4.673M12 3v1m6.364 1.636l-.707.707M21 12h-1M4 12H3m3.343-5.657l-.707-.707m2.828 9.9a5 5 0 117.072 0l-.548.547A3.374 3.374 0 0014 18.469V19a2 2 0 11-4 0v-.531c0-.895-.356-1.754-.988-2.386l-.548-.547z"/></svg>` : 
+                    `<svg class="w-5 h-5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 10l4.553-2.276A1 1 0 0121 8.618v6.764a1 1 0 01-1.447.894L15 14M5 18h8a2 2 0 002-2V8a2 2 0 00-2-2H5a2 2 0 00-2 2v8a2 2 0 002 2z"/></svg>`;
+
+                item.innerHTML = `
+                    <div class="story-ring ${story.ring}">
+                        <div class="story-avatar">${iconSvg}</div>
+                    </div>
+                    <span class="story-text">${story.title}</span>
+                `;
+                container.appendChild(item);
+            });
+        }
+
+        // --- STORY VIEWER ---
+        function openStory(index) {
+            activeStoryIndex = index;
+            const viewer = document.getElementById('storyViewer');
+            const img = document.getElementById('storyImage');
+            const vid = document.getElementById('storyVideo');
+            const caption = document.getElementById('storyCaption');
+
+            viewer.classList.remove('hidden');
+            caption.textContent = stories[index].title;
+
+            if(stories[index].type === 'image') {
+                img.src = stories[index].src;
+                img.classList.remove('hidden');
+                vid.classList.add('hidden');
+                startProgress(5000);
+            } else {
+                img.src = 'https://via.placeholder.com/1080x1920/111/fff?text=Video+Story';
+                img.classList.remove('hidden');
+                vid.classList.add('hidden');
+                startProgress(5000);
+            }
+        }
+
+        function closeStory() {
+            document.getElementById('storyViewer').classList.add('hidden');
+            clearTimeout(storyTimer);
+        }
+
+        function startProgress(duration) {
+            const bar = document.getElementById('storyProgress');
+            bar.innerHTML = '<div class="progress-segment"><div class="progress-fill" style="animation: fillBar 5s linear forwards"></div></div>';
+        }
 
         // --- RENDER ---
         function renderVideos() {
@@ -714,119 +789,7 @@
             window.location.href = `footage.html?id=${encodeURIComponent(projectId)}`;
         }
 
-        // --- STORY LOGIC ---
-    let stories = [
-        { type: 'image', src: 'https://images.unsplash.com/photo-1492691527719-9d1e07e534b4?auto=format&fit=crop&w=1000&q=80', title: 'On Set Today' },
-        { type: 'video', src: '', title: 'Behind The Scenes' }, // Placeholder
-        { type: 'image', src: 'https://images.unsplash.com/photo-1598899134739-24c46f58b8c0?auto=format&fit=crop&w=1000&q=80', title: 'Lighting Setup' }
-    ];
-    let activeStoryIndex = 0;
-    let storyTimer;
 
-    // 1. Check Admin (ToShow Upload Button)
-    try {
-        const userStr = localStorage.getItem('imranUser');
-        if(userStr) {
-            const user = JSON.parse(userStr);
-            if(user.email === 'mohdesigner09@gmail.com' || user.role === 'admin') {
-                document.getElementById('adminStoryBtn').style.display = 'flex';
-            }
-        }
-    } catch(e) {}
-
-    // 2. Open Story
-    function openStory(index) {
-        activeStoryIndex = index;
-        const viewer = document.getElementById('storyViewer');
-        const img = document.getElementById('storyImage');
-        const vid = document.getElementById('storyVideo');
-        const caption = document.getElementById('storyCaption');
-        const bars = document.getElementById('storyProgressBars');
-
-        viewer.classList.remove('hidden');
-        
-        // Reset Progress Bars
-        bars.innerHTML = stories.map((_, i) => 
-            `<div class="h-1 flex-1 bg-white/30 rounded-full overflow-hidden"><div class="h-full bg-white transition-all duration-[5000ms] ease-linear w-0" id="bar-${i}"></div></div>`
-        ).join('');
-
-        loadStoryContent();
-    }
-
-    function loadStoryContent() {
-        const story = stories[activeStoryIndex];
-        const img = document.getElementById('storyImage');
-        const vid = document.getElementById('storyVideo');
-        const caption = document.getElementById('storyCaption');
-        
-        // Reset active bars
-        stories.forEach((_, i) => {
-            const bar = document.getElementById(`bar-${i}`);
-            if(i < activeStoryIndex) bar.style.width = '100%';
-            else if(i > activeStoryIndex) bar.style.width = '0%';
-            else {
-                // Current bar animation
-                bar.style.width = '0%';
-                setTimeout(() => bar.style.width = '100%', 10);
-            }
-        });
-
-        caption.textContent = story.title;
-
-        if(story.type === 'image') {
-            img.src = story.src;
-            img.classList.remove('hidden');
-            vid.classList.add('hidden');
-            vid.pause();
-            
-            clearTimeout(storyTimer);
-            storyTimer = setTimeout(nextStory, 5000); // 5 sec per image
-        } else {
-            // Video Logic placeholder
-            img.src = 'https://via.placeholder.com/1080x1920/111/fff?text=Video+Loading';
-            img.classList.remove('hidden');
-            vid.classList.add('hidden');
-            clearTimeout(storyTimer);
-            storyTimer = setTimeout(nextStory, 5000);
-        }
-    }
-
-    function nextStory() {
-        if(activeStoryIndex < stories.length - 1) {
-            activeStoryIndex++;
-            loadStoryContent();
-        } else {
-            closeStory();
-        }
-    }
-
-    function prevStory() {
-        if(activeStoryIndex > 0) {
-            activeStoryIndex--;
-            loadStoryContent();
-        }
-    }
-
-    function closeStory() {
-        document.getElementById('storyViewer').classList.add('hidden');
-        document.getElementById('storyVideo').pause();
-        clearTimeout(storyTimer);
-    }
-
-    // 3. Upload Logic
-    document.getElementById('storyFileInput').addEventListener('change', (e) => {
-        const file = e.target.files[0];
-        if(file) {
-            alert("Story uploaded successfully!"); // Replace with real logic
-            // Add to stories array locally for demo
-            stories.unshift({
-                type: file.type.startsWith('video') ? 'video' : 'image',
-                src: URL.createObjectURL(file),
-                title: 'New Update'
-            });
-        }
-    });
-    
     </script>
 </body>
 </html>

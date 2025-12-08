@@ -1,6 +1,7 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
+  
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Script Workspace - Imran Square</title>
@@ -38,6 +39,8 @@
             }
         }
     </script>
+    <script src="main.js"></script>
+
     <style>
         /* =========================================
            🔥 THEME: DARK CINEMATIC (Merged)
@@ -179,33 +182,92 @@
         .hidden-mode { display: none !important; }
         ::-webkit-scrollbar { width: 4px; }
         ::-webkit-scrollbar-thumb { background: rgba(255,255,255,0.2); border-radius: 10px; }
+
+        /* ===== MOBILE RESPONSIVE FIXES ===== */
+@media (max-width: 768px) {
+    /* Hide desktop sidebars on mobile */
+    aside {
+        display: none !important;
+    }
+    
+    /* Full width main content */
+    main {
+        width: 100% !important;
+    }
+    
+    /* Adjust editor for mobile */
+    #scriptEditor {
+        padding: 1rem !important;
+        font-size: 14px !important;
+        min-height: calc(100vh - 180px) !important;
+    }
+    
+    /* Bottom nav safe area for iPhone notch */
+    .safe-area-bottom {
+        padding-bottom: env(safe-area-inset-bottom);
+    }
+    
+    /* Mode switch on mobile bottom nav */
+    #mobileWriterBtn.active {
+        color: #ff6b35 !important;
+    }
+    
+    #mobileFilesBtn.active {
+        color: #ff6b35 !important;
+    }
+}
+
+/* Tablet adjustments */
+@media (min-width: 769px) and (max-width: 1024px) {
+    /* Show only left sidebar on tablet */
+    aside:last-of-type {
+        display: none !important;
+    }
+}
+
     </style>
 </head>
 <body class="flex flex-col h-screen">
 
     <!-- 1. HEADER -->
-    <header class="h-16 glass-header flex items-center justify-between px-6 shrink-0 z-50">
-        <div class="flex items-center gap-4">
-            <a href="#" onclick="goBackToHub()" class="p-2 rounded-lg hover:bg-white/10 text-gray-400 hover:text-white transition">
-                <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 19l-7-7m0 0l7-7m-7 7h18"/></svg>
-            </a>
-            <div>
-                <h1 class="text-sm font-bold text-white tracking-wide" id="scriptTitle">UNTITLED PROJECT</h1>
-                <p class="text-[10px] text-gray-500 uppercase tracking-widest">Script Workspace</p>
-            </div>
+<header class="h-14 md:h-16 glass-header flex items-center justify-between px-3 md:px-6 shrink-0 z-50">
+    <div class="flex items-center gap-2 md:gap-4">
+        <!-- ✅ Back Button with Text -->
+        <button onclick="goBackToHub()" class="flex items-center gap-1.5 md:gap-2 px-2 md:px-3 py-1.5 md:py-2 rounded-lg hover:bg-white/10 transition-all group">
+            <svg class="w-4 h-4 md:w-5 md:h-5 text-gray-400 group-hover:text-orange-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 19l-7-7m0 0l7-7m-7 7h18"></path>
+            </svg>
+            <span class="text-xs md:text-sm font-medium text-gray-300 group-hover:text-white hidden sm:inline">Back to Hub</span>
+            <span class="text-xs font-medium text-gray-300 group-hover:text-white sm:hidden">Back</span>
+        </button>
+        
+        <div class="border-l border-white/10 pl-2 md:pl-4">
+            <h1 class="text-xs md:text-sm font-bold text-white tracking-wide truncate max-w-[120px] md:max-w-none" id="scriptTitle">UNTITLED PROJECT</h1>
+            <p class="text-[9px] md:text-[10px] text-gray-500 uppercase tracking-widest hidden sm:block">Script Workspace</p>
         </div>
+    </div>
 
-        <div class="absolute left-1/2 transform -translate-x-1/2">
-            <div class="mode-switch">
-                <button onclick="switchMode('editor')" id="btnEditor" class="mode-btn active">Writer</button>
-                <button onclick="switchMode('files')" id="btnFiles" class="mode-btn">Files</button>
-            </div>
+    <!-- Desktop Mode Switch (Hidden on Mobile) -->
+    <div class="absolute left-1/2 transform -translate-x-1/2 hidden md:block">
+        <div class="mode-switch">
+            <button onclick="switchMode('editor')" id="btnEditor" class="mode-btn active">Writer</button>
+            <button onclick="switchMode('files')" id="btnFiles" class="mode-btn">Files</button>
         </div>
+    </div>
 
-        <div class="flex items-center gap-3">
-            <button id="editorActionBtn" class="px-4 py-2 bg-white text-black text-xs font-bold rounded-lg hover:bg-gray-200 transition">Export PDF</button>
-        </div>
-    </header>
+    <!-- Desktop Actions (Hidden on Mobile) -->
+    <div class="hidden md:flex items-center gap-3">
+        <button id="editorActionBtn" class="px-4 py-2 bg-white text-black text-xs font-bold rounded-lg hover:bg-gray-200 transition">Export PDF</button>
+    </div>
+    
+    <!-- Mobile Menu Icon -->
+    <button class="md:hidden p-2 rounded-lg hover:bg-white/10 text-gray-400">
+        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 5v.01M12 12v.01M12 19v.01M12 6a1 1 0 110-2 1 1 0 010 2zm0 7a1 1 0 110-2 1 1 0 010 2zm0 7a1 1 0 110-2 1 1 0 010 2z"></path>
+        </svg>
+    </button>
+</header>
+
 
 <!-- =========================================
          MODE 1: THE WRITER (Updated Layout)
@@ -213,10 +275,17 @@
     <div id="modeEditor" class="flex flex-1 overflow-hidden relative w-full h-full">
         
         <!-- LEFT SIDEBAR: SCENES -->
-        <aside class="w-64 glass-panel hidden md:flex flex-col z-40">
-            <div class="p-4 border-b border-white/5">
-                <h3 class="text-xs font-bold text-gray-400 uppercase tracking-wider">Scenes</h3>
-            </div>
+      <aside class="w-64 glass-panel hidden md:flex flex-col z-40">
+    <div class="p-4 border-b border-white/10">
+        <div class="flex items-center justify-between mb-3">
+            <h2 class="text-xs font-bold text-gray-500 uppercase tracking-wider">SCENES</h2>
+            <button onclick="addNewScene()" class="p-1.5 rounded-lg bg-orange-500/20 hover:bg-orange-500/30 text-orange-400 transition-all group" title="Add New Scene">
+                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"></path>
+                </svg>
+            </button>
+        </div>
+    </div>
             <div class="flex-1 overflow-y-auto p-2 space-y-1">
                 <!-- Scene Item Active -->
                 <div class="scene-item active px-3 py-3 rounded cursor-pointer transition">
@@ -234,15 +303,105 @@
         <!-- CENTER: EDITOR CANVAS -->
         <main class="flex-1 overflow-y-auto relative bg-transparent flex flex-col items-center custom-scrollbar">
             
-            <!-- THE SCRIPT PAGE -->
-            <div id="scriptEditor" contenteditable="true" class="script-page shadow-2xl">
-                <div class="scene-heading">INT. COFFEE SHOP - DAY</div>
-                <div class="action">Rain lashes against the window. A lone figure, KABIR (30s, disheveled), sits nursing a cold espresso.</div>
-                <div class="character">KABIR</div>
-                <div class="dialogue">(muttering)</div>
-                <div class="dialogue">It wasn't supposed to end like this.</div>
-                <div class="action">He pulls out a crumpled photograph.</div>
-            </div>
+           <!-- Multi-Page Container (Google Docs Style) -->
+<div id="editorContainer" class="flex flex-col items-center gap-6 py-8 overflow-auto custom-scrollbar" style="height: calc(100vh - 120px);">
+    <!-- Page Template (cloned dynamically) -->
+    <div class="script-page-wrapper" data-page="1">
+        <div contenteditable="true" class="script-page" id="scriptEditor" data-page-num="1">
+            INT. COFFEE SHOP - DAY
+
+Rain lashes against the window. A lone figure, KABIR (30s, disheveled), sits nursing a cold espresso.
+
+KABIR
+(muttering)
+It wasn't supposed to end like this.
+
+He pulls out a crumpled photograph.
+        </div>
+        <div class="page-number">Page 1</div>
+    </div>
+</div>
+
+<style>
+/* Google Docs Style Pages */
+#editorContainer {
+    background: #1a1a1a;
+    padding: 2rem 1rem;
+}
+
+.script-page-wrapper {
+    position: relative;
+    width: 100%;
+    max-width: 8.5in; /* Standard US Letter width */
+    margin: 0 auto;
+    box-shadow: 0 4px 20px rgba(0,0,0,0.5);
+    animation: fadeIn 0.3s ease;
+}
+
+.script-page {
+    width: 100%;
+    min-height: 11in; /* US Letter height */
+    max-height: 11in;
+    background: white;
+    color: black;
+    padding: 1in; /* Standard 1-inch margins */
+    font-family: 'Courier Prime', 'Courier New', monospace;
+    font-size: 12pt;
+    line-height: 1.5;
+    overflow: hidden; /* Prevent overflow */
+    box-sizing: border-box;
+    outline: none;
+}
+
+.page-number {
+    position: absolute;
+    bottom: 0.5in;
+    right: 1in;
+    color: rgba(0,0,0,0.4);
+    font-size: 10pt;
+    font-family: 'Courier New', monospace;
+    pointer-events: none;
+}
+
+/* Mobile Responsive */
+@media (max-width: 768px) {
+    .script-page-wrapper {
+        max-width: 100%;
+        box-shadow: none;
+    }
+    
+    .script-page {
+        min-height: auto;
+        max-height: none;
+        padding: 1rem;
+        font-size: 11pt;
+    }
+    
+    #editorContainer {
+        padding: 1rem 0.5rem;
+    }
+}
+
+/* Print Styles */
+@media print {
+    .script-page-wrapper {
+        page-break-after: always;
+        box-shadow: none;
+        margin: 0;
+    }
+    
+    .script-page {
+        min-height: 11in;
+        max-height: 11in;
+    }
+}
+
+@keyframes fadeIn {
+    from { opacity: 0; transform: translateY(20px); }
+    to { opacity: 1; transform: translateY(0); }
+}
+</style>
+
 
         </main>
 
@@ -330,73 +489,201 @@
 
             renderSections();
         })();
+function renderSections() {
+    // Load from main projects array
+    const projectId = new URLSearchParams(window.location.search).get('id');
+    const project = projects.find(p => p.id === projectId);
+    
+    if (project && project.sections) {
+        sectionsData = project.sections;
+    }
+    
+    const grid = document.getElementById('sectionsGrid');
+    if (!grid) return;
+    grid.innerHTML = '';
 
-        function renderSections() {
-            const grid = document.getElementById('sectionsGrid');
-            grid.innerHTML = '';
+    sectionsData.forEach(section => {
+        const count = section.files.length;
+        const percent = (count / FILES_PER_SECTION) * 100;
+        const isFull = count >= FILES_PER_SECTION;
+        const ringColor = isFull ? 'ring-full' : 'ring-green';
+        
+        // SVG Dash array logic (circumference ~ 100)
+        const dashArray = `${percent}, 100`;
 
-            sectionsData.forEach(section => {
-                const count = section.files.length;
-                const percent = (count / FILES_PER_SECTION) * 100;
-                const isFull = count >= FILES_PER_SECTION;
-                const ringColor = isFull ? 'ring-full' : 'ring-green';
-                
-                // SVG Dash array logic (circumference ~ 100)
-                const dashArray = `${percent}, 100`;
-
-                // Generate File List HTML
-                let filesHtml = '';
-                if(count === 0) {
-                    filesHtml = `<div class="h-full flex flex-col items-center justify-center text-gray-600">
-                        <svg class="w-8 h-8 mb-2 opacity-20" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 13h6m-3-3v6m5 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path></svg>
-                        <span class="text-[10px]">No files yet</span>
-                    </div>`;
-                } else {
-                    // Reverse to show newest first
-                    const reversedFiles = [...section.files].reverse();
-                    reversedFiles.forEach(file => {
-                        filesHtml += `
-                            <div class="file-item group">
-                                <div class="flex items-center gap-2 truncate w-[70%]">
-                                    <svg class="w-3 h-3 text-gray-500 group-hover:text-green-400 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 21h10a2 2 0 002-2V9.414a1 1 0 00-.293-.707l-5.414-5.414A1 1 0 0012.586 2H7a2 2 0 00-2 2v14a2 2 0 002 2z"></path></svg>
-                                    <span class="truncate" title="${file.name}">${file.name}</span>
-                                </div>
-                                <span class="text-[9px] text-gray-600 shrink-0">${file.date || 'Just now'}</span>
-                            </div>
-                        `;
-                    });
-                }
-
-                // Card HTML
-                const card = document.createElement('div');
-                card.className = 'section-card';
-                card.innerHTML = `
-                    <div class="flex justify-between items-start mb-2">
-                        <div>
-                            <h3 class="text-sm font-bold text-white uppercase tracking-wider">${section.name}</h3>
-                            <p class="text-[10px] text-gray-500">${count} Files</p>
+        // Generate File List HTML
+        let filesHtml = '';
+        
+        if(count === 0) {
+            filesHtml = `<div class="h-full flex flex-col items-center justify-center text-gray-600">
+                <svg class="w-8 h-8 mb-2 opacity-20" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 13h6m-3-3v6m5 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path></svg>
+                <span class="text-[10px]">No files yet</span>
+            </div>`;
+        } else {
+            // Reverse to show newest first
+            const reversedFiles = [...section.files].reverse();
+            reversedFiles.forEach(file => {
+                filesHtml += `
+                    <div class="file-item group">
+                        <div class="flex items-center gap-2 truncate w-[70%]">
+                            <svg class="w-3 h-3 text-gray-500 group-hover:text-green-400 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 21h10a2 2 0 002-2V9.414a1 1 0 00-.293-.707l-5.414-5.414A1 1 0 0012.586 2H7a2 2 0 00-2 2v14a2 2 0 002 2z"></path></svg>
+                            <span class="truncate" title="${file.name}">${file.name}</span>
                         </div>
-                        <!-- Holographic Ring -->
-                        <div class="capacity-wrapper">
-                            <svg class="capacity-svg" viewBox="0 0 36 36">
-                                <path class="capacity-circle-bg" d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831" />
-                                <path class="capacity-circle-fg ${ringColor}" stroke-dasharray="${dashArray}" d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831" />
-                            </svg>
-                            <div class="capacity-text">${count}/${FILES_PER_SECTION}</div>
-                        </div>
+                        <span class="text-[9px] text-gray-600 shrink-0">${file.date || 'Just now'}</span>
                     </div>
-                    
-                    <div class="file-list custom-scrollbar">
-                        ${filesHtml}
-                    </div>
-
-                    <button onclick="triggerUpload(${section.id})" class="card-upload-btn" ${isFull ? 'disabled' : ''}>
-                        ${isFull ? '<span class="text-red-400">⚠️ Section Full</span>' : '<span>+ Upload File</span>'}
-                    </button>
                 `;
-                grid.appendChild(card);
             });
         }
+
+        // Card HTML
+        const card = document.createElement('div');
+        card.className = 'section-card';
+        card.innerHTML = `
+            <div class="flex justify-between items-start mb-2">
+                <div>
+                    <h3 class="text-sm font-bold text-white uppercase tracking-wider">${section.name}</h3>
+                    <p class="text-[10px] text-gray-500">${count} Files</p>
+                </div>
+                <!-- Holographic Ring -->
+                <div class="capacity-wrapper">
+                    <svg class="capacity-svg" viewBox="0 0 36 36">
+                        <path class="capacity-circle-bg" d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831" />
+                        <path class="capacity-circle-fg ${ringColor}" stroke-dasharray="${dashArray}" d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831" />
+                    </svg>
+                    <div class="capacity-text">${count}/${FILES_PER_SECTION}</div>
+                </div>
+            </div>
+            
+            <div class="file-list custom-scrollbar">
+                ${filesHtml}
+            </div>
+
+            <button onclick="triggerUpload(${section.id})" class="card-upload-btn" ${isFull ? 'disabled' : ''}>
+                ${isFull ? '<span class="text-red-400">⚠️ Section Full</span>' : '<span>+ Upload File</span>'}
+            </button>
+        `;
+        grid.appendChild(card);
+    });
+}
+
+// ===== AUTO-PAGE SYSTEM (Google Docs Style) =====
+let pageCount = 1;
+const MAX_PAGE_HEIGHT = 11 * 96; // 11 inches in pixels (96 DPI)
+
+function initAutoPages() {
+    const editor = document.getElementById('scriptEditor');
+    if (!editor) return;
+    
+    // Monitor text input
+    editor.addEventListener('input', debounce(checkPageOverflow, 300));
+    editor.addEventListener('paste', () => setTimeout(checkPageOverflow, 100));
+}
+
+function checkPageOverflow() {
+    const container = document.getElementById('editorContainer');
+    const pages = container.querySelectorAll('.script-page');
+    const lastPage = pages[pages.length - 1];
+    
+    // Check if content exceeds page height
+    if (lastPage.scrollHeight > lastPage.clientHeight) {
+        addNewPage();
+    }
+}
+
+function addNewPage() {
+    pageCount++;
+    const container = document.getElementById('editorContainer');
+    
+    const newPageWrapper = document.createElement('div');
+    newPageWrapper.className = 'script-page-wrapper';
+    newPageWrapper.setAttribute('data-page', pageCount);
+    
+    newPageWrapper.innerHTML = `
+        <div contenteditable="true" class="script-page" data-page-num="${pageCount}">
+            
+        </div>
+        <div class="page-number">Page ${pageCount}</div>
+    `;
+    
+    container.appendChild(newPageWrapper);
+    
+    // Focus new page
+    const newPage = newPageWrapper.querySelector('.script-page');
+    newPage.focus();
+    
+    // Add input listener to new page
+    newPage.addEventListener('input', debounce(checkPageOverflow, 300));
+    
+    console.log(`✅ Added Page ${pageCount}`);
+}
+
+function debounce(func, wait) {
+    let timeout;
+    return function executedFunction(...args) {
+        clearTimeout(timeout);
+        timeout = setTimeout(() => func.apply(this, args), wait);
+    };
+}
+
+// Add Scene Function
+function addNewScene() {
+    const sceneName = prompt('Enter scene name (e.g., INT. BEDROOM - NIGHT):');
+    if (!sceneName) return;
+    
+    const editor = document.getElementById('scriptEditor');
+    if (editor) {
+        // Insert at cursor or end
+        const selection = window.getSelection();
+        if (selection.rangeCount > 0) {
+            const range = selection.getRangeAt(0);
+            const newLine = document.createTextNode(`\n\n${sceneName.toUpperCase()}\n\n`);
+            range.insertNode(newLine);
+        } else {
+            editor.textContent += `\n\n${sceneName.toUpperCase()}\n\n`;
+        }
+        
+        saveEditorContent();
+    }
+}
+
+
+function saveProject() {
+    const projectId = new URLSearchParams(window.location.search).get('id');
+    const project = projects.find(p => p.id === projectId);
+    
+    if (project) {
+        project.sections = sectionsData;
+        localStorage.setItem('imranProjects', JSON.stringify(projects));
+        console.log('✅ Project sections saved');
+    }
+}
+
+// ✅ SAFE EDITOR SAVE (XSS Protected)
+function saveEditorContent() {
+    const editor = document.getElementById('scriptEditor');
+    if (!editor) return;
+    
+    const projectId = new URLSearchParams(window.location.search).get('id');
+    const project = projects.find(p => p.id === projectId);
+    
+    if (project) {
+        // ✅ USE textContent (safe from XSS)
+        project.scriptContent = editor.textContent;
+        localStorage.setItem('imranProjects', JSON.stringify(projects));
+        console.log('✅ Script saved');
+    }
+}
+
+// Auto-save on typing (debounced)
+let saveTimeout;
+const editorEl = document.getElementById('scriptEditor');
+if (editorEl) {
+    editorEl.addEventListener('input', () => {
+        clearTimeout(saveTimeout);
+        saveTimeout = setTimeout(saveEditorContent, 1000);
+    });
+}
+
 
         // --- 3. UPLOAD LOGIC ---
         function triggerUpload(sectionId) {
@@ -404,7 +691,11 @@
             document.getElementById('fileInput').click();
         }
 
-        document.getElementById('fileInput').addEventListener('change', (e) => {
+       const fileInput = document.getElementById('fileInput');
+if (fileInput) {
+    fileInput.addEventListener('change', function(e) {
+       
+
             const files = Array.from(e.target.files);
             if(files.length === 0 || !currentSectionId) return;
 
@@ -440,8 +731,14 @@
                 currentSectionId = null;
             }, 1000);
         });
+}
+        
 
         // Helper: Queue Toast
+        // Initialize page
+// Line ~460 (save karne se pehle)
+const editorText = document.getElementById('scriptEditor').textContent; // NOT innerHTML
+
         function addToQueue(msg, success = null) {
             const q = document.getElementById('uploadQueue');
             const div = document.createElement('div');
@@ -472,6 +769,8 @@
             const btnEditor = document.getElementById('btnEditor');
             const btnFiles = document.getElementById('btnFiles');
             const editorAction = document.getElementById('editorActionBtn');
+                if (!editorDiv || !filesDiv || !btnEditor || !btnFiles) return;
+
 
             if (mode === 'editor') {
                 editorDiv.classList.remove('hidden-mode');
@@ -492,6 +791,43 @@
             const id = new URLSearchParams(window.location.search).get('id');
             window.location.href = id ? `project_hub.html?id=${encodeURIComponent(id)}` : 'project_hub.html';
         }
+        
+        document.addEventListener('DOMContentLoaded', initPage);
+
     </script>
+
+        <!-- 📱 MOBILE BOTTOM NAVIGATION -->
+    <div class="md:hidden fixed bottom-0 left-0 right-0 bg-black/95 backdrop-blur-lg border-t border-white/10 flex justify-around py-2 z-50 safe-area-bottom">
+        <button onclick="switchMode('editor')" id="mobileWriterBtn" class="flex flex-col items-center gap-1 px-4 py-2 text-orange-400 transition-colors">
+            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"></path>
+            </svg>
+            <span class="text-[10px] font-medium">Write</span>
+        </button>
+        
+        <button onclick="switchMode('files')" id="mobileFilesBtn" class="flex flex-col items-center gap-1 px-4 py-2 text-gray-400 hover:text-white transition-colors">
+            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 7v10a2 2 0 002 2h14a2 2 0 002-2V9a2 2 0 00-2-2h-6l-2-2H5a2 2 0 00-2 2z"></path>
+            </svg>
+            <span class="text-[10px] font-medium">Files</span>
+        </button>
+        
+        <button onclick="addNewScene()" class="flex flex-col items-center gap-1 px-4 py-2 text-gray-400 hover:text-white transition-colors">
+            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"></path>
+            </svg>
+            <span class="text-[10px] font-medium">Add</span>
+        </button>
+        
+        <button onclick="exportPDF()" class="flex flex-col items-center gap-1 px-4 py-2 text-gray-400 hover:text-white transition-colors">
+            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path>
+            </svg>
+            <span class="text-[10px] font-medium">Export</span>
+        </button>
+    </div>
+
+</body>
+
 </body>
 </html>
