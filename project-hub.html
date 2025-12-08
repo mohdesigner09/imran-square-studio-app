@@ -3,681 +3,543 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Project Hub - IMRAN SQUARE</title>
-
-        <!-- PWA Meta Tags -->
-    <meta name="theme-color" content="#ff6b35">
-    <meta name="mobile-web-app-capable" content="yes">
-    <meta name="apple-mobile-web-app-capable" content="yes">
-    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
-    <meta name="apple-mobile-web-app-title" content="IMRAN SQUARE">
-    
-    <!-- PWA Manifest -->
-    <link rel="manifest" href="/manifest.json">
-    
-    <!-- Icons for iOS -->
-    <link rel="apple-touch-icon" href="/resources/icon-152.png">
-    <link rel="apple-touch-icon" sizes="152x152" href="/resources/icon-152.png">
-    <link rel="apple-touch-icon" sizes="180x180" href="/resources/icon-192.png">
-    <link rel="apple-touch-icon" sizes="192x192" href="/resources/icon-192.png">
-    
-    <!-- Favicon -->
-    <link rel="icon" type="image/png" sizes="32x32" href="/resources/icon-32.png">
-    <link rel="icon" type="image/png" sizes="16x16" href="/resources/icon-16.png">
-    <link rel="shortcut icon" href="/resources/favicon.ico">
-
-
+    <title>Project Hub - Imran Square</title>
     <script src="https://cdn.tailwindcss.com"></script>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/animejs/3.2.1/anime.min.js"></script>
-    <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@400;700&family=Inter:wght@300;400;500&family=JetBrains+Mono:wght@400&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600&family=Playfair+Display:wght@700&display=swap" rel="stylesheet">
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    fontFamily: { sans: ['Inter', 'sans-serif'], display: ['Playfair Display', 'serif'] },
+                    colors: { brand: { dark: '#030303', gray: '#0a0a0a' } }
+                }
+            }
+        }
+    </script>
     <style>
-    /* =========================================
-       🔥 THEME: DARK CINEMATIC (Project Hub Edition)
-       ========================================= */
+        /* =========================================
+           🔥 THEME: DARK CINEMATIC (Permanent Neon Loop)
+           ========================================= */
 
-    :root { 
-        --primary-dark: #030303; 
-        --accent-glow: #ffffff; /* Pure White */
-        --text-primary: #ededed; 
-    }
+        :root { --text-primary: #ededed; }
 
-    /* 1. BACKGROUND SETUP (Same as Index) */
-    body { 
-        background-color: #030303 !important;
-        color: var(--text-primary); 
-        font-family: 'Inter', sans-serif; 
-        overflow-x: hidden; 
-        position: relative;
-    }
+        body { 
+            background-color: #030303 !important;
+            color: var(--text-primary); 
+            font-family: 'Inter', sans-serif; 
+            overflow-x: hidden; 
+            position: relative;
+        }
 
-    /* Cinematic Blurred Background */
-    body::before {
-        content: "";
-        position: fixed;
-        top: 0; left: 0; width: 100%; height: 100%;
+        /* Background Image with Blur */
+        body::before {
+            content: "";
+            position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+            background-image: url('resources/index bg .jpeg'); 
+            background-size: cover; background-position: center; background-repeat: no-repeat;
+            filter: blur(4px) brightness(0.7);
+            transform: scale(1.05); opacity: 0.5;
+            z-index: -50; pointer-events: none;
+        }
+
+        /* --- HUB CARDS --- */
+        .hub-card { 
+            background: rgba(15, 15, 15, 0.6);
+            backdrop-filter: blur(12px);
+            border: 1px solid rgba(255, 255, 255, 0.08);
+            border-top: 1px solid rgba(255, 255, 255, 0.15);
+            border-radius: 24px; 
+            padding: 2rem; 
+            height: 260px; /* Exact size preserved */
+            display: flex; flex-direction: column; justify-content: space-between; 
+            cursor: pointer; position: relative; overflow: hidden; 
+            transition: all 0.4s cubic-bezier(0.25, 0.8, 0.25, 1); 
+            box-shadow: 0 10px 30px -10px rgba(0,0,0,0.8); 
+        }
+
+        .hub-card:hover { 
+            border-color: rgba(255, 255, 255, 0.4); 
+            transform: translateY(-8px) scale(1.01); 
+            box-shadow: 0 30px 60px -15px rgba(0, 0, 0, 1), 0 0 30px rgba(255, 255, 255, 0.1);
+        }
+
+        /* --- PERMANENT ANIMATED NEON ICONS --- */
+        .icon-box {
+            width: 60px; height: 60px;
+            border-radius: 16px;
+            display: flex; align-items: center; justify-content: center;
+            position: relative;
+            border: 1px solid rgba(255,255,255,0.1);
+            transition: all 0.4s ease;
+        }
+
+        .icon-svg {
+            width: 32px; height: 32px;
+            stroke-width: 1.5;
+            transition: transform 0.4s ease;
+        }
+
+        /* Hover Effect for Icon Inner Scale only */
+        .hub-card:hover .icon-svg {
+            transform: scale(1.15);
+        }
+
+        /* --- ANIMATION KEYFRAMES (Breathing Gradient Glow) --- */
         
-        /* 🔥 Background Image */
-        background-image: url('resources/index bg .jpeg'); 
-        background-size: cover;
-        background-position: center;
-        background-repeat: no-repeat;
+        /* 1. BLUE PULSE */
+        @keyframes pulseBlue {
+            0%, 100% { box-shadow: 0 0 15px rgba(6, 182, 212, 0.2), inset 0 0 5px rgba(6, 182, 212, 0.1); border-color: rgba(6, 182, 212, 0.3); background: rgba(6, 182, 212, 0.05); }
+            50% { box-shadow: 0 0 35px rgba(6, 182, 212, 0.6), inset 0 0 15px rgba(6, 182, 212, 0.2); border-color: #06b6d4; background: rgba(6, 182, 212, 0.15); }
+        }
+        .glow-blue { animation: pulseBlue 3s infinite ease-in-out; }
+        .glow-blue svg { stroke: #22d3ee; filter: drop-shadow(0 0 5px rgba(34, 211, 238, 0.6)); }
+
+        /* 2. ORANGE PULSE */
+        @keyframes pulseOrange {
+            0%, 100% { box-shadow: 0 0 15px rgba(249, 115, 22, 0.2), inset 0 0 5px rgba(249, 115, 22, 0.1); border-color: rgba(249, 115, 22, 0.3); background: rgba(249, 115, 22, 0.05); }
+            50% { box-shadow: 0 0 35px rgba(249, 115, 22, 0.6), inset 0 0 15px rgba(249, 115, 22, 0.2); border-color: #f97316; background: rgba(249, 115, 22, 0.15); }
+        }
+        .glow-orange { animation: pulseOrange 3s infinite ease-in-out; animation-delay: 0.5s; }
+        .glow-orange svg { stroke: #fb923c; filter: drop-shadow(0 0 5px rgba(251, 146, 60, 0.6)); }
+
+        /* 3. PURPLE PULSE */
+        @keyframes pulsePurple {
+            0%, 100% { box-shadow: 0 0 15px rgba(168, 85, 247, 0.2), inset 0 0 5px rgba(168, 85, 247, 0.1); border-color: rgba(168, 85, 247, 0.3); background: rgba(168, 85, 247, 0.05); }
+            50% { box-shadow: 0 0 35px rgba(168, 85, 247, 0.6), inset 0 0 15px rgba(168, 85, 247, 0.2); border-color: #a855f7; background: rgba(168, 85, 247, 0.15); }
+        }
+        .glow-purple { animation: pulsePurple 3s infinite ease-in-out; animation-delay: 1s; }
+        .glow-purple svg { stroke: #c084fc; filter: drop-shadow(0 0 5px rgba(192, 132, 252, 0.6)); }
+
+        /* 4. GREEN PULSE */
+        @keyframes pulseGreen {
+            0%, 100% { box-shadow: 0 0 15px rgba(34, 197, 94, 0.2), inset 0 0 5px rgba(34, 197, 94, 0.1); border-color: rgba(34, 197, 94, 0.3); background: rgba(34, 197, 94, 0.05); }
+            50% { box-shadow: 0 0 35px rgba(34, 197, 94, 0.6), inset 0 0 15px rgba(34, 197, 94, 0.2); border-color: #22c55e; background: rgba(34, 197, 94, 0.15); }
+        }
+        .glow-green { animation: pulseGreen 3s infinite ease-in-out; animation-delay: 1.5s; }
+        .glow-green svg { stroke: #4ade80; filter: drop-shadow(0 0 5px rgba(74, 222, 128, 0.6)); }
+
+        /* Nav & Texts */
+        .nav-bottom { background: rgba(0, 0, 0, 0.9); backdrop-filter: blur(20px); border-top: 1px solid rgba(255,255,255,0.15); }
+        .nav-item.active { color: #ffffff !important; text-shadow: 0 0 10px rgba(255,255,255,0.5); }
         
-        /* ✨ Blur & Blend Settings */
-        filter: blur(4px) brightness(0.7);
-        transform: scale(1.05);
-        opacity: 0.5;
-        z-index: -50;
-        pointer-events: none;
-    }
-
-    .font-display { font-family: 'Playfair Display', serif; }
-
-    /* 2. HUB CARDS (Updated to Black & White) */
-    .hub-card { 
-        background: rgba(15, 15, 15, 0.6); /* Glassy Black */
-        backdrop-filter: blur(12px);
-        border: 1px solid rgba(255, 255, 255, 0.08);
-        border-top: 1px solid rgba(255, 255, 255, 0.15);
-        border-radius: 24px; 
-        padding: 2rem; 
-        height: 260px; 
-        display: flex; 
-        flex-direction: column; 
-        justify-content: space-between; 
-        cursor: pointer; 
-        position: relative; 
-        overflow: hidden; 
-        transition: all 0.3s cubic-bezier(0.25, 0.8, 0.25, 1); 
-        box-shadow: 0 10px 30px -10px rgba(0,0,0,0.8); 
-    }
-
-    /* 🔥 Hover Effect: White Glow */
-    .hub-card:hover { 
-        border-color: rgba(255, 255, 255, 0.5); 
-        transform: translateY(-8px) scale(1.01); 
-        box-shadow: 
-            inset 0 1px 0 0 rgba(255, 255, 255, 0.2), 
-            0 30px 60px -15px rgba(0, 0, 0, 1), 
-            0 0 25px rgba(255, 255, 255, 0.15); /* White Glow */
-    }
-
-    /* 3. ICONS (Orange -> White) */
-    .hub-icon { 
-        width: 60px; height: 60px; 
-        background: rgba(255,255,255,0.05); 
-        border-radius: 16px; 
-        display: flex; 
-        align-items: center; 
-        justify-content: center; 
-        color: #ffffff; /* White Icon */
-        border: 1px solid rgba(255,255,255,0.1); 
-        transition: 0.3s; 
-    }
-
-    .hub-card:hover .hub-icon { 
-        background: #ffffff; /* White BG */
-        color: black; /* Black Icon */
-        box-shadow: 0 0 30px rgba(255, 255, 255, 0.4); /* White Glow */
-    }
-
-    /* 4. NAV BAR & TEXT OVERRIDES */
-    .nav-bottom { 
-        background: rgba(0, 0, 0, 0.9); 
-        backdrop-filter: blur(20px); 
-        border-top: 1px solid rgba(255,255,255,0.15); 
-    }
-    
-    .nav-item.active { 
-        color: #ffffff !important; 
-        text-shadow: 0 0 10px rgba(255,255,255,0.5); 
-    }
-
-    /* 🚫🍊 ORANGE KILLER (Force Remove Orange Text) */
-    .text-orange-500, .text-amber-500 {
-        color: #ffffff !important;
-        text-shadow: 0 0 15px rgba(255, 255, 255, 0.5);
-    }
-    
-    /* Global UI Elements */
-    .film-grain { display: none; }
-</style>
+        /* Orange Killer Override */
+        .text-orange-500 { color: #fff !important; text-shadow: 0 0 10px rgba(255,255,255,0.5); }
+        .group-hover\:text-orange-500:hover { color: #fff !important; text-shadow: 0 0 10px rgba(255,255,255,0.6); }
+    </style>
 </head>
-<body>
+<body class="min-h-screen pb-24">
+    
     <div class="hero-bg"></div> <canvas class="film-grain" id="filmGrain"></canvas>
 
-    
+    <!-- Top Sticky Header -->
     <div class="p-6 flex items-center justify-between sticky top-0 z-50 bg-gradient-to-b from-black/95 to-transparent backdrop-blur-sm">
         <div class="flex items-center gap-4">
-            <a href="index.html" class="group p-3 rounded-full border border-white/5 hover:border-orange-500 transition-all bg-[#0a0a0a]"><svg class="w-5 h-5 text-gray-500 group-hover:text-orange-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7"></path></svg></a>
-           <h1 class="font-display text-3xl font-bold text-white tracking-wide" id="projectTitleHeading">Loading...</h1>
-
-<p class="text-[10px] text-orange-600 tracking-[0.2em] uppercase mt-1 font-bold">Project Hub</p></div>
-        </div>
-    </div>
-<!-- PROJECT HEADER SECTION -->
-<div class="max-w-6xl mx-auto px-6 mt-2">
-    <div class="bg-gradient-to-br from-zinc-900 via-zinc-900/95 to-black border border-white/5 rounded-2xl p-8 mb-6 shadow-2xl">
-        <div class="flex items-center justify-between mb-4">
-            <h2 class="text-3xl font-display font-semibold text-white">
-                <span id="projectTitleHeading">imran bro</span>
-            </h2>
-            <div class="flex gap-2">
-                <button class="p-2 hover:bg-white/5 rounded-lg transition" title="Edit">
-                    <svg class="w-5 h-5 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"/>
-                    </svg>
-                </button>
-                <button class="p-2 hover:bg-white/5 rounded-lg transition" title="Download">
-                    <svg class="w-5 h-5 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"/>
-                    </svg>
-                </button>
-                <button class="p-2 hover:bg-white/5 rounded-lg transition" title="Delete">
-                    <svg class="w-5 h-5 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"/>
-                    </svg>
-                </button>
-            </div>
-        </div>
-
-        <div class="flex items-center justify-between mb-4">
-            <div class="flex items-center gap-3">
-                <span id="projectStageBadge" class="px-3 py-1 rounded-full text-[11px] uppercase tracking-[0.2em] bg-orange-500/10 text-orange-400 border border-orange-500/40">
-                    PRE-PRODUCTION
-                </span>
-            </div>
-            <div class="flex items-center gap-3 text-[11px] text-gray-400">
-                <span id="projectMetaLabel">NEW • 0 CH • 0MIN</span>
-                <span id="projectGenreBadge" class="px-3 py-1 rounded-full border border-white/5 bg-white/5 text-[11px] uppercase tracking-[0.2em] text-gray-300">
-                    Film Noir
-                </span>
-            </div>
-        </div>
-
-        <div class="mt-2">
-            <div class="flex items-center justify-between text-[11px] text-gray-500 uppercase tracking-[0.2em] mb-2">
-                <span>Overall Progress</span>
-                <span id="projectProgressPercent" class="text-orange-500">35%</span>
-            </div>
-            <div class="h-1.5 rounded-full bg-gradient-to-r from-orange-500/30 via-orange-500/10 to-transparent overflow-hidden">
-                <div id="projectProgressFill" class="h-1.5 rounded-full bg-orange-500 shadow-[0_0_15px_rgba(255,107,53,0.7)]" style="width: 35%;"></div>
-            </div>
-        </div>
-
-        <!-- Stats Row -->
-        <div class="grid grid-cols-3 gap-4 pt-4 border-t border-white/5 mt-4">
-            <div class="text-center">
-                <div class="text-2xl font-bold text-orange-500" id="daysInProduction">0</div>
-                <div class="text-xs text-gray-500 font-mono">DAYS IN PRODUCTION</div>
-            </div>
-            <div class="text-center">
-                <div class="text-2xl font-bold text-white" id="totalFiles">0</div>
-                <div class="text-xs text-gray-500 font-mono">TOTAL FILES</div>
-            </div>
-            <div class="text-center">
-                <div class="text-2xl font-bold text-white" id="lastUpdated">TODAY</div>
-                <div class="text-xs text-gray-500 font-mono">LAST UPDATED</div>
+            <a href="index.html" class="group p-3 rounded-full border border-white/5 hover:border-orange-500 transition-all bg-[#0a0a0a]">
+                <svg class="w-5 h-5 text-gray-500 group-hover:text-orange-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7"></path></svg>
+            </a>
+            <div>
+                <!-- Dynamic Header Title (Loading State handled by JS) -->
+                <h1 class="font-display text-2xl md:text-3xl font-bold text-white tracking-wide truncate max-w-[200px] md:max-w-md" id="headerProjectTitle">Loading...</h1>
+                <p class="text-[10px] text-orange-600 tracking-[0.2em] uppercase mt-1 font-bold">Project Hub</p>
             </div>
         </div>
     </div>
-</div>
 
+    <!-- PROJECT HEADER SECTION (Preserved & Updated) -->
+    <div class="max-w-6xl mx-auto px-4 md:px-6 mt-2">
+        <div class="bg-gradient-to-br from-zinc-900 via-zinc-900/95 to-black border border-white/5 rounded-2xl p-6 md:p-8 mb-6 shadow-2xl">
+            <!-- Title & Admin Controls (Responsive) -->
+            <div class="flex flex-col md:flex-row md:items-center justify-between mb-6 gap-4">
+                
+                <!-- Project Name with Loading Skeleton -->
+                <h2 class="text-3xl md:text-4xl font-display font-semibold text-white break-words">
+                    <span id="projectTitleHeading" class="inline-block min-w-[150px] animate-pulse bg-white/10 rounded text-transparent">Loading...</span>
+                </h2>
+
+                <!-- Admin Only Buttons (Hidden by default) -->
+                <div id="adminControls" class="hidden flex gap-2 self-start md:self-auto">
+                    <button onclick="editProjectDetails()" class="p-2 bg-white/5 hover:bg-white/10 border border-white/10 rounded-lg transition group" title="Edit Project">
+                        <svg class="w-5 h-5 text-gray-400 group-hover:text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"/></svg>
+                    </button>
+                    <button class="p-2 bg-white/5 hover:bg-white/10 border border-white/10 rounded-lg transition group" title="Download">
+                        <svg class="w-5 h-5 text-gray-400 group-hover:text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"/></svg>
+                    </button>
+                    <button onclick="deleteCurrentProject()" class="p-2 bg-red-500/10 hover:bg-red-500/20 border border-red-500/30 rounded-lg transition group" title="Delete Project">
+                        <svg class="w-5 h-5 text-red-400 group-hover:text-red-300" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"/></svg>
+                    </button>
+                </div>
+            </div>
+
+            <div class="flex flex-wrap items-center justify-between mb-6 gap-y-3">
+                <div class="flex items-center gap-3">
+                    <span id="projectStageBadge" class="px-3 py-1 rounded-full text-[11px] uppercase tracking-[0.2em] bg-orange-500/10 text-orange-400 border border-orange-500/40">
+                        PRE-PRODUCTION
+                    </span>
+                </div>
+                <div class="flex items-center gap-3 text-[11px] text-gray-400">
+                    <span id="projectMetaLabel">NEW • 0 CH • 0MIN</span>
+                    <span id="projectGenreBadge" class="px-3 py-1 rounded-full border border-white/5 bg-white/5 text-[11px] uppercase tracking-[0.2em] text-gray-300">
+                        Film Noir
+                    </span>
+                </div>
+            </div>
+
+            <div class="mt-2">
+                <div class="flex items-center justify-between text-[11px] text-gray-500 uppercase tracking-[0.2em] mb-2">
+                    <span>Overall Progress</span>
+                    <span id="projectProgressPercent" class="text-orange-500">35%</span>
+                </div>
+                <div class="h-1.5 rounded-full bg-gradient-to-r from-orange-500/30 via-orange-500/10 to-transparent overflow-hidden">
+                    <div id="projectProgressFill" class="h-1.5 rounded-full bg-orange-500 shadow-[0_0_15px_rgba(255,107,53,0.7)]" style="width: 35%;"></div>
+                </div>
+            </div>
+
+            <!-- Stats Row -->
+            <div class="grid grid-cols-3 gap-4 pt-4 border-t border-white/5 mt-4">
+                <div class="text-center">
+                    <div class="text-2xl font-bold text-orange-500" id="daysInProduction">0</div>
+                    <div class="text-xs text-gray-500 font-mono">DAYS IN PRODUCTION</div>
+                </div>
+                <div class="text-center">
+                    <div class="text-2xl font-bold text-white" id="totalFiles">0</div>
+                    <div class="text-xs text-gray-500 font-mono">TOTAL FILES</div>
+                </div>
+                <div class="text-center">
+                    <div class="text-2xl font-bold text-white" id="lastUpdated">TODAY</div>
+                    <div class="text-xs text-gray-500 font-mono">LAST UPDATED</div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- MAIN HUB GRID (Cards Updated with Neon Icons) -->
     <div class="p-6 max-w-6xl mx-auto pb-24">
         <div class="grid grid-cols-1 md:grid-cols-2 gap-6" id="hubGrid">
-        <div class="hub-card group" onclick="openScriptsPage()">
-
-
-
-                <div class="flex justify-between"><div class="hub-icon"><svg class="w-8 h-8" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path></svg></div><span class="text-xs font-mono text-gray-500 border border-white/10 px-2 py-1 rounded h-fit" id="docCount">0 Docs</span></div>
-                <div><h2 class="text-2xl font-display font-bold mb-2 group-hover:text-orange-500 transition">Scripts</h2><p class="text-sm text-gray-400">Manage screenplays & scenes.</p></div>
+            
+            <!-- 1. SCRIPTS CARD (Orange Pulse) -->
+            <div class="hub-card group" onclick="openScriptsPage()">
+                <div class="flex justify-between">
+                    <div class="icon-box glow-orange">
+                        <svg class="icon-svg" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path></svg>
+                    </div>
+                    <span class="text-xs font-mono text-gray-500 border border-white/10 px-2 py-1 rounded h-fit" id="docCount">0 Docs</span>
+                </div>
+                <div>
+                    <h2 class="text-2xl font-display font-bold mb-2 group-hover:text-orange-500 transition">Scripts</h2>
+                    <p class="text-sm text-gray-400">Manage screenplays & scenes.</p>
+                </div>
             </div>
 
-          <div class="hub-card group" onclick="openFootagePage()">
-
-
-
-
-                <div class="flex justify-between"><div class="hub-icon"><svg class="w-8 h-8" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 10l4.553-2.276A1 1 0 0121 8.618v6.764a1 1 0 01-1.447.894L15 14M5 18h8a2 2 0 002-2V8a2 2 0 00-2-2H5a2 2 0 00-2 2v8a2 2 0 002 2z"></path></svg></div><span class="text-xs font-mono text-gray-500 border border-white/10 px-2 py-1 rounded h-fit">Gallery</span></div>
-                <div><h2 class="text-2xl font-display font-bold mb-2 group-hover:text-orange-500 transition">Final Footage</h2><p class="text-sm text-gray-400">View edits and renders.</p></div>
+            <!-- 2. FINAL FOOTAGE CARD (Purple Pulse) -->
+            <div class="hub-card group" onclick="openFootagePage()">
+                <div class="flex justify-between">
+                    <div class="icon-box glow-purple">
+                        <svg class="icon-svg" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 10l4.553-2.276A1 1 0 0121 8.618v6.764a1 1 0 01-1.447.894L15 14M5 18h8a2 2 0 002-2V8a2 2 0 00-2-2H5a2 2 0 00-2 2v8a2 2 0 002 2z"></path></svg>
+                    </div>
+                    <span class="text-xs font-mono text-gray-500 border border-white/10 px-2 py-1 rounded h-fit">Gallery</span>
+                </div>
+                <div>
+                    <h2 class="text-2xl font-display font-bold mb-2 group-hover:text-orange-500 transition">Final Footage</h2>
+                    <p class="text-sm text-gray-400">View edits and renders.</p>
+                </div>
             </div>
 
+            <!-- 3. RAW VIDEO CARD (Blue Pulse) -->
             <div class="hub-card group" onclick="openHubLink('raw')">
-                <div class="flex justify-between"><div class="hub-icon"><svg class="w-8 h-8" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 4v16M17 4v16M3 8h4m10 0h4M3 12h18M3 16h4m10 0h4M4 20h16a1 1 0 001-1V5a1 1 0 00-1-1H4a1 1 0 00-1 1v14a1 1 0 001 1z"></path></svg></div><span class="text-xs font-mono text-gray-500 border border-white/10 px-2 py-1 rounded h-fit">Dailies</span></div>
-                <div><h2 class="text-2xl font-display font-bold mb-2 group-hover:text-orange-500 transition">Raw Video</h2><p class="text-sm text-gray-400">Unedited camera files.</p></div>
+                <div class="flex justify-between">
+                    <div class="icon-box glow-blue">
+                        <svg class="icon-svg" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 4v16M17 4v16M3 8h4m10 0h4M3 12h18M3 16h4m10 0h4M4 20h16a1 1 0 001-1V5a1 1 0 00-1-1H4a1 1 0 00-1 1v14a1 1 0 001 1z"></path></svg>
+                    </div>
+                    <span class="text-xs font-mono text-gray-500 border border-white/10 px-2 py-1 rounded h-fit">Dailies</span>
+                </div>
+                <div>
+                    <h2 class="text-2xl font-display font-bold mb-2 group-hover:text-orange-500 transition">Raw Video</h2>
+                    <p class="text-sm text-gray-400">Unedited camera files.</p>
+                </div>
             </div>
 
-         <div class="hub-card group" id="brainstormHubCard">
-
-                <div class="flex justify-between"><div class="hub-icon"><svg class="w-8 h-8" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9.663 17h4.673M12 3v1m6.364 1.636l-.707.707M21 12h-1M4 12H3m3.343-5.657l-.707-.707m2.828 9.9a5 5 0 117.072 0l-.548.547A3.374 3.374 0 0014 18.469V19a2 2 0 11-4 0v-.531c0-.895-.356-1.754-.988-2.386l-.548-.547z"></path></svg></div><span class="text-xs font-mono text-gray-500 border border-white/10 px-2 py-1 rounded h-fit">Brainstorm</span></div>
-                <div><h2 class="text-2xl font-display font-bold mb-2 group-hover:text-orange-500 transition">Ideas & Notes</h2><p class="text-sm text-gray-400">Quick thoughts & inspirations.</p></div>
+            <!-- 4. BRAINSTORM CARD (Green Pulse) -->
+            <div class="hub-card group" id="brainstormHubCard">
+                <div class="flex justify-between">
+                    <div class="icon-box glow-green">
+                        <svg class="icon-svg" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9.663 17h4.673M12 3v1m6.364 1.636l-.707.707M21 12h-1M4 12H3m3.343-5.657l-.707-.707m2.828 9.9a5 5 0 117.072 0l-.548.547A3.374 3.374 0 0014 18.469V19a2 2 0 11-4 0v-.531c0-.895-.356-1.754-.988-2.386l-.548-.547z"></path></svg>
+                    </div>
+                    <span class="text-xs font-mono text-gray-500 border border-white/10 px-2 py-1 rounded h-fit">Brainstorm</span>
+                </div>
+                <div>
+                    <h2 class="text-2xl font-display font-bold mb-2 group-hover:text-orange-500 transition">Ideas & Notes</h2>
+                    <p class="text-sm text-gray-400">Quick thoughts & inspirations.</p>
+                </div>
             </div>
         </div>
     </div>
 
-<!-- Brainstorm options overlay -->
-<div id="brainstormOptions"
-     class="fixed inset-0 z-[120] hidden items-center justify-center bg-black/75">
-  <!-- outer glass card -->
-  <div class="relative w-full max-w-xl rounded-[28px] border border-white/15
-              bg-white/5 backdrop-blur-2xl shadow-[0_30px_120px_rgba(0,0,0,0.95)]
-              overflow-hidden">
-
-    <!-- subtle orange gradient wash -->
-    <div class="pointer-events-none absolute inset-0 opacity-70 mix-blend-soft-light"
-         style="background:
-           radial-gradient(circle at 0% 0%, rgba(249,115,22,0.55), transparent 55%),
-           radial-gradient(circle at 100% 100%, rgba(15,23,42,0.9), transparent 55%);">
-    </div>
-
-    <div class="relative px-7 py-6 md:px-8 md:py-7 space-y-5">
-      <!-- Header -->
-      <div>
-        <span class="inline-flex items-center px-3 py-1 rounded-full
-                    bg-black/60 border border-orange-400/70">
-          <span class="w-1.5 h-1.5 mr-2 rounded-full bg-orange-300 animate-pulse"></span>
-          <span class="text-[10px] font-mono tracking-[0.25em] text-orange-200 uppercase">
-            BRAINSTORM MODE
-          </span>
-        </span>
-
-        <h3 class="mt-4 text-[24px] md:text-[26px] font-display font-semibold text-[#F9FAFB]">
-          How do you want to start?
-        </h3>
-        <p class="mt-1 text-[13px] text-gray-200">
-          Pick a flow for this project. You can always switch modes later.
-        </p>
-      </div>
-
-      <!-- Options -->
-      <div class="space-y-3.5">
-        <!-- AI Generate Ideas -->
-<button id="optionGenerateIdeas"
-        class="w-full flex items-center justify-between px-5 py-4 rounded-2xl
-               bg-white/5 backdrop-blur-md border border-white/5
-               hover:bg-white/10 hover:border-orange-400/70
-               transition-all duration-150">
-  <div class="flex items-center gap-4">
-    <!-- Idea bulb icon -->
-    <div class="w-11 h-11 rounded-2xl bg-gradient-to-br from-orange-500 to-amber-400
-                flex items-center justify-center text-black shadow-[0_0_26px_rgba(249,115,22,0.7)]">
-      <svg class="w-5 h-5" viewBox="0 0 24 24" fill="none"
-           stroke="currentColor" stroke-width="1.8">
-        <path stroke-linecap="round" stroke-linejoin="round"
-              d="M9 18h6m-5 2h4M8 10a4 4 0 118 0c0 1.657-.895 2.63-1.8 3.4-.53.44-.9 1.03-1.01 1.7H10.81c-.11-.67-.48-1.26-1.01-1.7C8.895 12.63 8 11.657 8 10z" />
-      </svg>
-    </div>
-    <div class="text-left leading-snug">
-<div class="text-[12px] md:text-[13px] font-semibold tracking-[0.25em]
-            text-[#FDFDFD] uppercase mb-0.5">
-  AI GENERATE IDEAS
-</div>
-
-
-
-
-      <div class="text-[12px] text-gray-100">
-        Let the model pitch concepts, loglines and directions.
-      </div>
-    </div>
-  </div>
-  <div class="flex items-center gap-3">
-    <span class="text-[10px] font-mono tracking-[0.25em] text-orange-100 uppercase">
-      AUTO
-    </span>
-    <svg class="w-4 h-4 text-gray-100" viewBox="0 0 24 24" fill="none"
-         stroke="currentColor" stroke-width="1.7">
-      <path stroke-linecap="round" stroke-linejoin="round" d="M9 5l7 7-7 7"/>
-    </svg>
-  </div>
-</button>
-
-
-
-        <!-- Visual Brain Map -->
-<button id="optionWriteIdeas"
-        class="w-full flex items-center justify-between px-5 py-4 rounded-2xl
-               bg-white/5 backdrop-blur-md border border-white/5
-               hover:bg-white/10 hover:border-orange-400/70
-               transition-all duration-150">
-  <div class="flex items-center gap-4">
-    <!-- Brain icon -->
-    <div class="w-11 h-11 rounded-2xl bg-gradient-to-br from-slate-800 to-slate-950
-                flex items-center justify-center text-sky-200 border border-slate-400/60">
-      <svg class="w-5 h-5" viewBox="0 0 24 24" fill="none"
-           stroke="currentColor" stroke-width="1.7">
-        <path stroke-linecap="round" stroke-linejoin="round"
-              d="M8.5 4A3.5 3.5 0 0 0 5 7.5v9A2.5 2.5 0 0 0 7.5 19H9a2 2 0 0 0 2-2v-1.2M9 7h1.5A1.5 1.5 0 0 1 12 8.5V9m3-5a3.5 3.5 0 0 1 3.5 3.5v9A2.5 2.5 0 0 1 16 19h-1.5a2 2 0 0 1-2-2v-1.2M15 7h-1.5A1.5 1.5 0 0 0 12 8.5V9" />
-      </svg>
-    </div>
-    <div class="text-left leading-snug">
-<div class="text-[12px] md:text-[13px] font-semibold tracking-[0.25em]
-            text-[#FDFDFD] uppercase mb-0.5">
-  VISUAL BRAIN MAP
-</div>
-
-
-
-      <div class="text-[12px] text-gray-100">
-        Open an infinite canvas to write and connect your notes.
-      </div>
-    </div>
-  </div>
-  <div class="flex items-center gap-3">
-    <span class="text-[10px] font-mono tracking-[0.25em] text-orange-100 uppercase">
-      MANUAL
-    </span>
-    <svg class="w-4 h-4 text-gray-100" viewBox="0 0 24 24" fill="none"
-         stroke="currentColor" stroke-width="1.7">
-      <path stroke-linecap="round" stroke-linejoin="round" d="M9 5l7 7-7 7"/>
-    </svg>
-  </div>
-</button>
-
-      </div>
-
-      <!-- Footer -->
-      <button id="closeBrainstormOptions"
-              class="text-[12px] text-gray-200 hover:text-gray-50 transition-colors">
-        Cancel
-      </button>
-    </div>
-  </div>
-</div>
-
-
-
-  <nav class="nav-bottom fixed bottom-0 left-0 right-0 px-4 py-3 z-40">
-  <div class="flex justify-around items-center">
-    <a href="#"
-       onclick="openDashboardFromProject()"
-       class="nav-item active flex flex-col items-center space-y-1">
-      <svg class="w-5 h-5" fill="currentColor" viewBox="0 0 24 24">
-        <path d="M3 13h8V3H3v10zm0 8h8v-6H3v6zm10 0h8V11h-8v10zm0-18v6h8V3h-8z"/>
-      </svg>
-      <span class="text-xs">Projects</span>
-    </a>
-
-    <a href="#"
-       onclick="openScriptsPage()"
-       class="nav-item text-gray-500 flex flex-col items-center space-y-1">
-      <svg class="w-5 h-5" fill="currentColor" viewBox="0 0 24 24">
-        <path d="M14,2H6A2,2 0 0,0 4,4V20A2,2 0 0,0 6,22H18A2,2 0 0,0 20,20V8L14,2M18,20H6V4H13V9H18V20Z"/>
-      </svg>
-      <span class="text-xs">Scripts</span>
-    </a>
-
-    <a href="#"
-       onclick="openFootagePage()"
-       class="nav-item text-gray-500 flex flex-col items-center space-y-1">
-      <svg class="w-5 h-5" fill="currentColor" viewBox="0 0 24 24">
-        <path d="M17,10.5V7A1,1 0 0,0 16,6H4A1,1 0 0,0 3,7V17A1,1 0 0,0 4,18H16A1,1 0 0,0 17,17V13.5L21,17.5V6.5L17,10.5Z"/>
-      </svg>
-      <span class="text-xs">Footage</span>
-    </a>
-
-    <a href="#"
-       onclick="openAiToolsPage()"
-       class="nav-item text-gray-500 flex flex-col items-center space-y-1">
-      <svg class="w-5 h-5" fill="currentColor" viewBox="0 0 24 24">
-        <path d="M12,2A2,2 0 0,1 14,4C14,4.74 13.6,5.39 13,5.73V7H14A7,7 0 0,1 21,14H22A1,1 0 0,1 23,15V18A1,1 0 0,1 22,19H21V20A2,2 0 0,1 19,22H5A2,2 0 0,1 3,20V19H2A1,1 0 0,1 1,18V15A1,1 0 0,1 2,14H3A7,7 0 0,1 10,7H11V5.73C10.4,5.39 10,4.74 10,4A2,2 0 0,1 12,2Z"/>
-      </svg>
-      <span class="text-xs">AI Tools</span>
-    </a>
-  </div>
-</nav>
-
-
-   <script src="main.js"></script>
-<script>
-
-
-    
-(function initProjectHub() {
-  const params = new URLSearchParams(window.location.search);
-  const projectId = params.get('id');
-
-  if (!projectId) {
-    window.location.href = 'index.html';
-    return;
-  }
-
-  let projects = [];
-  try {
-    const raw = localStorage.getItem('imranProjects');
-    projects = raw ? JSON.parse(raw) : [];
-  } catch (e) {
-    projects = [];
-  }
-
-  const project = projects.find(p => p.id === projectId);
-
-  if (!project) {
-    const root = document.querySelector('.max-w-6xl');
-    if (root) {
-      root.innerHTML = `
-        <div class="min-h-[60vh] flex flex-col items-center justify-center text-center text-gray-300">
-          <h2 class="text-2xl font-display mb-2">Project not found</h2>
-          <p class="text-sm text-gray-500 mb-6">
-            The project you're looking for doesn't exist or was removed.
-          </p>
-          <button
-            onclick="window.location.href='index.html'"
-            class="px-5 py-2.5 rounded-lg bg-orange-500 text-white text-sm font-medium hover:bg-orange-600 transition"
-          >
-            Back to Dashboard
-          </button>
+    <!-- Brainstorm Options Overlay (Same as before) -->
+    <div id="brainstormOptions" class="fixed inset-0 z-[120] hidden items-center justify-center bg-black/75">
+        <div class="relative w-full max-w-xl rounded-[28px] border border-white/15 bg-white/5 backdrop-blur-2xl shadow-[0_30px_120px_rgba(0,0,0,0.95)] overflow-hidden">
+            <div class="pointer-events-none absolute inset-0 opacity-70 mix-blend-soft-light" style="background: radial-gradient(circle at 0% 0%, rgba(249,115,22,0.55), transparent 55%), radial-gradient(circle at 100% 100%, rgba(15,23,42,0.9), transparent 55%);"></div>
+            <div class="relative px-7 py-6 md:px-8 md:py-7 space-y-5">
+                <div>
+                    <span class="inline-flex items-center px-3 py-1 rounded-full bg-black/60 border border-orange-400/70">
+                        <span class="w-1.5 h-1.5 mr-2 rounded-full bg-orange-300 animate-pulse"></span>
+                        <span class="text-[10px] font-mono tracking-[0.25em] text-orange-200 uppercase">BRAINSTORM MODE</span>
+                    </span>
+                    <h3 class="mt-4 text-[24px] md:text-[26px] font-display font-semibold text-[#F9FAFB]">How do you want to start?</h3>
+                    <p class="mt-1 text-[13px] text-gray-200">Pick a flow for this project. You can always switch modes later.</p>
+                </div>
+                <div class="space-y-3.5">
+                    <button id="optionGenerateIdeas" class="w-full flex items-center justify-between px-5 py-4 rounded-2xl bg-white/5 backdrop-blur-md border border-white/5 hover:bg-white/10 hover:border-orange-400/70 transition-all duration-150">
+                        <div class="flex items-center gap-4">
+                            <div class="w-11 h-11 rounded-2xl bg-gradient-to-br from-orange-500 to-amber-400 flex items-center justify-center text-black shadow-[0_0_26px_rgba(249,115,22,0.7)]">
+                                <svg class="w-5 h-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path stroke-linecap="round" stroke-linejoin="round" d="M9 18h6m-5 2h4M8 10a4 4 0 118 0c0 1.657-.895 2.63-1.8 3.4-.53.44-.9 1.03-1.01 1.7H10.81c-.11-.67-.48-1.26-1.01-1.7C8.895 12.63 8 11.657 8 10z" /></svg>
+                            </div>
+                            <div class="text-left leading-snug">
+                                <div class="text-[12px] md:text-[13px] font-semibold tracking-[0.25em] text-[#FDFDFD] uppercase mb-0.5">AI GENERATE IDEAS</div>
+                                <div class="text-[12px] text-gray-100">Let the model pitch concepts, loglines and directions.</div>
+                            </div>
+                        </div>
+                        <div class="flex items-center gap-3">
+                            <span class="text-[10px] font-mono tracking-[0.25em] text-orange-100 uppercase">AUTO</span>
+                            <svg class="w-4 h-4 text-gray-100" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7"><path stroke-linecap="round" stroke-linejoin="round" d="M9 5l7 7-7 7"/></svg>
+                        </div>
+                    </button>
+                    <button id="optionWriteIdeas" class="w-full flex items-center justify-between px-5 py-4 rounded-2xl bg-white/5 backdrop-blur-md border border-white/5 hover:bg-white/10 hover:border-orange-400/70 transition-all duration-150">
+                        <div class="flex items-center gap-4">
+                            <div class="w-11 h-11 rounded-2xl bg-gradient-to-br from-slate-800 to-slate-950 flex items-center justify-center text-sky-200 border border-slate-400/60">
+                                <svg class="w-5 h-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7"><path stroke-linecap="round" stroke-linejoin="round" d="M8.5 4A3.5 3.5 0 0 0 5 7.5v9A2.5 2.5 0 0 0 7.5 19H9a2 2 0 0 0 2-2v-1.2M9 7h1.5A1.5 1.5 0 0 1 12 8.5V9m3-5a3.5 3.5 0 0 1 3.5 3.5v9A2.5 2.5 0 0 1 16 19h-1.5a2 2 0 0 1-2-2v-1.2M15 7h-1.5A1.5 1.5 0 0 0 12 8.5V9" /></svg>
+                            </div>
+                            <div class="text-left leading-snug">
+                                <div class="text-[12px] md:text-[13px] font-semibold tracking-[0.25em] text-[#FDFDFD] uppercase mb-0.5">VISUAL BRAIN MAP</div>
+                                <div class="text-[12px] text-gray-100">Open an infinite canvas to write and connect your notes.</div>
+                            </div>
+                        </div>
+                        <div class="flex items-center gap-3">
+                            <span class="text-[10px] font-mono tracking-[0.25em] text-orange-100 uppercase">MANUAL</span>
+                            <svg class="w-4 h-4 text-gray-100" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7"><path stroke-linecap="round" stroke-linejoin="round" d="M9 5l7 7-7 7"/></svg>
+                        </div>
+                    </button>
+                </div>
+                <button id="closeBrainstormOptions" class="text-[12px] text-gray-200 hover:text-gray-50 transition-colors">Cancel</button>
+            </div>
         </div>
-      `;
-    } else {
-      window.location.href = 'index.html';
-    }
-    return;
-  }
+    </div>
 
-  // Header data bind
-  const titleEl = document.getElementById('projectTitleHeading');
-  if (titleEl) titleEl.textContent = project.title || 'Untitled';
+    <!-- Bottom Nav -->
+    <nav class="nav-bottom fixed bottom-0 left-0 right-0 px-4 py-3 z-40">
+        <div class="flex justify-around items-center">
+            <a href="#" onclick="openDashboardFromProject()" class="nav-item active flex flex-col items-center space-y-1">
+                <svg class="w-5 h-5" fill="currentColor" viewBox="0 0 24 24"><path d="M3 13h8V3H3v10zm0 8h8v-6H3v6zm10 0h8V11h-8v10zm0-18v6h8V3h-8z"/></svg>
+                <span class="text-xs">Projects</span>
+            </a>
+            <a href="#" onclick="openScriptsPage()" class="nav-item text-gray-500 flex flex-col items-center space-y-1">
+                <svg class="w-5 h-5" fill="currentColor" viewBox="0 0 24 24"><path d="M14,2H6A2,2 0 0,0 4,4V20A2,2 0 0,0 6,22H18A2,2 0 0,0 20,20V8L14,2M18,20H6V4H13V9H18V20Z"/></svg>
+                <span class="text-xs">Scripts</span>
+            </a>
+            <a href="#" onclick="openFootagePage()" class="nav-item text-gray-500 flex flex-col items-center space-y-1">
+                <svg class="w-5 h-5" fill="currentColor" viewBox="0 0 24 24"><path d="M17,10.5V7A1,1 0 0,0 16,6H4A1,1 0 0,0 3,7V17A1,1 0 0,0 4,18H16A1,1 0 0,0 17,17V13.5L21,17.5V6.5L17,10.5Z"/></svg>
+                <span class="text-xs">Footage</span>
+            </a>
+            <a href="#" onclick="openAiToolsPage()" class="nav-item text-gray-500 flex flex-col items-center space-y-1">
+                <svg class="w-5 h-5" fill="currentColor" viewBox="0 0 24 24"><path d="M12,2A2,2 0 0,1 14,4C14,4.74 13.6,5.39 13,5.73V7H14A7,7 0 0,1 21,14H22A1,1 0 0,1 23,15V18A1,1 0 0,1 22,19H21V20A2,2 0 0,1 19,22H5A2,2 0 0,1 3,20V19H2A1,1 0 0,1 1,18V15A1,1 0 0,1 2,14H3A7,7 0 0,1 10,7H11V5.73C10.4,5.39 10,4.74 10,4A2,2 0 0,1 12,2Z"/></svg>
+                <span class="text-xs">AI Tools</span>
+            </a>
+        </div>
+    </nav>
 
-  const stageEl = document.getElementById('projectStageBadge');
-  if (stageEl) stageEl.textContent = project.stage || 'PRE-PRODUCTION';
-
-  const genreEl = document.getElementById('projectGenreBadge');
-  if (genreEl) genreEl.textContent = project.genre || 'Uncategorized';
-
-  const metaEl = document.getElementById('projectMetaLabel');
-  if (metaEl) {
-    const ch = project.chapters || 0;
-    const words = project.words || '0';
-    const rt = project.readTime || '0min';
-    metaEl.textContent = `${ch} CH • ${words} • ${rt}`;
-  }
-
-  const progEl = document.getElementById('projectProgressFill');
-  const progPercent = document.getElementById('projectProgressPercent');
-  if (progEl) {
-    const p = project.progress || 0;
-    progEl.style.width = p + '%';
-    if (progPercent) progPercent.textContent = p + '%';
-  }
-
-  // Stats bind
-  const daysEl = document.getElementById('daysInProduction');
-  if (daysEl) {
-    const created = project.createdAt ? new Date(project.createdAt) : null;
-    if (created) {
-      const now = new Date();
-      const diffMs = now - created;
-      const days = Math.max(0, Math.floor(diffMs / (1000 * 60 * 60 * 24))); // [web:33][web:34]
-      daysEl.textContent = days;
-    } else {
-      daysEl.textContent = 0;
-    }
-  }
-
-  const filesEl = document.getElementById('totalFiles');
-  if (filesEl) {
-    const totalFiles =
-      (project.scriptCount || 0) +
-      (project.finalFootageCount || 0) +
-      (project.rawVideoCount || 0) +
-      (project.ideasCount || 0);
-    filesEl.textContent = totalFiles;
-  }
-
-  const lastUpdatedEl = document.getElementById('lastUpdated');
-  if (lastUpdatedEl) {
-    if (project.lastUpdated) {
-      const d = new Date(project.lastUpdated);
-      const today = new Date();
-      const sameDay =
-        d.getFullYear() === today.getFullYear() &&
-        d.getMonth() === today.getMonth() &&
-        d.getDate() === today.getDate();
-      if (sameDay) {
-        lastUpdatedEl.textContent = 'TODAY';
-      } else {
-        lastUpdatedEl.textContent = d.toLocaleDateString();
-      } // [web:31][web:34]
-    } else {
-      lastUpdatedEl.textContent = 'TODAY';
-    }
-  }
-  const docCountEl = document.getElementById('docCount');
-  if (docCountEl) {
-    docCountEl.textContent = `${project.scriptCount || 0} Docs`;
-  }
-
-
-})();
-
-
-
-function getCurrentProjectId() {
-  const params = new URLSearchParams(window.location.search); // [web:39][web:42]
-  return params.get('id');
-}
-
-function openScriptsPage() {
-  const id = getCurrentProjectId();
-  if (!id) {
-    window.location.href = 'index.html';
-    return;
-  }
-  window.location.href = `scripts.html?id=${encodeURIComponent(id)}`; // [web:41]
-}
-
-function openFootagePage() {
-  const id = getCurrentProjectId();
-  if (!id) {
-    window.location.href = 'index.html';
-    return;
-  }
-  window.location.href = `footage.html?id=${encodeURIComponent(id)}`;
-}
-
-function openHubLink(type) {
-  const id = getCurrentProjectId();
-  if (!id) {
-    window.location.href = 'index.html';
-    return;
-  }
-
-  if (type === 'raw') {
-    window.location.href = `raw-footage.html?id=${encodeURIComponent(id)}`;
-  } else if (type === 'ai') {
-    window.location.href = `ai-tools.html?id=${encodeURIComponent(id)}`;
-  }
-}
-
-function openDashboardFromProject() {
-  // simple dashboard pe wapas; id ki zaroorat nahi
-  window.location.href = 'index.html';
-}
-
-function openAiToolsPage() {
-  const id = getCurrentProjectId();
-  if (!id) {
-    window.location.href = 'index.html';
-    return;
-  }
-  window.location.href = `ai-tools.html?id=${encodeURIComponent(id)}`;
-}
-
-  // Brainstorm 2-option panel wiring
-  document.addEventListener('DOMContentLoaded', () => {
-    const card   = document.getElementById('brainstormHubCard');
-    const panel  = document.getElementById('brainstormOptions');
-    const btnGen = document.getElementById('optionGenerateIdeas');
-    const btnMap = document.getElementById('optionWriteIdeas');
-    const btnClose = document.getElementById('closeBrainstormOptions');
-
-    if (card && panel) {
-      card.addEventListener('click', () => {
-        panel.classList.remove('hidden');
-        panel.classList.add('flex');
-      });
-    }
-
-    // Close by Cancel button
-    if (btnClose && panel) {
-      btnClose.addEventListener('click', () => {
-        panel.classList.add('hidden');
-        panel.classList.remove('flex');
-      });
-    }
-
-    // Close by clicking dark backdrop
-    if (panel) {
-      panel.addEventListener('click', (e) => {
-        if (e.target === panel) {
-          panel.classList.add('hidden');
-          panel.classList.remove('flex');
-        }
-      });
-    }
-
-    // Option 1: AI generate (normal AI Tools page)
-    if (btnGen) {
-      btnGen.addEventListener('click', () => {
-        // yahi function already defined hai upar
-        openAiToolsPage();
-      });
-    }
-
-    // Option 2: Visual brain map (AI Tools + brain param)
-    if (btnMap) {
-   btnMap.addEventListener('click', () => {
-  const id = getCurrentProjectId();
-  if (!id) {
-    window.location.href = 'index.html';
-    return;
-  }
-  window.location.href =
-    'brainstorm.html?id=' + encodeURIComponent(id);
-});
-
-    }
-  });
-
-
-</script>
-
-    <!-- PWA Service Worker Registration -->
+    <script src="main.js"></script>
     <script>
-      if ('serviceWorker' in navigator) {
-        window.addEventListener('load', () => {
-          navigator.serviceWorker
-            .register('/service-worker.js')
-            .then((registration) => {
-              console.log('✅ ServiceWorker registered:', registration.scope);
-            })
-            .catch((error) => {
-              console.error('❌ ServiceWorker registration failed:', error);
-            });
-        });
-      }
-    </script>
+        (function initProjectHub() {
+            const params = new URLSearchParams(window.location.search);
+            const projectId = params.get('id');
+            if (!projectId) { window.location.href = 'index.html'; return; }
 
+            let projects = [];
+            try { projects = JSON.parse(localStorage.getItem('imranProjects') || '[]'); } catch(e) { projects = []; }
+            const project = projects.find(p => p.id === projectId);
+
+            if (!project) {
+                // If project not found code... (same as before)
+                const root = document.querySelector('.max-w-6xl');
+                if (root) { root.innerHTML = `<div class="min-h-[60vh] flex flex-col items-center justify-center text-center text-gray-300"><h2 class="text-2xl font-display mb-2">Project not found</h2><p class="text-sm text-gray-500 mb-6">The project you're looking for doesn't exist or was removed.</p><button onclick="window.location.href='index.html'" class="px-5 py-2.5 rounded-lg bg-orange-500 text-white text-sm font-medium hover:bg-orange-600 transition">Back to Dashboard</button></div>`; } 
+                else { window.location.href = 'index.html'; }
+                return;
+            }
+
+            // --- 1. DYNAMIC HEADER TITLE UPDATE (Loading Logic) ---
+            const titleHead = document.getElementById('headerProjectTitle');
+            const titleMain = document.getElementById('projectTitleHeading');
+            
+            // Set text and remove loading animation classes
+            const projectTitle = project.title || 'Untitled';
+            
+            if (titleHead) titleHead.textContent = projectTitle;
+            if (titleMain) {
+                titleMain.textContent = projectTitle;
+                // Remove skeleton loader classes
+                titleMain.className = ''; 
+            }
+
+            // --- 2. ADMIN BUTTON VISIBILITY ---
+            try {
+                const userStr = localStorage.getItem('imranUser');
+                const user = userStr ? JSON.parse(userStr) : null;
+                
+                // Check if user is Admin
+                if (user && (user.email === 'mohdesigner09@gmail.com' || user.role === 'admin')) {
+                    const adminControls = document.getElementById('adminControls');
+                    if (adminControls) adminControls.classList.remove('hidden');
+                }
+            } catch(e) { console.error("Admin check failed", e); }
+
+            // Bind other stats (Same as before)
+            const stageEl = document.getElementById('projectStageBadge');
+            if (stageEl) stageEl.textContent = project.stage || 'PRE-PRODUCTION';
+            const genreEl = document.getElementById('projectGenreBadge');
+            if (genreEl) genreEl.textContent = project.genre || 'Uncategorized';
+            const metaEl = document.getElementById('projectMetaLabel');
+            if (metaEl) {
+                const ch = project.chapters || 0;
+                const words = project.words || '0';
+                const rt = project.readTime || '0min';
+                metaEl.textContent = `${ch} CH • ${words} • ${rt}`;
+            }
+            const progEl = document.getElementById('projectProgressFill');
+            const progPercent = document.getElementById('projectProgressPercent');
+            if (progEl) {
+                const p = project.progress || 0;
+                progEl.style.width = p + '%';
+                if (progPercent) progPercent.textContent = p + '%';
+            }
+            const daysEl = document.getElementById('daysInProduction');
+            if (daysEl) {
+                const created = project.createdAt ? new Date(project.createdAt) : null;
+                if (created) {
+                    const now = new Date();
+                    const diffMs = now - created;
+                    const days = Math.max(0, Math.floor(diffMs / (1000 * 60 * 60 * 24)));
+                    daysEl.textContent = days;
+                } else { daysEl.textContent = 0; }
+            }
+            const filesEl = document.getElementById('totalFiles');
+            if (filesEl) {
+                const totalFiles = (project.scriptCount || 0) + (project.finalFootageCount || 0) + (project.rawVideoCount || 0) + (project.ideasCount || 0);
+                filesEl.textContent = totalFiles;
+            }
+            const lastUpdatedEl = document.getElementById('lastUpdated');
+            if (lastUpdatedEl) {
+                if (project.lastUpdated) {
+                    const d = new Date(project.lastUpdated);
+                    const today = new Date();
+                    const sameDay = d.getFullYear() === today.getFullYear() && d.getMonth() === today.getMonth() && d.getDate() === today.getDate();
+                    if (sameDay) { lastUpdatedEl.textContent = 'TODAY'; } else { lastUpdatedEl.textContent = d.toLocaleDateString(); }
+                } else { lastUpdatedEl.textContent = 'TODAY'; }
+            }
+            const docCountEl = document.getElementById('docCount');
+            if (docCountEl) { docCountEl.textContent = `${project.scriptCount || 0} Docs`; }
+        })();
+
+        function getCurrentProjectId() { return new URLSearchParams(window.location.search).get('id'); }
+        
+        // --- 3. ACTIVE ADMIN FUNCTIONS ---
+        
+        // Edit Project Name
+        function editProjectDetails() {
+            const id = getCurrentProjectId();
+            let projects = JSON.parse(localStorage.getItem('imranProjects') || '[]');
+            const index = projects.findIndex(p => p.id === id);
+            
+            if (index !== -1) {
+                const newName = prompt("Enter new project name:", projects[index].title);
+                if (newName && newName.trim() !== "") {
+                    projects[index].title = newName.trim();
+                    localStorage.setItem('imranProjects', JSON.stringify(projects));
+                    // Update UI immediately
+                    document.getElementById('projectTitleHeading').textContent = newName;
+                    document.getElementById('headerProjectTitle').textContent = newName;
+                }
+            }
+        }
+
+        // Delete Project
+        function deleteCurrentProject() {
+            if(!confirm("⚠️ Are you sure you want to delete this project permanently?")) return;
+            
+            const id = getCurrentProjectId();
+            let projects = JSON.parse(localStorage.getItem('imranProjects') || '[]');
+            const newProjects = projects.filter(p => p.id !== id);
+            
+            localStorage.setItem('imranProjects', JSON.stringify(newProjects));
+            alert("Project deleted successfully.");
+            window.location.href = 'index.html';
+        }
+
+        // Other Navigation Functions (Preserved)
+        function openScriptsPage() { 
+            const id = getCurrentProjectId(); 
+            if (!id) { window.location.href = 'index.html'; return; }
+            window.location.href = `scripts.html?id=${encodeURIComponent(id)}`;
+        }
+        function openFootagePage() {
+            const id = getCurrentProjectId(); 
+            if (!id) { window.location.href = 'index.html'; return; }
+            window.location.href = `footage.html?id=${encodeURIComponent(id)}`;
+        }
+        function openHubLink(type) {
+            const id = getCurrentProjectId();
+            if (!id) { window.location.href = 'index.html'; return; }
+            if (type === 'raw') { window.location.href = `raw-footage.html?id=${encodeURIComponent(id)}`; }
+            else if (type === 'ai') { window.location.href = `ai-tools.html?id=${encodeURIComponent(id)}`; }
+        }
+        function openDashboardFromProject() { window.location.href = 'index.html'; }
+        function openAiToolsPage() {
+            const id = getCurrentProjectId();
+            if (!id) { window.location.href = 'index.html'; return; }
+            window.location.href = `ai-tools.html?id=${encodeURIComponent(id)}`;
+        }
+
+        // Brainstorm 2-option panel wiring
+        document.addEventListener('DOMContentLoaded', () => {
+            const card = document.getElementById('brainstormHubCard');
+            const panel = document.getElementById('brainstormOptions');
+            const btnGen = document.getElementById('optionGenerateIdeas');
+            const btnMap = document.getElementById('optionWriteIdeas');
+            const btnClose = document.getElementById('closeBrainstormOptions');
+
+            if (card && panel) {
+                card.addEventListener('click', () => {
+                    panel.classList.remove('hidden');
+                    panel.classList.add('flex');
+                });
+            }
+            if (btnClose && panel) {
+                btnClose.addEventListener('click', () => {
+                    panel.classList.add('hidden');
+                    panel.classList.remove('flex');
+                });
+            }
+            if (panel) {
+                panel.addEventListener('click', (e) => {
+                    if (e.target === panel) {
+                        panel.classList.add('hidden');
+                        panel.classList.remove('flex');
+                    }
+                });
+            }
+            if (btnGen) { btnGen.addEventListener('click', () => { openAiToolsPage(); }); }
+            if (btnMap) {
+                btnMap.addEventListener('click', () => {
+                    const id = getCurrentProjectId();
+                    if (!id) { window.location.href = 'index.html'; return; }
+                    window.location.href = 'brainstorm.html?id=' + encodeURIComponent(id);
+                });
+            }
+        });
+
+        if ('serviceWorker' in navigator) {
+            window.addEventListener('load', () => {
+                navigator.serviceWorker.register('/service-worker.js').then((registration) => { console.log('✅ ServiceWorker registered:', registration.scope); }).catch((error) => { console.error('❌ ServiceWorker registration failed:', error); });
+            });
+        }
+    </script>
 </body>
 </html>
-
