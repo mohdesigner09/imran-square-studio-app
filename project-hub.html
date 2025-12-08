@@ -31,18 +31,116 @@
     <script src="https://cdnjs.cloudflare.com/ajax/libs/animejs/3.2.1/anime.min.js"></script>
     <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@400;700&family=Inter:wght@300;400;500&family=JetBrains+Mono:wght@400&display=swap" rel="stylesheet">
     <style>
-        :root { --primary-dark: #050505; --accent-orange: #ff6b35; }
-        body { background: var(--primary-dark); color: white; font-family: 'Inter', sans-serif; overflow-x: hidden; }
-        .font-display { font-family: 'Playfair Display', serif; }
-        .hero-bg { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: radial-gradient(circle at 50% 30%, #151515 0%, #000000 100%); z-index: -2; }
-        .hero-bg::after { content: ''; position: absolute; inset: 0; background: url('resources/hero-film-studio.png') center/cover; opacity: 0.15; mix-blend-mode: overlay; z-index: -1; }
-        .film-grain { position: fixed; top: 0; left: 0; width: 100%; height: 100%; pointer-events: none; opacity: 0.04; z-index: 0; }
-        .hub-card { background: linear-gradient(180deg, #141414 0%, #050505 100%); border: 1px solid rgba(255, 255, 255, 0.08); border-top: 1px solid rgba(255, 255, 255, 0.2); border-radius: 24px; padding: 2rem; height: 260px; display: flex; flex-direction: column; justify-content: space-between; cursor: pointer; position: relative; overflow: hidden; transition: all 0.3s cubic-bezier(0.25, 0.8, 0.25, 1); box-shadow: 0 10px 30px -10px rgba(0,0,0,0.8); }
-        .hub-card:hover { border-color: var(--accent-orange); transform: translateY(-8px) scale(1.01); box-shadow: inset 0 1px 0 0 rgba(255, 107, 53, 0.3), 0 20px 50px -10px rgba(255, 107, 53, 0.15); }
-        .hub-icon { width: 60px; height: 60px; background: rgba(255,255,255,0.05); border-radius: 16px; display: flex; align-items: center; justify-content: center; color: var(--accent-orange); border: 1px solid rgba(255,255,255,0.1); transition: 0.3s; }
-        .hub-card:hover .hub-icon { background: var(--accent-orange); color: black; box-shadow: 0 0 30px rgba(255, 107, 53, 0.4); }
-        .nav-bottom { background: rgba(26, 26, 26, 0.95); backdrop-filter: blur(10px); border-top: 1px solid #2a2a2a; } .nav-item.active { color: var(--accent-orange); }
-    </style>
+    /* =========================================
+       🔥 THEME: DARK CINEMATIC (Project Hub Edition)
+       ========================================= */
+
+    :root { 
+        --primary-dark: #030303; 
+        --accent-glow: #ffffff; /* Pure White */
+        --text-primary: #ededed; 
+    }
+
+    /* 1. BACKGROUND SETUP (Same as Index) */
+    body { 
+        background-color: #030303 !important;
+        color: var(--text-primary); 
+        font-family: 'Inter', sans-serif; 
+        overflow-x: hidden; 
+        position: relative;
+    }
+
+    /* Cinematic Blurred Background */
+    body::before {
+        content: "";
+        position: fixed;
+        top: 0; left: 0; width: 100%; height: 100%;
+        
+        /* 🔥 Background Image */
+        background-image: url('resources/index bg .jpeg'); 
+        background-size: cover;
+        background-position: center;
+        background-repeat: no-repeat;
+        
+        /* ✨ Blur & Blend Settings */
+        filter: blur(4px) brightness(0.7);
+        transform: scale(1.05);
+        opacity: 0.5;
+        z-index: -50;
+        pointer-events: none;
+    }
+
+    .font-display { font-family: 'Playfair Display', serif; }
+
+    /* 2. HUB CARDS (Updated to Black & White) */
+    .hub-card { 
+        background: rgba(15, 15, 15, 0.6); /* Glassy Black */
+        backdrop-filter: blur(12px);
+        border: 1px solid rgba(255, 255, 255, 0.08);
+        border-top: 1px solid rgba(255, 255, 255, 0.15);
+        border-radius: 24px; 
+        padding: 2rem; 
+        height: 260px; 
+        display: flex; 
+        flex-direction: column; 
+        justify-content: space-between; 
+        cursor: pointer; 
+        position: relative; 
+        overflow: hidden; 
+        transition: all 0.3s cubic-bezier(0.25, 0.8, 0.25, 1); 
+        box-shadow: 0 10px 30px -10px rgba(0,0,0,0.8); 
+    }
+
+    /* 🔥 Hover Effect: White Glow */
+    .hub-card:hover { 
+        border-color: rgba(255, 255, 255, 0.5); 
+        transform: translateY(-8px) scale(1.01); 
+        box-shadow: 
+            inset 0 1px 0 0 rgba(255, 255, 255, 0.2), 
+            0 30px 60px -15px rgba(0, 0, 0, 1), 
+            0 0 25px rgba(255, 255, 255, 0.15); /* White Glow */
+    }
+
+    /* 3. ICONS (Orange -> White) */
+    .hub-icon { 
+        width: 60px; height: 60px; 
+        background: rgba(255,255,255,0.05); 
+        border-radius: 16px; 
+        display: flex; 
+        align-items: center; 
+        justify-content: center; 
+        color: #ffffff; /* White Icon */
+        border: 1px solid rgba(255,255,255,0.1); 
+        transition: 0.3s; 
+    }
+
+    .hub-card:hover .hub-icon { 
+        background: #ffffff; /* White BG */
+        color: black; /* Black Icon */
+        box-shadow: 0 0 30px rgba(255, 255, 255, 0.4); /* White Glow */
+    }
+
+    /* 4. NAV BAR & TEXT OVERRIDES */
+    .nav-bottom { 
+        background: rgba(0, 0, 0, 0.9); 
+        backdrop-filter: blur(20px); 
+        border-top: 1px solid rgba(255,255,255,0.15); 
+    }
+    
+    .nav-item.active { 
+        color: #ffffff !important; 
+        text-shadow: 0 0 10px rgba(255,255,255,0.5); 
+    }
+
+    /* 🚫🍊 ORANGE KILLER (Force Remove Orange Text) */
+    .text-orange-500, .text-amber-500 {
+        color: #ffffff !important;
+        text-shadow: 0 0 15px rgba(255, 255, 255, 0.5);
+    }
+    
+    /* Global UI Elements */
+    .film-grain { display: none; }
+</style>
 </head>
 <body>
     <div class="hero-bg"></div> <canvas class="film-grain" id="filmGrain"></canvas>
