@@ -530,11 +530,19 @@ window.startNewChat = startNewChat;
                   console.log('✅ Extracted text:', aiText.substring(0, 100) + '...');
 
                   // Format and display
-                  const formatted = aiText
-                    .replace(/\*\*(.*?)\*\*/g, '<strong style="color:#ff6b35;">$1</strong>')
-                    .replace(/\n/g, '<br>');
+                  // Format with code highlighting
+const formatted = formatMessageWithCode(aiText)
+  .replace(/\*\*(.*?)\*\*/g, '<strong style="color:#ff6b35;">$1</strong>')
+  .replace(/\n/g, '<br>');
 
-                  addMessage(formatted, 'ai');
+addMessage(formatted, 'ai');
+
+// Trigger Prism highlighting after DOM update
+setTimeout(() => {
+  if (typeof Prism !== 'undefined') {
+    Prism.highlightAll();
+  }
+}, 100);
 
                 } catch (error) {
                   console.error("❌ Full Error:", error);
@@ -734,3 +742,191 @@ window.addEventListener('DOMContentLoaded', () => {
 
   console.log('✅ AI Chat initialized (no auto-load)');
 });
+
+// ==========================================
+// 🎨 CODE SYNTAX HIGHLIGHTING UTILITIES
+// ==========================================
+
+/**
+ * Format message content with code block detection
+ * @param {string} text - Raw message text
+ * @returns {string} HTML with highlighted code blocks
+ */
+function formatMessageWithCode(text) {
+    if (!text) return '';
+    
+    // Detect code blocks (``````)
+    const codeBlockRegex = /``````/g;
+    
+    let formatted = text;
+    let match;
+    let blockIndex = 0;
+    
+    // Replace code blocks with highlighted versions
+    while ((match = codeBlockRegex.exec(text)) !== null) {
+        const language = match[1] || 'javascript'; // Default to JavaScript
+        const code = match[2].trim();
+        const blockId = `code-block-${Date.now()}-${blockIndex++}`;
+        
+        const highlightedCode = `
+            <div class="code-block-wrapper" id="${blockId}">
+                <div class="code-language-label">${language}</div>
+                <button class="copy-code-btn" onclick="copyCodeBlock('${blockId}')">
+                    Copy
+                </button>
+                <pre><code class="language-${language}">${escapeHtml(code)}</code></pre>
+            </div>
+        `;
+        
+        formatted = formatted.replace(match[0], highlightedCode);
+    }
+    
+    // Detect inline code (`code`)
+    const inlineCodeRegex = /`([^`]+)`/g;
+    formatted = formatted.replace(inlineCodeRegex, '<code class="language-none">$1</code>');
+    
+    // Convert newlines to <br> for remaining text
+    formatted = formatted.replace(/\n/g, '<br>');
+    
+    return formatted;
+}
+
+/**
+ * Escape HTML to prevent XSS
+ */
+function escapeHtml(text) {
+    const map = {
+        '&': '&amp;',
+        '<': '&lt;',
+        '>': '&gt;',
+        '"': '&quot;',
+        "'": '&#039;'
+    };
+    return text.replace(/[&<>"']/g, m => map[m]);
+}
+
+/**
+ * Copy code block to clipboard
+ */
+function copyCodeBlock(blockId) {
+    const block = document.getElementById(blockId);
+    if (!block) return;
+    
+    const codeElement = block.querySelector('code');
+    const code = codeElement.textContent;
+    
+    navigator.clipboard.writeText(code).then(() => {
+        const btn = block.querySelector('.copy-code-btn');
+        const originalText = btn.textContent;
+        btn.textContent = '✓ Copied!';
+        btn.style.background = 'rgba(34, 197, 94, 0.3)';
+        
+        setTimeout(() => {
+            btn.textContent = originalText;
+            btn.style.background = '';
+        }, 2000);
+    }).catch(err => {
+        console.error('Copy failed:', err);
+        alert('Failed to copy code');
+    });
+}
+
+/**
+ * Highlight all code blocks in messages area
+ */
+function highlightAllCodeBlocks() {
+    // Use Prism.js to highlight
+    if (typeof Prism !== 'undefined') {
+        Prism.highlightAll();
+    }
+}
+
+/**
+ * Render AI message with code highlighting
+ * @param {string} content - Message content from AI
+ */
+function renderAIMessage(content) {
+    const messagesList = document.getElementById('messagesList');
+    if (!messagesList) return;
+    
+    // Format content with code blocks
+    const formattedContent = formatMessageWithCode(content);
+    
+    // Create message div
+    const messageDiv = document.createElement('div');
+    messageDiv.className = 'message ai-message';
+    messageDiv.innerHTML = `
+        <div class="message-avatar">
+            <svg class="w-6 h-6" fill="currentColor" viewBox="0 0 20 20">
+                <path d="M2 5a2 2 0 012-2h7a2 2 0 012 2v4a2 2 0 01-2 2H9l-3 3v-3H4a2 2 0 01-2-2V5z"/>
+                <path d="M15 7v2a4 4 0 01-4 4H9.828l-1.766 1.767c.28.149.599.233.938.233h2l3 3v-3h2a2 2 0 002-2V9a2 2 0 00-2-2h-1z"/>
+            </svg>
+        </div>
+        <div class="message-content">
+            ${formattedContent}
+        </div>
+    `;
+    
+    messagesList.appendChild(messageDiv);
+    
+    // Highlight code blocks
+    highlightAllCodeBlocks();
+    
+    // Scroll to bottom
+    messagesList.scrollTop = messagesList.scrollHeight;
+}
+
+/**
+ * Render user message
+ */
+function renderUserMessage(content) {
+    const messagesList = document.getElementById('messagesList');
+    if (!messagesList) return;
+    
+    const messageDiv = document.createElement('div');
+    messageDiv.className = 'message user-message';
+    messageDiv.innerHTML = `
+        <div class="message-content">
+            ${content.replace(/\n/g, '<br>')}
+        </div>
+        <div class="message-avatar">
+            <svg class="w-6 h-6" fill="currentColor" viewBox="0 0 20 20">
+                <path fill-rule="evenodd" d="M10 9a3 3 0 100-6 3 3 0 000 6zm-7 9a7 7 0 1114 0H3z" clip-rule="evenodd"/>
+            </svg>
+        </div>
+    `;
+    
+    messagesList.appendChild(messageDiv);
+    messagesList.scrollTop = messagesList.scrollHeight;
+}
+
+// Make functions globally accessible
+window.formatMessageWithCode = formatMessageWithCode;
+window.copyCodeBlock = copyCodeBlock;
+window.highlightAllCodeBlocks = highlightAllCodeBlocks;
+window.renderAIMessage = renderAIMessage;
+window.renderUserMessage = renderUserMessage;
+
+// When receiving AI response
+async function handleAIResponse(userInput) {
+    try {
+        // Show user message
+        renderUserMessage(userInput);
+        
+        // Call backend API
+        const response = await fetch(`${APIBASE}/api/chat`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ message: userInput })
+        });
+        
+        const data = await response.json();
+        
+        // Render AI response with code highlighting
+        renderAIMessage(data.response);
+        
+    } catch (error) {
+        console.error('Chat error:', error);
+        renderAIMessage('Sorry, something went wrong.');
+    }
+}
