@@ -633,5 +633,64 @@ body.theme-advanced {
   });
 </script>
 
+<script>
+    (function() {
+        try {
+            const userStr = localStorage.getItem('imranUser');
+            if (userStr) {
+                const user = JSON.parse(userStr);
+                
+                // Check agar Admin hai
+                if (user.email === 'mohdesigner09@gmail.com' || user.role === 'admin') {
+                    
+                    // Button Create Karo
+                    const btn = document.createElement('a');
+                    btn.href = 'admin.html';
+                    btn.innerHTML = `
+                        <span style="font-size:16px">⚡</span> 
+                        <span style="font-weight:600; letter-spacing:1px">GOD MODE</span>
+                    `;
+                    
+                    // Styling (Floating Red Button)
+                    btn.style.cssText = `
+                        position: fixed;
+                        bottom: 30px;
+                        right: 30px;
+                        background: rgba(220, 38, 38, 0.9);
+                        color: white;
+                        padding: 12px 20px;
+                        border-radius: 9999px;
+                        border: 1px solid rgba(255,255,255,0.2);
+                        z-index: 9999;
+                        text-decoration: none;
+                        display: flex;
+                        align-items: center;
+                        gap: 8px;
+                        box-shadow: 0 0 20px rgba(220, 38, 38, 0.6);
+                        backdrop-filter: blur(5px);
+                        transition: all 0.3s ease;
+                        font-family: sans-serif;
+                        cursor: pointer;
+                    `;
+
+                    // Hover Effect
+                    btn.onmouseover = () => {
+                        btn.style.transform = 'scale(1.05) translateY(-2px)';
+                        btn.style.boxShadow = '0 0 30px rgba(220, 38, 38, 0.8)';
+                    };
+                    btn.onmouseout = () => {
+                        btn.style.transform = 'scale(1) translateY(0)';
+                        btn.style.boxShadow = '0 0 20px rgba(220, 38, 38, 0.6)';
+                    };
+
+                    document.body.appendChild(btn);
+                }
+            }
+        } catch (e) {
+            console.error("Admin check failed", e);
+        }
+    })();
+</script>
+
 </body>
 </html>
