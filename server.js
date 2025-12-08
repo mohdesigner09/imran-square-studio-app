@@ -1007,16 +1007,22 @@ app.post('/api/admin/users-list', requireAdmin, async (req, res) => {
 });
 
 // 3. Delete/Ban User Action
-app.post('/api/admin/user-action', requireAdmin, async (req, res) => {
-    const { targetUserId, action } = req.body;
+// 4. Update User Details (Role/Subscription) [NEW]
+app.post('/api/admin/update-user-details', requireAdmin, async (req, res) => {
+    const { targetUserId, role, subscription } = req.body;
     try {
-        if (action === 'delete') {
-            await db.collection('users').doc(targetUserId).delete();
-            return res.json({ success: true, message: "User Deleted." });
-        }
-        res.json({ success: true });
-    } catch(e) { res.status(500).json({ success: false }); }
+        await db.collection('users').doc(targetUserId).update({
+            role: role,
+            subscription: subscription,
+            updatedAt: admin.firestore.FieldValue.serverTimestamp()
+        });
+        return res.json({ success: true, message: "User details updated successfully." });
+    } catch(e) { 
+        console.error(e);
+        return res.status(500).json({ success: false, message: "Failed to update user." }); 
+    }
 });
+
 // ==========================================
 const PORT = process.env.PORT || 3000;
 

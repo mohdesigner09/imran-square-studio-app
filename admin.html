@@ -23,9 +23,12 @@
             backdrop-filter: blur(10px);
             border: 1px solid rgba(255, 255, 255, 0.1);
         }
+        /* Modal Animation */
+        .modal { transition: opacity 0.2s ease-in-out; }
+        .modal-content { transition: transform 0.2s ease-in-out; }
     </style>
 </head>
-<body class="min-h-screen flex flex-col">
+<body class="min-h-screen flex flex-col font-sans">
 
     <!-- Navbar -->
     <nav class="h-16 border-b border-white/10 flex items-center justify-between px-6 bg-black/50 backdrop-blur-md fixed w-full z-50">
@@ -34,69 +37,119 @@
             <span class="font-mono text-sm font-bold tracking-widest text-red-500">GOD MODE</span>
         </div>
         <div class="flex items-center gap-4">
+            <a href="index.html" class="text-xs text-gray-400 hover:text-white transition">Go to App ↗</a>
+            <div class="h-4 w-px bg-white/10"></div>
             <span class="text-xs text-gray-500 font-mono">mohdesigner09@gmail.com</span>
-            <button onclick="logout()" class="text-xs bg-white/10 hover:bg-white/20 px-3 py-1.5 rounded text-white transition">Exit</button>
+            <button onclick="logout()" class="text-xs bg-red-500/10 hover:bg-red-500/20 text-red-500 px-3 py-1.5 rounded transition border border-red-500/20">Exit</button>
         </div>
     </nav>
 
     <!-- Main Content -->
     <main class="flex-1 pt-24 px-6 max-w-7xl mx-auto w-full">
-        <div class="mb-8">
-            <h1 class="text-2xl font-bold mb-1">System Overview</h1>
-            <p class="text-gray-500 text-sm">Welcome back, Administrator.</p>
+        
+        <!-- Welcome -->
+        <div class="mb-8 flex justify-between items-end">
+            <div>
+                <h1 class="text-2xl font-bold mb-1">System Overview</h1>
+                <p class="text-gray-500 text-sm">Welcome back, Administrator.</p>
+            </div>
+            <button onclick="loadUsers()" class="text-xs flex items-center gap-2 bg-white/5 hover:bg-white/10 px-3 py-2 rounded transition">
+                <span>↻</span> Refresh Data
+            </button>
         </div>
 
         <!-- Stats Grid -->
         <div class="grid grid-cols-1 md:grid-cols-4 gap-4 mb-10">
-            <div class="glass-card p-5 rounded-xl">
+            <div class="glass-card p-5 rounded-xl border-l-2 border-l-blue-500">
                 <p class="text-xs text-gray-500 uppercase tracking-wider mb-2">Total Users</p>
                 <h2 id="statUsers" class="text-3xl font-bold">--</h2>
             </div>
-            <div class="glass-card p-5 rounded-xl">
+            <div class="glass-card p-5 rounded-xl border-l-2 border-l-purple-500">
                 <p class="text-xs text-gray-500 uppercase tracking-wider mb-2">Active Projects</p>
                 <h2 id="statProjects" class="text-3xl font-bold">--</h2>
             </div>
-            <div class="glass-card p-5 rounded-xl">
+            <div class="glass-card p-5 rounded-xl border-l-2 border-l-orange-500">
                 <p class="text-xs text-gray-500 uppercase tracking-wider mb-2">Storage Used</p>
                 <h2 id="statStorage" class="text-3xl font-bold text-orange-500">--</h2>
             </div>
-            <div class="glass-card p-5 rounded-xl">
+            <div class="glass-card p-5 rounded-xl border-l-2 border-l-green-500">
                 <p class="text-xs text-gray-500 uppercase tracking-wider mb-2">System Status</p>
                 <h2 id="statStatus" class="text-xl font-mono text-green-500 mt-1">--</h2>
             </div>
         </div>
 
         <!-- Users Table -->
-        <div class="glass-card rounded-xl overflow-hidden mb-10">
-            <div class="px-6 py-4 border-b border-white/10 flex justify-between items-center">
+        <div class="glass-card rounded-xl overflow-hidden mb-20">
+            <div class="px-6 py-4 border-b border-white/10">
                 <h3 class="font-semibold text-sm">User Database</h3>
-                <button onclick="loadUsers()" class="text-xs text-orange-500 hover:text-orange-400">Refresh Data</button>
             </div>
             <div class="overflow-x-auto">
                 <table class="w-full text-left text-sm text-gray-400">
                     <thead class="bg-white/5 text-gray-200 font-medium">
                         <tr>
-                            <th class="px-6 py-3">User</th>
+                            <th class="px-6 py-3">User Info</th>
                             <th class="px-6 py-3">Role</th>
+                            <th class="px-6 py-3">Plan</th>
                             <th class="px-6 py-3">Joined</th>
-                            <th class="px-6 py-3 text-right">Actions</th>
+                            <th class="px-6 py-3 text-right">Controls</th>
                         </tr>
                     </thead>
                     <tbody id="usersTableBody" class="divide-y divide-white/5">
-                        <tr><td colspan="4" class="px-6 py-4 text-center">Loading...</td></tr>
+                        <tr><td colspan="5" class="px-6 py-10 text-center text-gray-600">Loading database...</td></tr>
                     </tbody>
                 </table>
             </div>
         </div>
     </main>
 
+    <!-- EDIT USER MODAL (Hidden by default) -->
+    <div id="editModal" class="modal fixed inset-0 z-[60] hidden flex items-center justify-center bg-black/80 backdrop-blur-sm opacity-0">
+        <div class="modal-content transform scale-95 bg-[#0A0A0A] border border-white/10 w-full max-w-md rounded-xl p-6 shadow-2xl">
+            <h3 class="text-lg font-bold text-white mb-4">Edit User Permissions</h3>
+            
+            <input type="hidden" id="editUserId">
+            
+            <div class="space-y-4">
+                <div>
+                    <label class="block text-xs text-gray-500 mb-1">Username (Read Only)</label>
+                    <input id="editUsername" disabled class="w-full bg-white/5 border border-white/10 rounded px-3 py-2 text-gray-400 cursor-not-allowed">
+                </div>
+
+                <div>
+                    <label class="block text-xs text-gray-500 mb-1">Assign Role</label>
+                    <select id="editRole" class="w-full bg-black border border-white/20 rounded px-3 py-2 text-white focus:border-white transition">
+                        <option value="user">User (Standard)</option>
+                        <option value="editor">Editor (Access to Tools)</option>
+                        <option value="producer">Producer (Full Project Access)</option>
+                        <option value="admin">Admin (God Mode Access)</option>
+                    </select>
+                </div>
+
+                <div>
+                    <label class="block text-xs text-gray-500 mb-1">Subscription Plan</label>
+                    <select id="editPlan" class="w-full bg-black border border-white/20 rounded px-3 py-2 text-white focus:border-white transition">
+                        <option value="free">Free Tier</option>
+                        <option value="pro">Pro (Monthly)</option>
+                        <option value="enterprise">Enterprise</option>
+                    </select>
+                </div>
+            </div>
+
+            <div class="flex gap-3 mt-6">
+                <button onclick="closeModal()" class="flex-1 px-4 py-2 rounded bg-white/5 hover:bg-white/10 text-gray-400 text-sm">Cancel</button>
+                <button onclick="saveUserChanges()" class="flex-1 px-4 py-2 rounded bg-white text-black font-medium hover:bg-gray-200 text-sm">Save Changes</button>
+            </div>
+        </div>
+    </div>
+
     <script>
         const API_BASE = window.location.hostname === 'localhost' ? 'http://localhost:10000' : 'https://imran-square-studio.onrender.com';
+        
+        // AUTH GUARD
         const userStr = localStorage.getItem('imranUser');
         const user = userStr ? JSON.parse(userStr) : null;
-        
         if (!user || user.email !== 'mohdesigner09@gmail.com') {
-            window.location.href = 'index.html'; // Security Check
+            window.location.href = 'index.html'; 
         }
 
         async function loadStats() {
@@ -129,24 +182,34 @@
 
                 if(data.success) {
                     data.users.forEach(u => {
+                        const isMe = u.email === 'mohdesigner09@gmail.com';
                         const row = `
-                            <tr class="hover:bg-white/5 transition">
+                            <tr class="hover:bg-white/5 transition group">
                                 <td class="px-6 py-4">
-                                    <div class="text-white font-medium">${u.username || 'No Name'}</div>
-                                    <div class="text-xs">${u.email}</div>
+                                    <div class="text-white font-medium flex items-center gap-2">
+                                        ${u.username || 'No Name'}
+                                        ${isMe ? '<span class="text-[10px] bg-red-500 text-black px-1.5 rounded font-bold">YOU</span>' : ''}
+                                    </div>
+                                    <div class="text-xs text-gray-500 font-mono">${u.email}</div>
                                 </td>
                                 <td class="px-6 py-4">
-                                    <span class="px-2 py-1 rounded text-xs ${u.role==='admin' ? 'bg-red-500/20 text-red-400' : 'bg-blue-500/20 text-blue-400'}">
-                                        ${u.role || 'User'}
+                                    <span class="px-2 py-1 rounded text-xs border border-white/10 ${u.role==='admin' ? 'bg-red-500/10 text-red-400' : 'bg-blue-500/10 text-blue-400'}">
+                                        ${u.role || 'user'}
                                     </span>
                                 </td>
-                                <td class="px-6 py-4 text-xs font-mono">
+                                <td class="px-6 py-4">
+                                    <span class="text-xs ${u.subscription==='pro' ? 'text-amber-400' : 'text-gray-400'}">
+                                        ${(u.subscription || 'free').toUpperCase()}
+                                    </span>
+                                </td>
+                                <td class="px-6 py-4 text-xs font-mono text-gray-500">
                                     ${new Date(u.createdAt?._seconds * 1000 || Date.now()).toLocaleDateString()}
                                 </td>
-                                <td class="px-6 py-4 text-right">
-                                    ${u.email !== 'mohdesigner09@gmail.com' ? 
-                                    `<button onclick="deleteUser('${u.id}')" class="text-red-500 hover:text-red-400 text-xs border border-red-500/30 px-2 py-1 rounded hover:bg-red-500/10">Terminate</button>` 
-                                    : '<span class="text-gray-600 text-xs">IMMORTAL</span>'}
+                                <td class="px-6 py-4 text-right flex items-center justify-end gap-2 opacity-100 sm:opacity-50 group-hover:opacity-100 transition">
+                                    ${!isMe ? `
+                                        <button onclick="openEditModal('${u.id}', '${u.username}', '${u.role}', '${u.subscription}')" class="text-xs bg-white text-black px-3 py-1.5 rounded hover:bg-gray-200 font-medium transition">Edit</button>
+                                        <button onclick="deleteUser('${u.id}')" class="text-xs border border-red-500/30 text-red-500 px-3 py-1.5 rounded hover:bg-red-500/10 transition">Terminate</button>
+                                    ` : '<span class="text-[10px] text-gray-600 font-mono">PROTECTED</span>'}
                                 </td>
                             </tr>
                         `;
@@ -156,8 +219,74 @@
             } catch(e) { console.error(e); }
         }
 
+        // --- MODAL LOGIC ---
+        function openEditModal(id, username, role, plan) {
+            document.getElementById('editUserId').value = id;
+            document.getElementById('editUsername').value = username || 'Unknown';
+            document.getElementById('editRole').value = role || 'user';
+            document.getElementById('editPlan').value = plan || 'free';
+
+            const modal = document.getElementById('editModal');
+            modal.classList.remove('hidden');
+            // Slight delay for animation
+            setTimeout(() => {
+                modal.classList.remove('opacity-0');
+                modal.querySelector('.modal-content').classList.remove('scale-95');
+                modal.querySelector('.modal-content').classList.add('scale-100');
+            }, 10);
+        }
+
+        function closeModal() {
+            const modal = document.getElementById('editModal');
+            modal.classList.add('opacity-0');
+            modal.querySelector('.modal-content').classList.add('scale-95');
+            setTimeout(() => {
+                modal.classList.add('hidden');
+            }, 200);
+        }
+
+        async function saveUserChanges() {
+            const id = document.getElementById('editUserId').value;
+            const role = document.getElementById('editRole').value;
+            const plan = document.getElementById('editPlan').value;
+            
+            // UI Feedback
+            const btn = document.querySelector('#editModal button:last-child');
+            const originalText = btn.innerText;
+            btn.innerText = "Saving...";
+            btn.disabled = true;
+
+            try {
+                const res = await fetch(`${API_BASE}/api/admin/update-user-details`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ 
+                        adminEmail: user.email, 
+                        targetUserId: id, 
+                        role: role, 
+                        subscription: plan 
+                    })
+                });
+                
+                const data = await res.json();
+                if(data.success) {
+                    closeModal();
+                    loadUsers(); // Refresh Table
+                    alert("User updated successfully!");
+                } else {
+                    alert("Update failed: " + data.message);
+                }
+            } catch(e) {
+                console.error(e);
+                alert("Server Error");
+            } finally {
+                btn.innerText = originalText;
+                btn.disabled = false;
+            }
+        }
+
         async function deleteUser(id) {
-            if(!confirm("⚠️ ARE YOU SURE? This user will be permanently deleted.")) return;
+            if(!confirm("⚠️ WARNING: This will permanently delete the user and their data. Continue?")) return;
             await fetch(`${API_BASE}/api/admin/user-action`, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
@@ -167,29 +296,14 @@
         }
 
         function logout() {
-            window.location.href = 'index.html';
+            localStorage.removeItem('imranUser');
+            localStorage.removeItem('userId');
+            window.location.href = 'login.html';
         }
 
+        // Init
         loadStats();
         loadUsers();
     </script>
 </body>
 </html>
-```
-
-### 🚀 Last Step: Login Logic Update
-Apne `login.html` mein jao aur jahan login success hota hai (JavaScript mein `if (data.success)`), wahan ye logic daal do taaki aap admin page par jao.
-
-```javascript
-// Naya Redirect Logic (Isse replace karo)
-if (data.success) {
-    localStorage.setItem('imranUser', JSON.stringify(data.user));
-    localStorage.setItem('userId', data.user.userId);
-    
-    // 🔥 GOD MODE CHECK
-    if (data.user.email === 'mohdesigner09@gmail.com') {
-        window.location.href = 'admin.html';
-    } else {
-        window.location.href = 'index.html';
-    }
-}
