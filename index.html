@@ -253,6 +253,59 @@
 
         </div>
     </header>
+
+     <!-- 🔥 NEW: UPDATE NOTIFICATION TOAST (Hidden by default) -->
+    <div id="updateToast" class="fixed bottom-8 left-1/2 -translate-x-1/2 bg-[#0a0a0a]/90 backdrop-blur-xl border border-white/20 text-white pl-5 pr-2 py-2 rounded-full shadow-[0_0_30px_rgba(0,0,0,0.8)] flex items-center gap-6 z-[9999] translate-y-24 opacity-0 transition-all duration-500 pointer-events-none">
+        <div class="flex flex-col">
+            <span class="text-[10px] font-bold text-gray-400 uppercase tracking-widest">System</span>
+            <span class="text-xs font-medium text-white">New version available</span>
+        </div>
+        <button onclick="window.location.reload()" class="bg-white text-black text-[10px] font-bold px-4 py-2 rounded-full hover:scale-105 transition-transform shadow-[0_0_15px_rgba(255,255,255,0.3)]">
+            UPDATE NOW
+        </button>
+    </div>
+
+    <!-- 🔥 NEW: AUTO-UPDATE SCRIPT -->
+    <script>
+        (function() {
+            let currentETag = null;
+
+            // 1. Initial Check: Get current version hash from server headers
+            fetch(window.location.href, { method: 'HEAD', cache: 'no-store' })
+                .then(res => {
+                    currentETag = res.headers.get('etag');
+                    console.log('Current Version:', currentETag);
+                })
+                .catch(e => console.log('Update check skipped (local/error)'));
+
+            // 2. Periodic Check: Every 30 seconds
+            setInterval(() => {
+                if (!currentETag) return;
+                
+                // Fetch ONLY headers to save data
+                fetch(window.location.href, { method: 'HEAD', cache: 'no-store' })
+                    .then(res => {
+                        const newETag = res.headers.get('etag');
+                        // If ETag changes, it means you deployed a new version!
+                        if (newETag && newETag !== currentETag) {
+                            showUpdateNotification();
+                        }
+                    })
+                    .catch(e => console.log('Background check failed'));
+            }, 30000); // 30 Seconds Interval
+
+            function showUpdateNotification() {
+                const toast = document.getElementById('updateToast');
+                if(toast) {
+                    // Show animation
+                    toast.classList.remove('translate-y-24', 'opacity-0', 'pointer-events-none');
+                    // Play a subtle sound (Optional)
+                    // const audio = new Audio('resources/notification.mp3'); audio.play().catch(e=>{});
+                }
+            }
+        })();
+    </script>
+    
        <!-- Main hero/layout -->
     <div class="hero-bg flex flex-col">
         <div
