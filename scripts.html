@@ -400,6 +400,39 @@ He pulls out a crumpled photograph.
     from { opacity: 0; transform: translateY(20px); }
     to { opacity: 1; transform: translateY(0); }
 }
+/* ===== UPLOAD BUTTON STYLING ===== */
+.card-upload-btn {
+    width: 100%;
+    padding: 10px;
+    margin-top: 12px;
+    background: linear-gradient(135deg, #ff6b35 0%, #f97d3c 100%);
+    color: white;
+    border: none;
+    border-radius: 8px;
+    font-size: 12px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+}
+
+.card-upload-btn:hover:not(:disabled) {
+    background: linear-gradient(135deg, #f97d3c 0%, #ff6b35 100%);
+    transform: translateY(-2px);
+    box-shadow: 0 4px 15px rgba(255, 107, 53, 0.4);
+}
+
+.card-upload-btn:disabled {
+    background: #333;
+    cursor: not-allowed;
+    opacity: 0.5;
+}
+
+.card-upload-btn:active:not(:disabled) {
+    transform: translateY(0);
+}
+
 </style>
 
 
@@ -465,30 +498,56 @@ He pulls out a crumpled photograph.
         ];
 
         // --- 2. INIT & RENDER ---
-        (function initPage() {
-            const params = new URLSearchParams(window.location.search);
-            const projectId = params.get('id');
-            
-            // Load Project Name
-            let projects = [];
-            try { projects = JSON.parse(localStorage.getItem('imranProjects') || '[]'); } catch(e) {}
-            const project = projects.find(p => p.id === projectId);
-            
-            if (project) {
-                document.getElementById('scriptTitle').textContent = (project.title || 'UNTITLED').toUpperCase();
-            } else {
-                // If project not found but ID exists (preview), use dummy name
-                if(projectId) document.getElementById('scriptTitle').textContent = "DEMO PROJECT";
-            }
+    // --- 2. INIT & RENDER ---
+(function initPage() {
+    const params = new URLSearchParams(window.location.search);
+    const projectId = params.get('id');
 
-            // Load saved sections if any
-            if(projectId) {
-                const savedSections = localStorage.getItem(`sections_${projectId}`);
-                if(savedSections) sectionsData = JSON.parse(savedSections);
-            }
+    // ✅ FIX: Use GLOBAL projects from main.js (not local)
+    if (!window.projects || !Array.isArray(window.projects)) {
+        console.error('❌ main.js not loaded! projects array missing');
+        alert('Error: Please include main.js before scripts.html');
+        return;
+    }
+    
+    const projects = window.projects;  // ✅ Use global
+    const project = projects.find(p => p.id === projectId);
 
-            renderSections();
-        })();
+    if (project) {
+        document.getElementById('scriptTitle').textContent = (project.title || 'UNTITLED').toUpperCase();
+        
+        // ✅ FIX: Load sections from project
+        if (project.sections && Array.isArray(project.sections)) {
+            sectionsData = project.sections;
+            console.log('✅ Loaded sections from project:', sectionsData.length);
+        } else {
+            // ✅ Initialize default sections for new project
+            sectionsData = [
+                { id: 1, name: "Screenplays", files: [] },
+                { id: 2, name: "Research", files: [] },
+                { id: 3, name: "Character Notes", files: [] },
+                { id: 4, name: "Locations", files: [] },
+                { id: 5, name: "Legal Docs", files: [] },
+                { id: 6, name: "Misc", files: [] }
+            ];
+            
+            // Save to project
+            project.sections = sectionsData;
+            localStorage.setItem('imranProjects', JSON.stringify(projects));
+            console.log('✅ Created default sections for new project');
+        }
+    } else {
+        // If project not found but ID exists (preview), use dummy
+        if(projectId) {
+            document.getElementById('scriptTitle').textContent = "DEMO PROJECT";
+            console.warn('⚠️ Project not found, using demo sections');
+        }
+    }
+
+    renderSections();
+    switchMode('files');  // ✅ Default to files view
+})();
+
 function renderSections() {
     // Load from main projects array
     const projectId = new URLSearchParams(window.location.search).get('id');
@@ -789,7 +848,7 @@ const editorText = document.getElementById('scriptEditor').textContent; // NOT i
 
         function goBackToHub() {
             const id = new URLSearchParams(window.location.search).get('id');
-            window.location.href = id ? `project_hub.html?id=${encodeURIComponent(id)}` : 'project_hub.html';
+               window.location.href = id ? `project-hub.html?id=${encodeURIComponent(id)}` : 'project-hub.html';
         }
         
         document.addEventListener('DOMContentLoaded', initPage);
