@@ -3,202 +3,495 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Editor - IMRAN SQUARE</title>
+    <title>Script Workspace - Imran Square</title>
 
-        <!-- PWA Meta Tags -->
-    <meta name="theme-color" content="#ff6b35">
+    <!-- PWA Meta Tags (Aapki purani file se) -->
+    <meta name="theme-color" content="#030303">
     <meta name="mobile-web-app-capable" content="yes">
-    <meta name="apple-mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
-    <meta name="apple-mobile-web-app-title" content="IMRAN SQUARE">
-    
-    <!-- PWA Manifest -->
     <link rel="manifest" href="/manifest.json">
     
-    <!-- Icons for iOS -->
+    <!-- Icons -->
     <link rel="apple-touch-icon" href="/resources/icon-152.png">
-    <link rel="apple-touch-icon" sizes="152x152" href="/resources/icon-152.png">
-    <link rel="apple-touch-icon" sizes="180x180" href="/resources/icon-192.png">
-    <link rel="apple-touch-icon" sizes="192x192" href="/resources/icon-192.png">
-    
-    <!-- Favicon -->
     <link rel="icon" type="image/png" sizes="32x32" href="/resources/icon-32.png">
-    <link rel="icon" type="image/png" sizes="16x16" href="/resources/icon-16.png">
     <link rel="shortcut icon" href="/resources/favicon.ico">
 
-    
+    <!-- Tailwind & Fonts -->
     <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600&family=Courier+Prime:wght@400;700&family=Playfair+Display:wght@700&family=JetBrains+Mono:wght@500&display=swap" rel="stylesheet">
+    
+    <!-- External Scripts -->
     <script src="https://cdnjs.cloudflare.com/ajax/libs/animejs/3.2.1/anime.min.js"></script>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/Sortable/1.14.0/Sortable.min.js"></script>
     
-    <script src="https://accounts.google.com/gsi/client" async defer></script>
-    <script src="https://apis.google.com/js/api.js" async defer></script>
-
-    <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@400;600;700&family=Inter:wght@300;400;500&display=swap" rel="stylesheet">
-    
-    <style>
-        :root { --primary-dark: #050505; --accent-orange: #ff6b35; }
-        body { background: var(--primary-dark); color: white; font-family: 'Inter', sans-serif; overflow-x: hidden; }
-        .font-display { font-family: 'Playfair Display', serif; }
-        
-        .hero-bg { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: radial-gradient(circle at 50% 30%, #151515 0%, #000000 100%); z-index: -2; }
-        .hero-bg::after { content: ''; position: absolute; inset: 0; background: url('resources/hero-film-studio.png') center/cover; opacity: 0.15; mix-blend-mode: overlay; z-index: -1; }
-        .film-grain { position: fixed; top: 0; left: 0; width: 100%; height: 100%; pointer-events: none; opacity: 0.04; z-index: 0; }
-
-        /* Cards */
-        .section-card {
-            background: linear-gradient(180deg, rgba(20, 20, 20, 0.95) 0%, rgba(5, 5, 5, 0.98) 100%);
-            backdrop-filter: blur(25px); border: 1px solid rgba(255, 255, 255, 0.03); border-top: 1px solid rgba(255, 255, 255, 0.1); 
-            border-radius: 16px; box-shadow: 0 20px 40px -10px rgba(0, 0, 0, 0.8);
-            transition: all 0.4s cubic-bezier(0.2, 0.8, 0.2, 1); transform-style: preserve-3d; overflow: hidden; position: relative;
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    fontFamily: { 
+                        sans: ['Inter', 'sans-serif'], 
+                        display: ['Playfair Display', 'serif'],
+                        script: ['"Courier Prime"', 'Courier', 'monospace'],
+                        mono: ['"JetBrains Mono"', 'monospace']
+                    },
+                    colors: { brand: { dark: '#030303' } }
+                }
+            }
         }
-        .section-card:hover { border-color: rgba(255, 107, 53, 0.4); transform: translateY(-5px) scale(1.01); z-index: 10; box-shadow: inset 0 1px 0 0 rgba(255, 107, 53, 0.6), 0 0 60px -10px rgba(255, 107, 53, 0.15), 0 30px 60px -15px rgba(0, 0, 0, 1); }
-        .section-card .border-b { border-color: rgba(255, 255, 255, 0.05); }
+    </script>
+    <style>
+        /* =========================================
+           🔥 THEME: DARK CINEMATIC (Merged)
+           ========================================= */
+        :root { --text-primary: #ededed; }
 
-        /* Full State Glow */
-        .section-card.card-full { border-color: rgba(34, 197, 94, 0.3); box-shadow: inset 0 0 20px rgba(34, 197, 94, 0.1); }
+        body { 
+            background-color: #030303 !important;
+            color: var(--text-primary); 
+            font-family: 'Inter', sans-serif; 
+            overflow: hidden; 
+            height: 100vh;
+        }
 
-        /* Edit Mode Styles */
-        body.edit-mode .section-card { border: 1px dashed var(--accent-orange); cursor: move; background: rgba(20, 20, 20, 1); } 
-        .delete-btn, .upload-area { display: none; }
-        body.edit-mode .delete-btn { display: block; }
-        body.edit-mode .upload-area { display: flex; }
-        [contenteditable="true"] { border-bottom: 1px dashed var(--accent-orange); outline: none; color: var(--accent-orange); }
+        /* Background Image with Blur */
+        body::before {
+            content: "";
+            position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+            background-image: url('resources/index bg .jpeg'); 
+            background-size: cover; background-position: center; background-repeat: no-repeat;
+            filter: blur(5px) brightness(0.6);
+            transform: scale(1.05); opacity: 0.5;
+            z-index: -50; pointer-events: none;
+        }
+
+        /* --- UI COMPONENTS --- */
+        .glass-header {
+            background: rgba(5, 5, 5, 0.85);
+            backdrop-filter: blur(15px);
+            border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+        }
         
-        .custom-scrollbar::-webkit-scrollbar { width: 4px; }
-        .custom-scrollbar::-webkit-scrollbar-track { background: rgba(0,0,0,0.2); }
-        .custom-scrollbar::-webkit-scrollbar-thumb { background: #333; border-radius: 10px; }
+        /* Switcher */
+        .mode-switch {
+            background: rgba(255, 255, 255, 0.05);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            border-radius: 9999px; padding: 4px; display: flex; gap: 4px;
+        }
+        .mode-btn {
+            padding: 6px 16px; border-radius: 9999px; font-size: 11px; font-weight: 600; letter-spacing: 0.05em;
+            text-transform: uppercase; transition: all 0.3s ease; color: #888;
+        }
+        .mode-btn.active { background: #ffffff; color: #000; box-shadow: 0 0 15px rgba(255,255,255,0.2); }
 
-        /* --- UPLOAD QUEUE --- */
-        #uploadQueue { position: fixed; bottom: 20px; right: 20px; width: 300px; display: flex; flex-direction: column; gap: 8px; z-index: 100; }
-        .upload-item { background: #111; border: 1px solid rgba(255, 255, 255, 0.15); border-left: 3px solid var(--accent-orange); padding: 12px; border-radius: 8px; box-shadow: 0 10px 30px rgba(0,0,0,0.8); animation: slideIn 0.3s ease-out; color: white; font-size: 0.85rem; }
-        .upload-item.success { border-left-color: #22c55e; }
-        @keyframes slideIn { from { opacity: 0; transform: translateX(50px); } to { opacity: 1; transform: translateX(0); } }
+/* --- MODE 1: EDITOR STYLES (Updated) --- */
+        .script-page {
+            background: #ffffff; /* Paper is white */
+            color: #000000;      /* Ink is black */
+            width: 100%;
+            max-width: 850px;    /* Standard A4 width approx */
+            min-height: 1100px;
+            margin: 40px auto;
+            padding: 96px;       /* 1 inch margins */
+            box-shadow: 0 0 50px rgba(0,0,0,0.8);
+            font-family: 'Courier Prime', monospace;
+            font-size: 18px;
+            line-height: 1.2;
+            outline: none;
+        }
+        
+        .glass-panel {
+            background: rgba(10, 10, 10, 0.7);
+            backdrop-filter: blur(15px);
+            border-right: 1px solid rgba(255, 255, 255, 0.08);
+        }
 
-        /* --- HOLOGRAPHIC RING CSS --- */
-        .capacity-container { display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 2px; }
-        .capacity-wrapper { position: relative; width: 40px; height: 40px; display: flex; align-items: center; justify-content: center; }
+        /* Active Item in Sidebar */
+        .scene-item.active {
+            background: rgba(255,255,255,0.1);
+            border-left: 3px solid #fff;
+            color: #fff;
+        }
+        
+        /* Typography Glows */
+        .glow-text { text-shadow: 0 0 10px rgba(255,255,255,0.3); }
+
+        /* --- MODE 2: SECTION CARDS (Folders) --- */
+        .section-card {
+            background: rgba(20, 20, 20, 0.6);
+            backdrop-filter: blur(12px);
+            border: 1px solid rgba(255, 255, 255, 0.08);
+            border-top: 1px solid rgba(255, 255, 255, 0.15);
+            border-radius: 20px; 
+            padding: 1.5rem;
+            transition: all 0.3s cubic-bezier(0.25, 0.8, 0.25, 1);
+            box-shadow: 0 10px 30px -10px rgba(0,0,0,0.8);
+            position: relative; overflow: hidden;
+            display: flex; flex-direction: column; height: 320px;
+        }
+        .section-card:hover {
+            border-color: rgba(255, 255, 255, 0.3);
+            transform: translateY(-5px);
+            box-shadow: 0 20px 50px -10px rgba(0,0,0,1);
+        }
+
+        /* --- HOLOGRAPHIC RING --- */
+        .capacity-wrapper { position: relative; width: 50px; height: 50px; display: flex; align-items: center; justify-content: center; }
         .capacity-svg { transform: rotate(-90deg); width: 100%; height: 100%; }
         .capacity-circle-bg { fill: none; stroke: rgba(255, 255, 255, 0.1); stroke-width: 3; }
         .capacity-circle-fg { fill: none; stroke-width: 3; stroke-linecap: round; transition: stroke-dashoffset 0.6s ease; }
         
-        /* Colors */
-        .ring-orange { stroke: #ff6b35; filter: drop-shadow(0 0 2px rgba(255, 107, 53, 0.5)); }
-        .ring-green { stroke: #22c55e; filter: drop-shadow(0 0 8px rgba(34, 197, 94, 0.8)); }
+        /* Green Glow for Ring */
+        .ring-green { stroke: #22c55e; filter: drop-shadow(0 0 8px rgba(34, 197, 94, 0.6)); }
+        .ring-full { stroke: #ef4444; filter: drop-shadow(0 0 8px rgba(239, 68, 68, 0.6)); }
         
-        /* Text */
-        .capacity-percent { position: absolute; font-size: 9px; font-family: monospace; font-weight: bold; color: white; }
-        .capacity-count { font-size: 9px; color: #888; font-family: 'JetBrains Mono', monospace; font-weight: bold; }
+        .capacity-text { position: absolute; font-size: 10px; font-family: 'JetBrains Mono', monospace; font-weight: bold; color: white; }
+
+        /* File List Inside Card */
+        .file-list { flex: 1; overflow-y: auto; margin-top: 15px; margin-bottom: 15px; padding-right: 5px; }
+        .file-item { 
+            background: rgba(255,255,255,0.05); border: 1px solid rgba(255,255,255,0.05);
+            padding: 8px 12px; border-radius: 8px; margin-bottom: 6px;
+            display: flex; justify-content: space-between; align-items: center;
+            font-size: 11px; color: #ccc; transition: all 0.2s;
+        }
+        .file-item:hover { background: rgba(255,255,255,0.1); color: white; border-color: rgba(255,255,255,0.2); }
+
+        /* Upload Button inside Card */
+        .card-upload-btn {
+            width: 100%; padding: 8px 0; text-align: center; border-radius: 8px;
+            background: rgba(255,255,255,0.1); color: white; font-size: 11px; font-weight: 600;
+            border: 1px solid rgba(255,255,255,0.1); transition: all 0.2s; cursor: pointer;
+            display: flex; align-items: center; justify-content: center; gap: 6px;
+        }
+        .card-upload-btn:hover { background: white; color: black; }
+        .card-upload-btn:disabled { opacity: 0.5; cursor: not-allowed; background: rgba(255,255,255,0.05); color: #666; border: none; }
+
+        /* --- UPLOAD QUEUE --- */
+        #uploadQueue { position: fixed; bottom: 20px; right: 20px; width: 320px; z-index: 100; display: flex; flex-direction: column; gap: 8px; }
+        .upload-item { 
+            background: #0a0a0a; border: 1px solid rgba(255,255,255,0.15); 
+            border-left: 3px solid #22c55e; padding: 14px; border-radius: 8px; 
+            box-shadow: 0 10px 40px rgba(0,0,0,0.9); animation: slideIn 0.3s ease-out; 
+            color: white; font-size: 12px; display: flex; align-items: center; gap: 10px;
+        }
+        @keyframes slideIn { from { opacity: 0; transform: translateX(50px); } to { opacity: 1; transform: translateX(0); } }
+
+        /* Helpers */
+        .hidden-mode { display: none !important; }
+        ::-webkit-scrollbar { width: 4px; }
+        ::-webkit-scrollbar-thumb { background: rgba(255,255,255,0.2); border-radius: 10px; }
     </style>
 </head>
-<body>
-    <div class="hero-bg"></div>
-    <canvas class="film-grain" id="filmGrain"></canvas>
+<body class="flex flex-col h-screen">
 
-    <div class="p-6 flex items-center justify-between sticky top-0 z-50 bg-gradient-to-b from-black/95 to-transparent backdrop-blur-sm">
+    <!-- 1. HEADER -->
+    <header class="h-16 glass-header flex items-center justify-between px-6 shrink-0 z-50">
         <div class="flex items-center gap-4">
-            <button onclick="goBackToHub()" class="group w-10 h-10 flex items-center justify-center rounded-xl border border-white/10 bg-white/5 text-gray-400 hover:border-orange-500 hover:text-orange-500 hover:scale-105 transition-all shadow-lg">
-                <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7"></path></svg>
-            </button>
-            
+            <a href="#" onclick="goBackToHub()" class="p-2 rounded-lg hover:bg-white/10 text-gray-400 hover:text-white transition">
+                <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 19l-7-7m0 0l7-7m-7 7h18"/></svg>
+            </a>
             <div>
-                <h1 class="font-display text-3xl font-bold text-white tracking-wide" id="projectTitle">Loading...</h1>
-                <p class="text-[10px] text-orange-600 tracking-[0.2em] uppercase mt-1 font-bold">Script Editor Workspace</p>
+                <h1 class="text-sm font-bold text-white tracking-wide" id="scriptTitle">UNTITLED PROJECT</h1>
+                <p class="text-[10px] text-gray-500 uppercase tracking-widest">Script Workspace</p>
             </div>
         </div>
+
+        <div class="absolute left-1/2 transform -translate-x-1/2">
+            <div class="mode-switch">
+                <button onclick="switchMode('editor')" id="btnEditor" class="mode-btn active">Writer</button>
+                <button onclick="switchMode('files')" id="btnFiles" class="mode-btn">Files</button>
+            </div>
+        </div>
+
+        <div class="flex items-center gap-3">
+            <button id="editorActionBtn" class="px-4 py-2 bg-white text-black text-xs font-bold rounded-lg hover:bg-gray-200 transition">Export PDF</button>
+        </div>
+    </header>
+
+<!-- =========================================
+         MODE 1: THE WRITER (Updated Layout)
+         ========================================= -->
+    <div id="modeEditor" class="flex flex-1 overflow-hidden relative w-full h-full">
         
-        <button id="editorToggle" class="group p-3 rounded-xl bg-[#0a0a0a] border border-white/5 hover:border-orange-500 transition-all duration-300 shadow-lg">
-            <svg class="w-5 h-5 text-gray-500 group-hover:text-orange-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z"></path></svg>
-        </button>
+        <!-- LEFT SIDEBAR: SCENES -->
+        <aside class="w-64 glass-panel hidden md:flex flex-col z-40">
+            <div class="p-4 border-b border-white/5">
+                <h3 class="text-xs font-bold text-gray-400 uppercase tracking-wider">Scenes</h3>
+            </div>
+            <div class="flex-1 overflow-y-auto p-2 space-y-1">
+                <!-- Scene Item Active -->
+                <div class="scene-item active px-3 py-3 rounded cursor-pointer transition">
+                    <div class="text-[10px] text-gray-500 font-mono mb-1">SCENE 1</div>
+                    <div class="text-xs font-medium text-white truncate">INT. COFFEE SHOP - DAY</div>
+                </div>
+                <!-- Scene Item -->
+                <div class="scene-item px-3 py-3 rounded cursor-pointer hover:bg-white/5 text-gray-400 hover:text-white transition">
+                    <div class="text-[10px] text-gray-600 font-mono mb-1">SCENE 2</div>
+                    <div class="text-xs font-medium truncate">EXT. STREET - CONTINUOUS</div>
+                </div>
+            </div>
+        </aside>
+
+        <!-- CENTER: EDITOR CANVAS -->
+        <main class="flex-1 overflow-y-auto relative bg-transparent flex flex-col items-center custom-scrollbar">
+            
+            <!-- THE SCRIPT PAGE -->
+            <div id="scriptEditor" contenteditable="true" class="script-page shadow-2xl">
+                <div class="scene-heading">INT. COFFEE SHOP - DAY</div>
+                <div class="action">Rain lashes against the window. A lone figure, KABIR (30s, disheveled), sits nursing a cold espresso.</div>
+                <div class="character">KABIR</div>
+                <div class="dialogue">(muttering)</div>
+                <div class="dialogue">It wasn't supposed to end like this.</div>
+                <div class="action">He pulls out a crumpled photograph.</div>
+            </div>
+
+        </main>
+
+        <!-- RIGHT SIDEBAR: AI TOOLS -->
+        <aside class="w-72 glass-panel border-l border-white/10 hidden lg:flex flex-col z-40 bg-black/40">
+            <div class="p-4 border-b border-white/5 flex justify-between items-center">
+                <h3 class="text-xs font-bold text-white uppercase tracking-wider glow-text">AI Assistant</h3>
+                <span class="w-2 h-2 bg-green-500 rounded-full shadow-[0_0_10px_#22c55e]"></span>
+            </div>
+            <div class="p-4 flex-1 overflow-y-auto">
+                <div class="bg-white/5 border border-white/10 rounded-xl p-4 mb-4">
+                    <p class="text-[10px] text-gray-400 mb-2 font-mono">SUGGESTION</p>
+                    <p class="text-xs text-gray-200 leading-relaxed">Consider increasing the tension here. Maybe the coffee shop door opens and someone familiar walks in?</p>
+                    <button class="mt-3 w-full py-1.5 bg-white/10 hover:bg-white/20 border border-white/10 rounded text-[10px] text-white transition">Apply Idea</button>
+                </div>
+            </div>
+            <div class="p-4 border-t border-white/10">
+                <input type="text" placeholder="Ask AI to rewrite..." class="w-full bg-black/50 border border-white/20 rounded-lg px-3 py-2 text-xs text-white focus:border-white/50 outline-none transition">
+            </div>
+        </aside>
+
     </div>
 
-    <div class="p-6 max-w-[1600px] mx-auto pb-20">
-        <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8" id="sectionsGrid"></div>
+    <!-- =========================================
+         MODE 2: THE FILES (6 Fixed Cards System)
+         ========================================= -->
+    <div id="modeFiles" class="hidden-mode flex-1 overflow-y-auto relative w-full h-full custom-scrollbar">
+        <div class="p-8 max-w-7xl mx-auto">
+            <div class="mb-8">
+                <h2 class="text-2xl font-display font-bold text-white">Project Files</h2>
+                <p class="text-xs text-gray-400 mt-1">6 Sections • 10 Files Limit Per Section</p>
+            </div>
+
+            <!-- THE 6 CARDS GRID -->
+            <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6" id="sectionsGrid">
+                <!-- Cards will be injected by JS -->
+            </div>
+        </div>
     </div>
 
-       <div id="uploadQueue"></div>
-    <script src="https://apis.google.com/js/api.js" onload="gapiLoaded()" async defer></script>
-    <script src="https://accounts.google.com/gsi/client" onload="gisLoaded()" async defer></script>
-    <script src="main.js">
+    <!-- Upload Queue -->
+    <div id="uploadQueue"></div>
 
-// ========== PROJECT FILTERING ==========
-const urlParams = new URLSearchParams(window.location.search);
-const id = urlParams.get('id');
+    <!-- Hidden Input -->
+    <input type="file" id="fileInput" class="hidden" accept=".pdf,.doc,.docx,.txt">
 
-
-function filterScriptsByProject() {
-    if (!id) {
-        console.log('No project filter - showing all scripts');
-        return;
-    }
-
-    // Hide all script cards that don't belong to this project
-    const allCards = document.querySelectorAll('[data-project-id]');
-    allCards.forEach(card => {
-        if (card.dataset.projectId !== id) {
-            card.style.display = 'none';
-        }
-    });
-
-    // Update breadcrumb
-    const project = projects.find(p => p.id == id);
-    if (project) {
-        document.title = `${project.title} - Scripts`;
-        const breadcrumb = document.getElementById('currentProjectName');
-        if (breadcrumb) breadcrumb.textContent = project.title;
-    }
-}
-
-// Run on page load
-window.addEventListener('DOMContentLoaded', filterScriptsByProject);
-
-
-(function initScriptsPage() {
-  const params = new URLSearchParams(window.location.search);
-  const projectId = params.get('id'); // [web:36][web:42]
-
-  if (!projectId) {
-    window.location.href = 'index.html';
-    return;
-  }
-
-  let projects = [];
-  try {
-    const raw = localStorage.getItem('imranProjects'); // [web:26][web:29]
-    projects = raw ? JSON.parse(raw) : [];
-  } catch (e) {
-    projects = [];
-  }
-
-  const project = projects.find(p => p.id === projectId);
-  if (!project) {
-    window.location.href = 'index.html';
-    return;
-  }
-
-  // Header / breadcrumb me project ka naam dikhane ke liye
-  const titleEl = document.getElementById('scriptsProjectTitle');
-  if (titleEl) titleEl.textContent = project.title || 'Untitled';
-
-  // yahin se aage: project.scripts array se list render kar sakte ho
-})();
-</script>
-
-    <!-- PWA Service Worker Registration -->
+    <!-- JS LOGIC -->
     <script>
-      if ('serviceWorker' in navigator) {
-        window.addEventListener('load', () => {
-          navigator.serviceWorker
-            .register('/service-worker.js')
-            .then((registration) => {
-              console.log('✅ ServiceWorker registered:', registration.scope);
-            })
-            .catch((error) => {
-              console.error('❌ ServiceWorker registration failed:', error);
-            });
-        });
-      }
-    </script>
+        // --- 1. STATE MANAGEMENT ---
+        let currentSectionId = null;
+        const FILES_PER_SECTION = 10;
+        
+        // Initial Data Structure (Default 6 Sections)
+        let sectionsData = [
+            { id: 1, name: "Screenplays", files: [] },
+            { id: 2, name: "Research", files: [] },
+            { id: 3, name: "Character Notes", files: [] },
+            { id: 4, name: "Locations", files: [] },
+            { id: 5, name: "Legal Docs", files: [] },
+            { id: 6, name: "Misc", files: [] }
+        ];
 
+        // --- 2. INIT & RENDER ---
+        (function initPage() {
+            const params = new URLSearchParams(window.location.search);
+            const projectId = params.get('id');
+            
+            // Load Project Name
+            let projects = [];
+            try { projects = JSON.parse(localStorage.getItem('imranProjects') || '[]'); } catch(e) {}
+            const project = projects.find(p => p.id === projectId);
+            
+            if (project) {
+                document.getElementById('scriptTitle').textContent = (project.title || 'UNTITLED').toUpperCase();
+            } else {
+                // If project not found but ID exists (preview), use dummy name
+                if(projectId) document.getElementById('scriptTitle').textContent = "DEMO PROJECT";
+            }
+
+            // Load saved sections if any
+            if(projectId) {
+                const savedSections = localStorage.getItem(`sections_${projectId}`);
+                if(savedSections) sectionsData = JSON.parse(savedSections);
+            }
+
+            renderSections();
+        })();
+
+        function renderSections() {
+            const grid = document.getElementById('sectionsGrid');
+            grid.innerHTML = '';
+
+            sectionsData.forEach(section => {
+                const count = section.files.length;
+                const percent = (count / FILES_PER_SECTION) * 100;
+                const isFull = count >= FILES_PER_SECTION;
+                const ringColor = isFull ? 'ring-full' : 'ring-green';
+                
+                // SVG Dash array logic (circumference ~ 100)
+                const dashArray = `${percent}, 100`;
+
+                // Generate File List HTML
+                let filesHtml = '';
+                if(count === 0) {
+                    filesHtml = `<div class="h-full flex flex-col items-center justify-center text-gray-600">
+                        <svg class="w-8 h-8 mb-2 opacity-20" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 13h6m-3-3v6m5 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path></svg>
+                        <span class="text-[10px]">No files yet</span>
+                    </div>`;
+                } else {
+                    // Reverse to show newest first
+                    const reversedFiles = [...section.files].reverse();
+                    reversedFiles.forEach(file => {
+                        filesHtml += `
+                            <div class="file-item group">
+                                <div class="flex items-center gap-2 truncate w-[70%]">
+                                    <svg class="w-3 h-3 text-gray-500 group-hover:text-green-400 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 21h10a2 2 0 002-2V9.414a1 1 0 00-.293-.707l-5.414-5.414A1 1 0 0012.586 2H7a2 2 0 00-2 2v14a2 2 0 002 2z"></path></svg>
+                                    <span class="truncate" title="${file.name}">${file.name}</span>
+                                </div>
+                                <span class="text-[9px] text-gray-600 shrink-0">${file.date || 'Just now'}</span>
+                            </div>
+                        `;
+                    });
+                }
+
+                // Card HTML
+                const card = document.createElement('div');
+                card.className = 'section-card';
+                card.innerHTML = `
+                    <div class="flex justify-between items-start mb-2">
+                        <div>
+                            <h3 class="text-sm font-bold text-white uppercase tracking-wider">${section.name}</h3>
+                            <p class="text-[10px] text-gray-500">${count} Files</p>
+                        </div>
+                        <!-- Holographic Ring -->
+                        <div class="capacity-wrapper">
+                            <svg class="capacity-svg" viewBox="0 0 36 36">
+                                <path class="capacity-circle-bg" d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831" />
+                                <path class="capacity-circle-fg ${ringColor}" stroke-dasharray="${dashArray}" d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831" />
+                            </svg>
+                            <div class="capacity-text">${count}/${FILES_PER_SECTION}</div>
+                        </div>
+                    </div>
+                    
+                    <div class="file-list custom-scrollbar">
+                        ${filesHtml}
+                    </div>
+
+                    <button onclick="triggerUpload(${section.id})" class="card-upload-btn" ${isFull ? 'disabled' : ''}>
+                        ${isFull ? '<span class="text-red-400">⚠️ Section Full</span>' : '<span>+ Upload File</span>'}
+                    </button>
+                `;
+                grid.appendChild(card);
+            });
+        }
+
+        // --- 3. UPLOAD LOGIC ---
+        function triggerUpload(sectionId) {
+            currentSectionId = sectionId;
+            document.getElementById('fileInput').click();
+        }
+
+        document.getElementById('fileInput').addEventListener('change', (e) => {
+            const files = Array.from(e.target.files);
+            if(files.length === 0 || !currentSectionId) return;
+
+            // Process first file only for now (to keep logic simple with queue)
+            const file = files[0];
+            
+            // 1. Show Toast
+            addToQueue(`Uploading ${file.name}...`);
+
+            // 2. Simulate Delay & Add File
+            setTimeout(() => {
+                const sectionIndex = sectionsData.findIndex(s => s.id === currentSectionId);
+                if(sectionIndex !== -1 && sectionsData[sectionIndex].files.length < FILES_PER_SECTION) {
+                    
+                    // Add file to data
+                    sectionsData[sectionIndex].files.push({
+                        name: file.name,
+                        date: new Date().toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'})
+                    });
+                    
+                    // Save & Re-render
+                    const projectId = new URLSearchParams(window.location.search).get('id');
+                    if(projectId) localStorage.setItem(`sections_${projectId}`, JSON.stringify(sectionsData));
+                    
+                    renderSections();
+                    addToQueue(`${file.name} Uploaded!`, true);
+                } else {
+                    addToQueue('Error: Section Full', false);
+                }
+                
+                // Reset
+                document.getElementById('fileInput').value = '';
+                currentSectionId = null;
+            }, 1000);
+        });
+
+        // Helper: Queue Toast
+        function addToQueue(msg, success = null) {
+            const q = document.getElementById('uploadQueue');
+            const div = document.createElement('div');
+            let icon = `<div class="w-3 h-3 rounded-full border-2 border-t-transparent border-white animate-spin"></div>`;
+            
+            if(success === true) {
+                div.style.borderLeftColor = '#22c55e'; // Green
+                icon = `<svg class="w-4 h-4 text-green-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path></svg>`;
+            } else if(success === false) {
+                div.style.borderLeftColor = '#ef4444'; // Red
+                icon = `⚠️`;
+            }
+
+            div.className = 'upload-item';
+            div.innerHTML = `${icon} <span>${msg}</span>`;
+            q.appendChild(div);
+            
+            setTimeout(() => {
+                div.style.opacity = '0';
+                setTimeout(() => div.remove(), 300);
+            }, 3000);
+        }
+
+        // --- 4. NAVIGATION & SWITCHER ---
+        function switchMode(mode) {
+            const editorDiv = document.getElementById('modeEditor');
+            const filesDiv = document.getElementById('modeFiles');
+            const btnEditor = document.getElementById('btnEditor');
+            const btnFiles = document.getElementById('btnFiles');
+            const editorAction = document.getElementById('editorActionBtn');
+
+            if (mode === 'editor') {
+                editorDiv.classList.remove('hidden-mode');
+                filesDiv.classList.add('hidden-mode');
+                btnEditor.classList.add('active');
+                btnFiles.classList.remove('active');
+                editorAction.classList.remove('hidden-mode');
+            } else {
+                editorDiv.classList.add('hidden-mode');
+                filesDiv.classList.remove('hidden-mode');
+                btnFiles.classList.add('active');
+                btnEditor.classList.remove('active');
+                editorAction.classList.add('hidden-mode');
+            }
+        }
+
+        function goBackToHub() {
+            const id = new URLSearchParams(window.location.search).get('id');
+            window.location.href = id ? `project_hub.html?id=${encodeURIComponent(id)}` : 'project_hub.html';
+        }
+    </script>
 </body>
 </html>
