@@ -2,11 +2,9 @@ const API_BASE = window.location.hostname === 'localhost'
   ? 'http://localhost:3000'
   : 'https://imran-square-studio.onrender.com';
 
-let wrapper, heroInput, bottomInput, messagesList, heroSendBtn, bottomSendBtn, newChatBtn;
+let wrapper, heroInput, bottomInput, messagesList, heroSendBtn, bottomSendBtn;
 let currentChatId = null;
-let currentMessages = [];
 
-// Storage functions
 function getChats() {
   return JSON.parse(localStorage.getItem("chatSessions") || "[]");
 }
@@ -31,7 +29,6 @@ function addChatSession(title, messages) {
 function startNewChat() {
   const newChat = addChatSession();
   currentChatId = newChat.id;
-  currentMessages = [];
   if (messagesList) messagesList.innerHTML = '';
   if (wrapper) wrapper.classList.remove('mode-active');
   renderChatHistory();
@@ -46,21 +43,9 @@ function renderChatHistory() {
 
   chats.forEach(chat => {
     const div = document.createElement('div');
-    div.className = 'chat-item group px-2 py-1.5 rounded-lg hover:bg-[#181818] cursor-pointer flex items-center justify-between gap-2' +
-      (chat.id === currentChatId ? ' bg-[#1f1f1f]' : '');
-    div.dataset.chatId = chat.id;
-
-    div.innerHTML = `
-      <div class="truncate text-sm text-gray-200 chat-title">${chat.title}</div>
-      <button class="chat-menu-btn opacity-0 group-hover:opacity-100 transition p-1 rounded-md hover:bg-[#1f1f1f]">
-        <svg class="w-4 h-4 text-gray-400" fill="currentColor" viewBox="0 0 20 20">
-          <path d="M6 10a2 2 0 11-4 0 2 2 0 014 0zm6 0a 2 2 0 11-4 0 2 2 0 014 0zm6 0a 2 2 0 11-4 0 2 2 0 014 0z"/>
-        </svg>
-      </button>
-    `;
-
-    const titleSpan = div.querySelector('.chat-title');
-    titleSpan.addEventListener('click', () => loadChatSession(chat.id));
+    div.className = 'px-2 py-1.5 rounded-lg hover:bg-[#181818] cursor-pointer';
+    div.innerHTML = `<div class="text-sm text-gray-200">${chat.title}</div>`;
+    div.addEventListener('click', () => loadChatSession(chat.id));
     container.appendChild(div);
   });
 }
@@ -71,15 +56,13 @@ function loadChatSession(chatId) {
   if (!chat) return;
 
   currentChatId = chatId;
-  currentMessages = chat.messages || [];
   if (messagesList) messagesList.innerHTML = '';
   if (wrapper) wrapper.classList.add('mode-active');
 
-  currentMessages.forEach(msg => {
+  chat.messages?.forEach(msg => {
     addMessage(msg.text, msg.isUser ? 'user' : 'ai');
   });
 
-  renderChatHistory();
   if (messagesList) messagesList.scrollTop = messagesList.scrollHeight;
 }
 
@@ -89,17 +72,15 @@ function addMessage(text, type) {
   }
 
   const row = document.createElement('div');
-  row.className = `msg-row ${type}`;
+  row.style.marginBottom = '20px';
 
   if (type === 'user') {
-    row.innerHTML = `<div style="background:#232323;color:#f5f5f5;padding:14px 24px;border-radius:24px 24px 8px 24px;max-width:55vw;font-size:1.09rem;margin-left:auto;word-break:break-word;box-shadow:0 2px 8px #0002;">${text.replace(/\n/g, '<br>')}</div>`;
+    row.innerHTML = `<div style="background:#232323;color:#f5f5f5;padding:14px 24px;border-radius:24px 24px 8px 24px;max-width:55vw;margin-left:auto;word-break:break-word;">${text}</div>`;
   } else {
     row.innerHTML = `
-      <div style="display:flex;gap:12px;max-width:75vw;margin-bottom:24px;">
-        <div style="min-width:32px;width:32px;height:32px;background:#000;border-radius:50%;display:flex;align-items:center;justify-content:center;overflow:hidden;">
-          <img src="resources/imran square logo.png" alt="AI" style="width:26px;height:26px;">
-        </div>
-        <div style="flex:1;color:#fff;font-size:1.08rem;line-height:1.6;">${text}</div>
+      <div style="display:flex;gap:12px;">
+        <img src="resources/imran square logo.png" style="width:32px;height:32px;border-radius:50%;">
+        <div style="color:#fff;line-height:1.6;">${text}</div>
       </div>`;
   }
 
@@ -112,8 +93,8 @@ function addMessage(text, type) {
     const chats = getChats();
     const chat = chats.find(c => c.id === currentChatId);
     if (chat) {
+      chat.messages = chat.messages || [];
       chat.messages.push({ text, isUser: type === 'user', timestamp: Date.now() });
-      chat.lastActive = Date.now();
       saveChats(chats);
     }
   }
@@ -123,18 +104,8 @@ function showTyping() {
   const id = 'typing-' + Date.now();
   const row = document.createElement('div');
   row.id = id;
-  row.className = 'msg-row ai';
-  row.innerHTML = `
-    <div style="display:flex;gap:10px;">
-      <div style="min-width:32px;width:32px;height:32px;background:#000;border-radius:50%;display:flex;align-items:center;justify-content:center;overflow:hidden;">
-        <img src="resources/imran square logo.png" alt="AI" style="width:26px;height:26px;">
-      </div>
-      <div style="color:#888;font-size:14px;">Thinking...</div>
-    </div>`;
-  if (messagesList) {
-    messagesList.appendChild(row);
-    messagesList.scrollTop = messagesList.scrollHeight;
-  }
+  row.innerHTML = `<div style="color:#888;padding:10px;">AI is thinking...</div>`;
+  if (messagesList) messagesList.appendChild(row);
   return id;
 }
 
@@ -143,12 +114,12 @@ function removeTyping(id) {
 }
 
 async function sendMessage(userMessage) {
-  if (!userMessage || !userMessage.trim()) return;
+  if (!userMessage?.trim()) return;
 
   console.log('📤 Sending:', userMessage);
 
   if (!currentChatId) {
-    const newChat = addChatSession(userMessage.substring(0, 30) + '...', []);
+    const newChat = addChatSession(userMessage.substring(0, 30), []);
     currentChatId = newChat.id;
     renderChatHistory();
   }
@@ -157,42 +128,36 @@ async function sendMessage(userMessage) {
   const typingId = showTyping();
 
   try {
-    const selectedModel = document.getElementById('modelSelect')?.value || 'gemini-2.5-flash';
+    const model = document.getElementById('modelSelect')?.value || 'gemini-2.5-flash';
 
     const response = await fetch(`${API_BASE}/api/chat`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ userMessage, model: selectedModel })
+      body: JSON.stringify({ userMessage, model })
     });
 
-    if (!response.ok) throw new Error(`Server error: ${response.status}`);
+    if (!response.ok) throw new Error('Server error');
 
     const data = await response.json();
     removeTyping(typingId);
 
-    let aiText = data.candidates?.[0]?.content?.parts?.[0]?.text ||
-                 data.response || data.text ||
-                 data.choices?.[0]?.message?.content ||
-                 (typeof data === 'string' ? data : '');
+    let aiText = data.candidates?.[0]?.content?.parts?.[0]?.text || data.response || data.text || '';
 
     if (!aiText.trim()) throw new Error("Empty response");
 
-    const formatted = aiText
-      .replace(/\*\*(.*?)\*\*/g, '<strong style="color:#ff6b35;">$1</strong>')
-      .replace(/\n/g, '<br>');
+    const formatted = aiText.replace(/\*\*(.*?)\*\*/g, '<strong style="color:#ff6b35;">$1</strong>').replace(/\n/g, '<br>');
 
     addMessage(formatted, 'ai');
 
   } catch (error) {
-    console.error("❌ Error:", error);
+    console.error("❌", error);
     removeTyping(typingId);
-    addMessage(`<strong style="color:#ef4444;">Error:</strong> ${error.message}`, 'ai');
+    addMessage(`Error: ${error.message}`, 'ai');
   }
 }
 
-// Initialize
 window.addEventListener('DOMContentLoaded', () => {
-  console.log('🚀 Initializing...');
+  console.log('🚀 Loading...');
 
   wrapper = document.getElementById('mainWrapper');
   heroInput = document.getElementById('heroInput');
@@ -200,11 +165,9 @@ window.addEventListener('DOMContentLoaded', () => {
   messagesList = document.getElementById('messagesList');
   heroSendBtn = document.getElementById('heroSendBtn');
   bottomSendBtn = document.getElementById('bottomSendBtn');
-  newChatBtn = document.getElementById('newChatBtn');
 
-  console.log('Elements:', { heroInput: !!heroInput, heroSendBtn: !!heroSendBtn });
+  console.log('✅ Elements:', { heroInput: !!heroInput, heroSendBtn: !!heroSendBtn });
 
-  // Hero Input Enter
   heroInput?.addEventListener('keydown', (e) => {
     if (e.key === 'Enter' && !e.shiftKey) {
       e.preventDefault();
@@ -216,17 +179,15 @@ window.addEventListener('DOMContentLoaded', () => {
     }
   });
 
-  // Hero Send Button
   heroSendBtn?.addEventListener('click', () => {
     const text = heroInput?.value.trim();
-    console.log('🖱️ Button clicked:', text);
+    console.log('🖱️ Clicked:', text);
     if (text) {
       sendMessage(text);
       heroInput.value = '';
     }
   });
 
-  // Bottom Input Enter
   bottomInput?.addEventListener('keydown', (e) => {
     if (e.key === 'Enter' && !e.shiftKey) {
       e.preventDefault();
@@ -238,7 +199,6 @@ window.addEventListener('DOMContentLoaded', () => {
     }
   });
 
-  // Bottom Send Button
   bottomSendBtn?.addEventListener('click', () => {
     const text = bottomInput?.value.trim();
     if (text) {
@@ -247,31 +207,10 @@ window.addEventListener('DOMContentLoaded', () => {
     }
   });
 
-  // New Chat
-  newChatBtn?.addEventListener('click', startNewChat);
-
-  // Download
-  document.getElementById('downloadChatBtn')?.addEventListener('click', () => {
-    const chats = getChats();
-    const chat = chats.find(c => c.id === currentChatId);
-    if (!chat?.messages?.length) return alert('No messages!');
-
-    let text = `=== ${chat.title} ===\n\n`;
-    chat.messages.forEach(m => {
-      text += `[${m.isUser ? 'YOU' : 'AI'}]:\n${m.text}\n\n`;
-    });
-
-    const blob = new Blob([text], { type: 'text/plain' });
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement('a');
-    a.href = url;
-    a.download = `${chat.title.replace(/\s+/g, '-')}.txt`;
-    a.click();
-    URL.revokeObjectURL(url);
-  });
+  document.getElementById('newChatBtn')?.addEventListener('click', startNewChat);
 
   renderChatHistory();
-  console.log('✅ Ready!');
+  console.log('✅ Ready');
 });
 
 window.startNewChat = startNewChat;
