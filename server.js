@@ -21,6 +21,8 @@ const __dirname = path.dirname(__filename);
 // ===== 3. APP INITIALIZATION =====
 const app = express();
 
+const ADMIN_EMAIL = 'mohdesigner09@gmail.com';
+
 // ✅ GLOBAL SECURITY UNLOCK (Ye code sabse upar hona chahiye)
 // ✅ SECURITY UNLOCK (Paste this right after 'const app = express();')
 app.use((req, res, next) => {
