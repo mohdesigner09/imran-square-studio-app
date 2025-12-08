@@ -5,43 +5,36 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Neural Core - IMRAN SQUARE</title>
 
-      <!-- PWA Meta Tags -->
-    <meta name="theme-color" content="#ff6b35">
-    <meta name="mobile-web-app-capable" content="yes">
-    <meta name="apple-mobile-web-app-capable" content="yes">
-    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
-    <meta name="apple-mobile-web-app-title" content="IMRAN SQUARE">
-    
-    <!-- PWA Manifest -->
-    <link rel="manifest" href="/manifest.json">
-    
-    <!-- Icons for iOS -->
-    <link rel="apple-touch-icon" href="/resources/icon-152.png">
-    <link rel="apple-touch-icon" sizes="152x152" href="/resources/icon-152.png">
-    <link rel="apple-touch-icon" sizes="180x180" href="/resources/icon-192.png">
-    <link rel="apple-touch-icon" sizes="192x192" href="/resources/icon-192.png">
-    
-    <!-- Favicon -->
-    <link rel="icon" type="image/png" sizes="32x32" href="/resources/icon-32.png">
-    <link rel="icon" type="image/png" sizes="16x16" href="/resources/icon-16.png">
-    <link rel="shortcut icon" href="/resources/favicon.ico">
+  <!-- PWA Meta Tags -->
+  <meta name="theme-color" content="#ff6b35">
+  <meta name="mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <meta name="apple-mobile-web-app-title" content="IMRAN SQUARE">
+  
+  <!-- PWA Manifest -->
+  <link rel="manifest" href="/manifest.json">
+  
+  <!-- Icons -->
+  <link rel="apple-touch-icon" href="/resources/icon-192.png">
+  <link rel="icon" type="image/png" sizes="32x32" href="/resources/icon-32.png">
+  <link rel="shortcut icon" href="/resources/favicon.ico">
 
-
-  <link rel="icon" href="data:,">
+  <!-- External Scripts & Fonts -->
   <script src="https://cdn.tailwindcss.com"></script>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/animejs/3.2.1/anime.min.js"></script>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
-  <link
-    href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600&family=Playfair+Display:wght@700;900&family=JetBrains+Mono:wght@400&display=swap"
-    rel="stylesheet">
-   <style>
-    /* =========================================
-       🔥 THEME: PURE BLACK GLASS (NO ORANGE)
-       ========================================= */
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600&family=Playfair+Display:wght@700;900&display=swap" rel="stylesheet">
+  
+  <!-- Prism.js CSS -->
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/themes/prism-tomorrow.min.css">
+
+  <style>
+    /* ===== THEME VARIABLES ===== */
     :root {
       --bg-color: #030303;
       --sidebar-bg: rgba(10, 10, 10, 0.6);
-      --accent: #ffffff; /* Changed from Orange to White */
+      --accent: #ffffff;
       --border: rgba(255, 255, 255, 0.08);
       --glass-bg: rgba(20, 20, 20, 0.4);
       --glass-border: rgba(255, 255, 255, 0.1);
@@ -56,31 +49,30 @@
       position: relative;
     }
 
-    /* Background Image with Blur */
+    /* Background Image */
     body::before {
-        content: "";
-        position: fixed; top: 0; left: 0; width: 100%; height: 100%;
-        background-image: url('resources/index bg .jpeg'); 
-        background-size: cover; background-position: center; background-repeat: no-repeat;
-        filter: blur(5px) brightness(0.6);
-        transform: scale(1.05); opacity: 0.5;
-        z-index: -50; pointer-events: none;
+      content: "";
+      position: fixed; 
+      top: 0; left: 0; 
+      width: 100%; height: 100%;
+      background-image: url('resources/index bg .jpeg'); 
+      background-size: cover; 
+      background-position: center;
+      filter: blur(5px) brightness(0.6);
+      transform: scale(1.05); 
+      opacity: 0.5;
+      z-index: -50;
+      pointer-events: none;
     }
 
-    /* Animated Grain */
-    .film-grain {
-      position: fixed; top: 0; left: 0; width: 100%; height: 100%;
-      pointer-events: none; opacity: 0.03; z-index: -1;
-      background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noiseFilter'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.65' numOctaves='3' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noiseFilter)' opacity='1'/%3E%3C/svg%3E");
-    }
-
-    /* --- SIDEBAR --- */
+    /* ===== SIDEBAR ===== */
     .sidebar {
       background: var(--sidebar-bg);
       backdrop-filter: blur(20px);
       border-right: 1px solid var(--border);
       width: 280px;
-      display: flex; flex-direction: column;
+      display: flex; 
+      flex-direction: column;
       z-index: 50;
     }
 
@@ -89,42 +81,24 @@
       border: 1px solid var(--glass-border);
       color: #eee;
       transition: all 0.3s ease;
-      display: flex; align-items: center; gap: 12px;
+      display: flex; 
+      align-items: center; 
+      gap: 12px;
       padding: 12px 16px;
       border-radius: 12px;
-      font-size: 0.9rem; font-weight: 500;
+      font-size: 0.9rem; 
+      font-weight: 500;
       width: 100%;
     }
 
-    /* FIXED: White Glow on Hover (Previously Orange) */
     .new-chat-btn:hover {
       background: rgba(255, 255, 255, 0.1);
-      border-color: rgba(255, 255, 255, 0.5); /* White Border */
+      border-color: rgba(255, 255, 255, 0.5);
       color: #fff;
-      box-shadow: 0 0 15px rgba(255, 255, 255, 0.1); /* White Glow */
+      box-shadow: 0 0 15px rgba(255, 255, 255, 0.1);
     }
 
-    .history-item {
-      position: relative;
-      display: flex; justify-content: space-between; align-items: center;
-      gap: 8px; padding: 10px 14px; margin-bottom: 4px;
-      cursor: pointer; border-radius: 8px;
-      transition: all 0.2s ease;
-      background: transparent; color: #aaa;
-    }
-
-    .history-item:hover { background: rgba(255, 255, 255, 0.05); color: #fff; }
-
-    /* FIXED: Active State White/Grey (Previously Orange) */
-    .history-item.active {
-      background: rgba(255, 255, 255, 0.1);
-      border-left: 3px solid #fff; /* White Accent */
-      padding-left: 11px;
-      color: #fff;
-    }
-
-    /* --- HERO SECTION --- */
-     /* ===== MAIN CONTENT AREA ===== */
+    /* ===== MAIN CONTENT ===== */
     .main-content {
       flex: 1;
       display: flex;
@@ -134,10 +108,9 @@
       min-height: 100vh;
       position: relative;
       overflow-y: auto;
-      background: transparent;
     }
 
-    /* ===== HERO CONTAINER (CENTERED) ===== */
+    /* ===== HERO CONTAINER ===== */
     .hero-container {
       display: flex;
       flex-direction: column;
@@ -149,10 +122,9 @@
       text-align: center;
       transition: all 0.5s cubic-bezier(0.4, 0, 0.2, 1);
       z-index: 10;
-      margin: auto; /* Center vertically and horizontally */
+      margin: auto;
     }
 
-    /* When chat is active, move hero up */
     .mode-active .hero-container {
       transform: translateY(-20vh);
       opacity: 0;
@@ -161,7 +133,6 @@
       overflow: hidden;
     }
 
-    /* ===== HERO LOGO ===== */
     .hero-logo-wrapper {
       font-family: 'Playfair Display', serif;
       font-size: 3.5rem;
@@ -175,18 +146,97 @@
       gap: 0.5rem;
       text-shadow: 0 0 30px rgba(0,0,0,0.5);
     }
-    
-    @media (max-width: 640px) {
-      .hero-logo-wrapper {
-        font-size: 2.5rem;
-      }
-      .hero-container {
-        padding: 20px 15px;
-      }
+
+    /* ===== TEXTAREA ===== */
+    .hero-textarea {
+      width: 100%;
+      min-height: 56px;
+      max-height: 200px;
+      padding: 16px 20px;
+      background: rgba(30, 30, 30, 0.6);
+      backdrop-filter: blur(10px);
+      border: 1px solid rgba(255, 255, 255, 0.08);
+      border-radius: 12px 12px 0 0;
+      color: #ffffff;
+      font-size: 15px;
+      font-family: 'Inter', -apple-system, sans-serif;
+      line-height: 1.5;
+      outline: none;
+      resize: none;
+      transition: all 0.3s ease;
     }
 
+    .hero-textarea:focus {
+      background: rgba(35, 35, 35, 0.8);
+      border-color: rgba(255, 107, 53, 0.4);
+      box-shadow: 0 0 0 3px rgba(255, 107, 53, 0.1);
+    }
 
-    /* ===== CHAT INTERFACE (ACTIVE MODE) ===== */
+    .hero-textarea::placeholder {
+      color: rgba(255, 255, 255, 0.3);
+      font-weight: 300;
+    }
+
+    /* ===== INPUT BOX ===== */
+    .hero-input-box {
+      width: 100%;
+      max-width: 700px;
+      margin: 0 auto;
+      background: rgba(20, 20, 20, 0.4);
+      border: 1px solid rgba(255, 255, 255, 0.1);
+      border-radius: 16px;
+      overflow: hidden;
+      box-shadow: 0 8px 32px rgba(0, 0, 0, 0.4);
+      backdrop-filter: blur(20px);
+      transition: all 0.3s ease;
+    }
+
+    .hero-input-box:hover {
+      border-color: rgba(255, 255, 255, 0.15);
+      box-shadow: 0 12px 40px rgba(0, 0, 0, 0.5);
+    }
+
+    .hero-input-box:focus-within {
+      border-color: rgba(255, 107, 53, 0.3);
+      box-shadow: 0 12px 48px rgba(255, 107, 53, 0.2);
+    }
+
+    /* ===== INPUT FOOTER ===== */
+    .input-footer {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 12px 20px;
+      background: rgba(15, 15, 15, 0.6);
+      border-top: 1px solid rgba(255, 255, 255, 0.05);
+    }
+
+    /* ===== PILLS ===== */
+    .pill {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      padding: 12px 24px;
+      background: rgba(255, 255, 255, 0.04);
+      border: 1px solid rgba(255, 255, 255, 0.08);
+      border-radius: 28px;
+      color: #e5e5e5;
+      font-size: 14px;
+      font-weight: 500;
+      cursor: pointer;
+      transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+      user-select: none;
+    }
+
+    .pill:hover {
+      background: rgba(255, 107, 53, 0.1);
+      border-color: rgba(255, 107, 53, 0.3);
+      color: #ffffff;
+      transform: translateY(-2px);
+      box-shadow: 0 4px 12px rgba(255, 107, 53, 0.15);
+    }
+
+    /* ===== CHAT INTERFACE ===== */
     .chat-interface {
       display: none;
       flex-direction: column;
@@ -201,7 +251,6 @@
       display: flex;
     }
 
-    /* ===== MESSAGES AREA ===== */
     .messages-area {
       flex: 1;
       overflow-y: auto;
@@ -211,184 +260,43 @@
       gap: 20px;
     }
 
-    /* ===== BOTTOM INPUT CONTAINER ===== */
+    /* ===== BOTTOM INPUT ===== */
     .bottom-input-container {
-      padding: 20px;
-      background: rgba(15, 15, 15, 0.8);
-      border-top: 1px solid rgba(255, 255, 255, 0.1);
-      backdrop-filter: blur(10px);
-    }
-
-    /* ===== PILLS (SUGGESTIONS) ===== */
-    .pill {
-      display: inline-flex;
-      align-items: center;
-      padding: 10px 20px;
-      background: rgba(255, 255, 255, 0.05);
-      border: 1px solid rgba(255, 255, 255, 0.1);
-      border-radius: 24px;
-      color: #e0e0e0;
-      font-size: 14px;
-      cursor: pointer;
-      transition: all 0.3s ease;
-      margin: 5px;
-    }
-
-    .pill:hover {
-      background: rgba(255, 255, 255, 0.1);
-      border-color: rgba(255, 255, 255, 0.2);
-      transform: translateY(-2px);
-    }
-
-    /* FIXED: User Bubble is Glass/White (No Orange) */
-    .msg-row.user .msg-bubble {
-        background: rgba(255, 255, 255, 0.15); 
-        color: #fff;
-        border: 1px solid rgba(255,255,255,0.2);
-        border-bottom-right-radius: 4px;
-        box-shadow: 0 4px 15px rgba(0,0,0,0.3);
-        font-weight: 500;
-        backdrop-filter: blur(10px);
-    }
-    
-    .msg-row.ai .msg-bubble {
-        background: rgba(255, 255, 255, 0.05);
-        border: 1px solid rgba(255, 255, 255, 0.1);
-        border-bottom-left-radius: 4px;
-        color: #ddd;
-    }
-
-    /* --- BOTTOM INPUT (Mobile Optimized) --- */
-    .bottom-input-container {
-      position: absolute; bottom: 20px; left: 50%;
+      position: absolute;
+      bottom: 20px;
+      left: 50%;
       transform: translateX(-50%);
-      width: 90%; max-width: 800px;
+      width: 90%;
+      max-width: 800px;
       z-index: 50;
     }
-    
-    /* Mobile Adjustments */
-    @media (max-width: 768px) {
-        .bottom-input-container { width: 95%; bottom: 10px; }
-        .hero-logo-wrapper { margin-top: -20px; }
-        .messages-area { padding-bottom: 160px; padding-left: 16px; padding-right: 16px; }
-        .hero-input-box { padding: 12px 16px; }
-    }
 
-    .mode-active .hero-container { opacity: 0; pointer-events: none; transform: translate(-50%, -60%); }
-    .mode-active .chat-interface { display: flex; opacity: 1; }
-
-    @keyframes slideIn { from { transform: translateY(10px); opacity: 0; } to { transform: translateY(0); opacity: 1; } }
-
-    /* Model Select Dropdown */
-    #modelSelect {
-        background: rgba(0,0,0,0.5);
-        border: 1px solid rgba(255,255,255,0.1);
-        color: #ccc; font-size: 0.75rem;
-        padding: 4px 8px; border-radius: 6px;
-        outline: none; cursor: pointer;
-    }
-    #modelSelect:hover { border-color: rgba(255,255,255,0.3); color: white; }
-    
-    /* Scrollbars */
-    ::-webkit-scrollbar { width: 6px; }
-    ::-webkit-scrollbar-track { background: transparent; }
-    ::-webkit-scrollbar-thumb { background: rgba(255,255,255,0.1); border-radius: 3px; }
-    ::-webkit-scrollbar-thumb:hover { background: rgba(255,255,255,0.2); }
-
-    /* Menus */
-    .chat-menu {
-      background: rgba(15, 15, 15, 0.95);
-      backdrop-filter: blur(15px);
-      border: 1px solid rgba(255, 255, 255, 0.1);
-      box-shadow: 0 20px 50px rgba(0,0,0,0.9);
-    }
-    .chat-menu-item:hover { background: rgba(255,255,255,0.1); }
-      </style>
-  
-  <!-- 🎨 Prism.js - Code Syntax Highlighting -->
-  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/themes/prism-tomorrow.min.css">
-  <style>
-    /* Custom Prism Theme Override */
+    /* ===== PRISM CODE BLOCKS ===== */
     pre[class*="language-"] {
       background: rgba(30, 30, 30, 0.8) !important;
       border: 1px solid rgba(255, 255, 255, 0.1);
       border-radius: 8px;
       padding: 1rem !important;
       margin: 0.5rem 0;
-      font-size: 13px;
-      line-height: 1.5;
-      overflow-x: auto;
     }
-    
-    code[class*="language-"] {
-      color: #e0e0e0 !important;
-      text-shadow: none !important;
-      font-family: 'Fira Code', 'Courier New', monospace;
-    }
-    
-    /* Inline code */
-    :not(pre) > code[class*="language-"] {
-      background: rgba(50, 50, 50, 0.6) !important;
-      border: 1px solid rgba(255, 255, 255, 0.1);
-      padding: 2px 6px;
-      border-radius: 4px;
-      font-size: 0.9em;
-    }
-    
-    /* Copy button styling */
-    .code-block-wrapper {
-      position: relative;
-      margin: 0.5rem 0;
-    }
-    
-    .copy-code-btn {
-      position: absolute;
-      top: 8px;
-      right: 8px;
-      background: rgba(255, 255, 255, 0.1);
-      border: 1px solid rgba(255, 255, 255, 0.2);
-      color: white;
-      padding: 4px 10px;
-      border-radius: 4px;
-      font-size: 11px;
-      cursor: pointer;
-      opacity: 0;
-      transition: all 0.2s;
-      z-index: 10;
-    }
-    
-    .code-block-wrapper:hover .copy-code-btn {
-      opacity: 1;
-    }
-    
-    .copy-code-btn:hover {
-      background: rgba(255, 255, 255, 0.2);
-    }
-    
-    .copy-code-btn:active {
-      transform: scale(0.95);
-    }
-    
-    /* Language label */
-    .code-language-label {
-      position: absolute;
-      top: 8px;
-      left: 12px;
-      font-size: 10px;
-      color: rgba(255, 255, 255, 0.5);
-      text-transform: uppercase;
-      letter-spacing: 1px;
-      pointer-events: none;
+
+    /* ===== SCROLLBAR ===== */
+    ::-webkit-scrollbar { width: 6px; }
+    ::-webkit-scrollbar-track { background: transparent; }
+    ::-webkit-scrollbar-thumb { background: rgba(255,255,255,0.1); border-radius: 3px; }
+
+    /* ===== MOBILE ===== */
+    @media (max-width: 640px) {
+      .hero-logo-wrapper { font-size: 2.5rem; }
+      .hero-container { padding: 20px 15px; }
+      .bottom-input-container { width: 95%; bottom: 10px; }
     }
   </style>
-  
 </head>
 
-  </style>
-</head>
 <body>
-  <div class="hero-bg"></div>
   <div class="flex h-screen">
+    <!-- SIDEBAR -->
     <aside class="sidebar hidden md:flex p-4">
       <div class="mb-6">
         <button class="new-chat-btn" id="newChatBtn">
@@ -396,118 +304,102 @@
           <span class="font-medium">New Chat</span>
         </button>
       </div>
-      <div class="flex-1 overflow-y-auto space-y-1 mb-4 sidebar-scrollable" id="chatHistoryContainer">
+      <div class="flex-1 overflow-y-auto space-y-1 mb-4" id="chatHistoryContainer">
         <div class="text-xs text-gray-500 font-bold uppercase mb-2 px-2">Recent</div>
       </div>
       <div class="border-t border-[#222] pt-4">
-        <a href="ai-tools.html"
-          class="flex items-center gap-3 p-2 rounded-lg hover:bg-[#1a1a1a] transition cursor-pointer">
-          <div
-            class="w-8 h-8 rounded-full bg-gradient-to-tr from-orange-600 to-orange-400 flex items-center justify-center text-xs font-bold">
-            I²</div>
+        <a href="ai-tools.html" class="flex items-center gap-3 p-2 rounded-lg hover:bg-[#1a1a1a] transition">
+          <div class="w-8 h-8 rounded-full bg-gradient-to-tr from-orange-600 to-orange-400 flex items-center justify-center text-xs font-bold">I²</div>
           <div class="text-sm">
             <div class="font-medium text-white">Back to Hub</div>
             <div class="text-xs text-gray-500">Imran Square</div>
           </div>
         </a>
       </div>
-   </aside>
-<main class="main-content relative" id="mainWrapper">
-  <div class="hero-container" id="heroSection">
-    <div class="hero-logo-wrapper">
-      IMRAN<sup>2</sup> <span class="accent">+</span> AI
-    </div>
+    </aside>
 
-    <!-- HERO HEADER + MENU -->
-<!-- Hero Header (Only in hero mode) -->
-<div class="flex items-center justify-center gap-2 mb-6 w-full" style="max-width: 500px; margin: 0 auto 24px;">
-  <span class="text-sm text-gray-400 font-medium">New chat</span>
-  <button id="heroChatMenuBtn"
-          class="p-1.5 rounded-md hover:bg-white/10 text-gray-400 hover:text-white transition"
-          title="More options">
-    <svg class="w-4 h-4" fill="currentColor" viewBox="0 0 20 20">
-      <path d="M6 10a2 2 0 11-4 0 2 2 0 014 0zm6 0a 2 2 0 11-4 0 2 2 0 014 0zm6 0a 2 2 0 11-4 0 2 2 0 014 0z" />
-    </svg>
-  </button>
-</div>
+    <!-- MAIN CONTENT -->
+    <main class="main-content relative" id="mainWrapper">
+      <!-- HERO SECTION -->
+      <div class="hero-container" id="heroSection">
+        <div class="hero-logo-wrapper">
+          IMRAN<sup>2</sup> <span class="accent">+</span> AI
+        </div>
 
+        <!-- Header -->
+        <div class="flex items-center justify-center gap-2 mb-6 w-full" style="max-width: 500px; margin: 0 auto 24px;">
+          <span class="text-sm text-gray-400 font-medium">New chat</span>
+          <button id="heroChatMenuBtn" class="p-1.5 rounded-md hover:bg-white/10 text-gray-400 hover:text-white transition">
+            <svg class="w-4 h-4" fill="currentColor" viewBox="0 0 20 20">
+              <path d="M6 10a2 2 0 11-4 0 2 2 0 014 0zm6 0a 2 2 0 11-4 0 2 2 0 014 0zm6 0a 2 2 0 11-4 0 2 2 0 014 0z" />
+            </svg>
+          </button>
+        </div>
 
-<!-- Hero Input Box (Enhanced) -->
-<div class="hero-input-box">
-  <!-- Textarea with auto-expand -->
-  <textarea 
-    id="heroInput" 
-    class="hero-textarea" 
-    placeholder="Ask me anything..." 
-    rows="1"
-    style="min-height: 52px; max-height: 200px; resize: none;">
-  </textarea>
-  
-  <!-- Input Footer with improved layout -->
-  <div class="input-footer" style="display: flex; align-items: center; justify-content: space-between; padding: 8px 16px; border-top: 1px solid rgba(255,255,255,0.05);">
-    
-    <!-- Powered By (with icon) -->
-    <div class="flex items-center gap-1.5">
-      <span class="text-xs text-gray-500">Powered by</span>
-      <span class="text-xs text-white font-semibold tracking-wide">Imran Square</span>
-      <svg class="w-3 h-3 text-orange-500 animate-pulse" fill="currentColor" viewBox="0 0 20 20">
-        <path fill-rule="evenodd" d="M10.293 3.293a1 1 0 011.414 0l6 6a1 1 0 010 1.414l-6 6a1 1 0 01-1.414-1.414L14.586 11H3a1 1 0 110-2h11.586l-4.293-4.293a1 1 0 010-1.414z" clip-rule="evenodd"/>
-      </svg>
-    </div>
-    
-    <!-- Send Button (gradient) -->
-    <button 
-      id="heroSendBtn" 
-      style="
-        width: 36px; height: 36px;
-        background: linear-gradient(135deg, #ff6b35 0%, #f97d3c 100%);
-        border: none; border-radius: 8px;
-        display: flex; align-items: center; justify-content: center;
-        color: white; cursor: pointer;
-        transition: all 0.3s ease;
-        box-shadow: 0 2px 8px rgba(255, 107, 53, 0.3);
-      "
-      onmouseover="this.style.transform='scale(1.05)'; this.style.boxShadow='0 4px 12px rgba(255, 107, 53, 0.5)';"
-      onmouseout="this.style.transform='scale(1)'; this.style.boxShadow='0 2px 8px rgba(255, 107, 53, 0.3)';"
-      title="Send message (Enter)">
-      <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2.5">
-        <path stroke-linecap="round" stroke-linejoin="round" d="M5 12h14M12 5l7 7-7 7"></path>
-      </svg>
-    </button>
-  </div>
-</div>
+        <!-- Input Box -->
+        <div class="hero-input-box">
+          <textarea 
+            id="heroInput" 
+            class="hero-textarea" 
+            placeholder="Ask me anything..." 
+            rows="1"
+            spellcheck="false"
+            autocomplete="off"
+            autocorrect="off"
+            autocapitalize="off"
+            style="min-height: 52px; max-height: 200px; resize: none;">
+          </textarea>
+          
+          <div class="input-footer">
+            <div class="flex items-center gap-1.5">
+              <span class="text-xs text-gray-500">Powered by</span>
+              <span class="text-xs text-white font-semibold">Imran Square</span>
+              <svg class="w-3 h-3 text-orange-500 animate-pulse" fill="currentColor" viewBox="0 0 20 20">
+                <path fill-rule="evenodd" d="M10.293 3.293a1 1 0 011.414 0l6 6a1 1 0 010 1.414l-6 6a1 1 0 01-1.414-1.414L14.586 11H3a1 1 0 110-2h11.586l-4.293-4.293a1 1 0 010-1.414z" clip-rule="evenodd"/>
+              </svg>
+            </div>
+            
+            <button id="heroSendBtn" 
+              style="width: 36px; height: 36px; background: linear-gradient(135deg, #ff6b35 0%, #f97d3c 100%); border: none; border-radius: 8px; display: flex; align-items: center; justify-content: center; color: white; cursor: pointer; transition: all 0.3s ease; box-shadow: 0 2px 8px rgba(255, 107, 53, 0.3);"
+              onmouseover="this.style.transform='scale(1.05)'; this.style.boxShadow='0 4px 12px rgba(255, 107, 53, 0.5)';"
+              onmouseout="this.style.transform='scale(1)'; this.style.boxShadow='0 2px 8px rgba(255, 107, 53, 0.3)';">
+              <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2.5">
+                <path stroke-linecap="round" stroke-linejoin="round" d="M5 12h14M12 5l7 7-7 7"></path>
+              </svg>
+            </button>
+          </div>
+        </div>
 
+        <!-- Pills -->
+        <div class="flex flex-wrap items-center justify-center gap-2 mt-6 mb-4">
+          <div class="pill" onclick="activateChat('Tell me a story')">✦ Story</div>
+          <div class="pill" onclick="activateChat('Explain quantum physics')">🎥 Physics</div>
+          <div class="pill" onclick="activateChat('Write a poem')">✎ Poem</div>
+        </div>
+      </div>
 
-
-    <!-- HERO DROPDOWN -->
-<div id="heroChatMenu"
-     class="hidden absolute top-32 left-1/2 -translate-x-1/2 bg-[#111] rounded-xl shadow-lg py-2 w-56 z-30">
-  <button class="w-full text-left px-3 py-2 text-sm text-gray-200 hover:bg-[#181818]">Rename</button>
-  <button class="w-full text-left px-3 py-2 text-sm text-gray-200 hover:bg-[#181818]">Delete</button>
-</div>
-    <div class="suggestions">
-      <!-- Suggestion Pills -->
-<div class="flex flex-wrap items-center justify-center gap-2 mt-6 mb-4">
-  <div class="pill" onclick="activateChat('Tell me a story')">✦ Story</div>
-  <div class="pill" onclick="activateChat('Explain quantum physics')">🎥 Physics</div>
-  <div class="pill" onclick="activateChat('Write a poem')">✎ Poem</div>
-</div>
-
-  </div>
-
-  <div class="chat-interface" id="chatInterface">
-    <div class="messages-area" id="messagesList"></div>
-    <div class="bottom-input-container">
-      <div class="hero-input-box">
-        <textarea id="bottomInput" class="hero-textarea" placeholder="Type your message..." rows="1"></textarea>
-        <div class="input-footer">
-          <div class="flex items-center justify-between gap-2">
-            <!-- yahan sirf left text + modelSelect + send button rahenge, hero menu nahi -->
-
-
-
-                <select id="modelSelect"
-                  class="bg-[#141414] border border-[#333] px-2 py-1 rounded-md text-xs text-white focus:outline-none">
+      <!-- CHAT INTERFACE -->
+      <div class="chat-interface" id="chatInterface">
+        <div class="messages-area" id="messagesList"></div>
+        
+        <!-- Bottom Input -->
+        <div class="bottom-input-container">
+          <div class="hero-input-box">
+            <textarea 
+              id="bottomInput" 
+              class="hero-textarea" 
+              placeholder="Type your message..." 
+              rows="1"
+              spellcheck="false"
+              autocomplete="off"
+              autocorrect="off"
+              autocapitalize="off"
+              style="min-height: 52px; max-height: 200px; resize: none;">
+            </textarea>
+            
+            <div class="input-footer">
+              <div class="flex items-center gap-2">
+                <select id="modelSelect" class="bg-[#141414] border border-[#333] px-2 py-1 rounded-md text-xs text-white focus:outline-none hover:border-orange-500 transition">
                   <option value="gemini-2.5-flash">⚡ Gemini 2.5 Flash</option>
                   <option value="gemini-2.5-pro">🧠 Gemini 2.5 Pro</option>
                   <option value="perplexity-online">🟣 Perplexity Sonar</option>
@@ -515,66 +407,57 @@
                   <option value="groq-llama-8b">⚡ Groq Llama 8B</option>
                   <option value="serper-search">🔍 Google Search</option>
                 </select>
-                <button id="downloadChatBtn"
-                  class="bg-[#1a1a1a] border border-[#333] hover:border-orange-500 p-1.5 rounded-md text-white transition"
-                  title="Download Chat">
+                
+                <button id="downloadChatBtn" class="bg-[#1a1a1a] border border-[#333] hover:border-orange-500 p-1.5 rounded-md text-white transition">
                   <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
-                      d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"></path>
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"></path>
                   </svg>
                 </button>
               </div>
-              <div class="text-xs text-gray-500 font-mono">Imran<sup>2</sup> + AI</div>
-             <button id="bottomSendBtn" class="w-8 h-8 rounded-lg flex items-center justify-center text-white bg-white/10 border border-white/10 hover:scale-105 hover:bg-white/20 transition shadow-lg">
-                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 12h14M12 5l7 7-7 7"></path>
+              
+              <div class="hidden md:flex items-center gap-1">
+                <span class="text-xs text-gray-500">Powered by</span>
+                <span class="text-xs text-white font-semibold">Imran<sup style="font-size: 0.6em;">2</sup></span>
+              </div>
+              
+              <button id="bottomSendBtn" 
+                style="width: 36px; height: 36px; background: linear-gradient(135deg, #ff6b35 0%, #f97d3c 100%); border: none; border-radius: 8px; display: flex; align-items: center; justify-content: center; color: white; cursor: pointer; transition: all 0.3s ease; box-shadow: 0 2px 8px rgba(255, 107, 53, 0.3);"
+                onmouseover="this.style.transform='scale(1.05)'; this.style.boxShadow='0 4px 12px rgba(255, 107, 53, 0.5)';"
+                onmouseout="this.style.transform='scale(1)'; this.style.boxShadow='0 2px 8px rgba(255, 107, 53, 0.3)';">
+                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2.5">
+                  <path stroke-linecap="round" stroke-linejoin="round" d="M5 12h14M12 5l7 7-7 7"></path>
                 </svg>
               </button>
             </div>
-<button id="newChatBtn" ...>New chat</button>
+          </div>
+        </div>
+      </div>
+    </main>
+  </div>
 
-<script src="main.js"></script>
-<!-- 🎨 Prism.js Core + Languages -->
-<script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/prism.min.js"></script>
-<script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/components/prism-javascript.min.js"></script>
-<script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/components/prism-python.min.js"></script>
-<script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/components/prism-java.min.js"></script>
-<script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/components/prism-cpp.min.js"></script>
-<script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/components/prism-css.min.js"></script>
-<script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/components/prism-markup.min.js"></script>
-<script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/components/prism-json.min.js"></script>
-<script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/components/prism-sql.min.js"></script>
-<script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/components/prism-bash.min.js"></script>
+  <!-- Scripts -->
+  <script src="main.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/prism.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/components/prism-javascript.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/components/prism-python.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/components/prism-java.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/components/prism-cpp.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/components/prism-css.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/components/prism-markup.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/components/prism-json.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/components/prism-sql.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/components/prism-bash.min.js"></script>
+  <script src="ai-chat.js"></script>
 
-<script src="ai-chat.js"></script>
-
-
-    <!-- PWA Service Worker Registration -->
-    <script>
-      if ('serviceWorker' in navigator) {
-        window.addEventListener('load', () => {
-          navigator.serviceWorker
-            .register('/service-worker.js')
-            .then((registration) => {
-             // Line 407: May fail if file not at root
-navigator.serviceWorker.register('/service-worker.js');
-
-            })
-            .catch((error) => {
-              console.error('❌ ServiceWorker registration failed:', error);
-            });
-        });
-      }
-      // Add: Enter to send, Shift+Enter for newline
-textarea.addEventListener('keydown', (e) => {
-  if (e.key === 'Enter' && !e.shiftKey) {
-    e.preventDefault();
-    sendMessage();
-  }
-});
-
-    </script>
-
-
+  <!-- Service Worker -->
+  <script>
+    if ('serviceWorker' in navigator) {
+      window.addEventListener('load', () => {
+        navigator.serviceWorker.register('/service-worker.js')
+          .then(reg => console.log('✅ SW registered'))
+          .catch(err => console.error('❌ SW failed:', err));
+      });
+    }
+  </script>
 </body>
 </html>
