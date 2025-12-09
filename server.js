@@ -120,11 +120,17 @@ const auth = new google.auth.GoogleAuth({
 const drive = google.drive({ version: 'v3', auth });
 
 // Folder ID bhi ab setting se aayega
-// Folder ID bhi ab setting se aayega
-const AVATAR_FOLDER_ID = process.env.DRIVE_FOLDER_ID;
+// Folder IDs env se (multiple names support)
+// Tumne GOOGLE_DRIVE_FOLDER_ID use kiya hai, yahan se woh bhi pick hoga
+const DRIVE_ROOT_FOLDER_ID =
+  process.env.DRIVE_FOOTAGE_FOLDER_ID ||
+  process.env.DRIVE_FOLDER_ID ||
+  process.env.GOOGLE_DRIVE_FOLDER_ID;
 
-// Raw footage ke liye alag folder (agar na diya ho to avatar wala hi use karega)
-const FOOTAGE_FOLDER_ID = process.env.DRIVE_FOOTAGE_FOLDER_ID || process.env.DRIVE_FOLDER_ID;
+// Avatar aur Footage dono ko ab same root folder use kara diya
+const AVATAR_FOLDER_ID  = DRIVE_ROOT_FOLDER_ID;
+const FOOTAGE_FOLDER_ID = DRIVE_ROOT_FOLDER_ID;
+
 
 
 // Helper: Buffer → Readable stream
@@ -955,9 +961,10 @@ app.post('/api/footage/upload', upload.single('file'), async (req, res) => {
     if (!projectId || !userId) {
       return res.status(400).json({ success: false, message: 'projectId / userId missing.' });
     }
-    if (!FOOTAGE_FOLDER_ID) {
-      return res.status(500).json({ success: false, message: 'FOOTAGE_FOLDER_ID not set in env.' });
-    }
+  if (!FOOTAGE_FOLDER_ID) {
+  return res.status(500).json({ success: false, message: 'FOOTAGE_FOLDER_ID not set in env.' });
+}
+
 
     const originalName = fileName || req.file.originalname || 'clip.mp4';
 
