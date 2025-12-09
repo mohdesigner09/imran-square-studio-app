@@ -42,7 +42,7 @@ function renderChatHistory() {
   container.innerHTML = chats.map(chat => `
     <div class="chat-item ${chat.id === currentChatId ? 'active' : ''}" data-chat-id="${chat.id}">
       <span class="chat-item-title">${escapeHtml(chat.title)}</span>
-      <button class="chat-item-menu-btn" onclick="toggleChatMenu(event, ${chat.id})">
+      <button class="chat-item-menu-btn" data-menu-chat-id="${chat.id}">
         <svg width="16" height="16" viewBox="0 0 16 16" fill="currentColor">
           <circle cx="8" cy="3" r="1.5"/>
           <circle cx="8" cy="8" r="1.5"/>
@@ -52,12 +52,21 @@ function renderChatHistory() {
     </div>
   `).join('');
 
-  // Add click listeners to chat items (not menu buttons)
+  // ✅ Event listeners (not inline onclick)
   container.querySelectorAll('.chat-item-title').forEach(title => {
     title.addEventListener('click', (e) => {
       const chatItem = e.target.closest('.chat-item');
       const chatId = parseInt(chatItem.dataset.chatId);
       loadChat(chatId);
+    });
+  });
+
+  // ✅ Menu button listeners
+  container.querySelectorAll('.chat-item-menu-btn').forEach(btn => {
+    btn.addEventListener('click', (e) => {
+      e.stopPropagation();
+      const chatId = parseInt(btn.dataset.menuChatId);
+      toggleChatMenu(e, chatId, btn);
     });
   });
 }
@@ -72,10 +81,10 @@ function escapeHtml(text) {
 // --- Chat Menu Toggle ---
 let currentMenuChatId = null;
 
-function toggleChatMenu(event, chatId) {
-  event.stopPropagation(); // Prevent chat load
+function toggleChatMenu(event, chatId, buttonElement) {
+  event.stopPropagation();
   
-  // Close existing menu if any
+  // Close existing menu
   const existingMenu = document.querySelector('.chat-dropdown-menu');
   if (existingMenu) {
     existingMenu.remove();
@@ -84,6 +93,7 @@ function toggleChatMenu(event, chatId) {
   // If clicking same menu, just close
   if (currentMenuChatId === chatId) {
     currentMenuChatId = null;
+    document.removeEventListener('click', closeMenuOnOutsideClick);
     return;
   }
 
@@ -93,14 +103,14 @@ function toggleChatMenu(event, chatId) {
   const menu = document.createElement('div');
   menu.className = 'chat-dropdown-menu show';
   menu.innerHTML = `
-    <div class="chat-menu-item" onclick="renameChat(${chatId})">
+    <div class="chat-menu-item" data-action="rename" data-chat-id="${chatId}">
       <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
         <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"></path>
         <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"></path>
       </svg>
       Rename
     </div>
-    <div class="chat-menu-item danger" onclick="deleteChat(${chatId})">
+    <div class="chat-menu-item danger" data-action="delete" data-chat-id="${chatId}">
       <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
         <polyline points="3 6 5 6 21 6"></polyline>
         <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path>
@@ -113,6 +123,18 @@ function toggleChatMenu(event, chatId) {
   const chatItem = document.querySelector(`[data-chat-id="${chatId}"]`);
   chatItem.style.position = 'relative';
   chatItem.appendChild(menu);
+
+  // Menu item listeners
+  menu.querySelectorAll('.chat-menu-item').forEach(item => {
+    item.addEventListener('click', (e) => {
+      e.stopPropagation();
+      const action = item.dataset.action;
+      const id = parseInt(item.dataset.chatId);
+      
+      if (action === 'rename') renameChat(id);
+      if (action === 'delete') deleteChat(id);
+    });
+  });
 
   // Close menu on outside click
   setTimeout(() => {
@@ -138,6 +160,7 @@ function renameChat(chatId) {
   // Close menu
   document.querySelector('.chat-dropdown-menu')?.remove();
   currentMenuChatId = null;
+  document.removeEventListener('click', closeMenuOnOutsideClick);
 
   // Create modal
   const modal = document.createElement('div');
@@ -147,8 +170,8 @@ function renameChat(chatId) {
       <div class="modal-title">Rename Chat</div>
       <input type="text" class="modal-input" value="${escapeHtml(chat.title)}" id="renameChatInput" maxlength="50">
       <div class="modal-buttons">
-        <button class="modal-btn modal-btn-cancel" onclick="closeModal()">Cancel</button>
-        <button class="modal-btn modal-btn-confirm" onclick="confirmRename(${chatId})">Save</button>
+        <button class="modal-btn modal-btn-cancel" data-action="cancel">Cancel</button>
+        <button class="modal-btn modal-btn-confirm" data-action="confirm">Save</button>
       </div>
     </div>
   `;
@@ -165,6 +188,10 @@ function renameChat(chatId) {
       if (e.key === 'Enter') confirmRename(chatId);
       if (e.key === 'Escape') closeModal();
     });
+
+    // Button listeners
+    modal.querySelector('[data-action="cancel"]').addEventListener('click', closeModal);
+    modal.querySelector('[data-action="confirm"]').addEventListener('click', () => confirmRename(chatId));
   }, 100);
 }
 
@@ -197,6 +224,7 @@ function deleteChat(chatId) {
   // Close menu
   document.querySelector('.chat-dropdown-menu')?.remove();
   currentMenuChatId = null;
+  document.removeEventListener('click', closeMenuOnOutsideClick);
 
   // Create confirmation modal
   const modal = document.createElement('div');
@@ -208,12 +236,16 @@ function deleteChat(chatId) {
         Are you sure you want to delete "<strong>${escapeHtml(chat.title)}</strong>"? This action cannot be undone.
       </p>
       <div class="modal-buttons">
-        <button class="modal-btn modal-btn-cancel" onclick="closeModal()">Cancel</button>
-        <button class="modal-btn modal-btn-danger" onclick="confirmDelete(${chatId})">Delete</button>
+        <button class="modal-btn modal-btn-cancel" data-action="cancel">Cancel</button>
+        <button class="modal-btn modal-btn-danger" data-action="delete">Delete</button>
       </div>
     </div>
   `;
   document.body.appendChild(modal);
+
+  // Button listeners
+  modal.querySelector('[data-action="cancel"]').addEventListener('click', closeModal);
+  modal.querySelector('[data-action="delete"]').addEventListener('click', () => confirmDelete(chatId));
 }
 
 function confirmDelete(chatId) {
@@ -243,7 +275,7 @@ function closeModal() {
   }
 }
 
-
+// --- Load Chat Session ---
 function loadChatSession(chatId) {
   const chats = getChats();
   const chat = chats.find(c => c.id === chatId);
@@ -260,6 +292,7 @@ function loadChatSession(chatId) {
   if (messagesList) messagesList.scrollTop = messagesList.scrollHeight;
   renderChatHistory();
 }
+
 
 function startNewChat() {
   const newChat = addChatSession();
@@ -537,3 +570,13 @@ window.activateChat = prompt => {
   heroInput.value = prompt;
   heroInput.focus();
 };
+
+// ========== GLOBAL SCOPE (for inline onclick) ==========
+window.toggleChatMenu = toggleChatMenu;
+window.renameChat = renameChat;
+window.deleteChat = deleteChat;
+window.confirmRename = confirmRename;
+window.confirmDelete = confirmDelete;
+window.closeModal = closeModal;
+window.escapeHtml = escapeHtml;
+
