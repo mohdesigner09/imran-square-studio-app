@@ -55,22 +55,13 @@
     }
 
     body {
-  margin: 0;
-  font-family: 'Inter', system-ui, -apple-system, sans-serif;
-  /* ✅ Pure gradient background (no image needed) */
-  background: linear-gradient(135deg, 
-    #0a0a0f 0%, 
-    #1a1a2e 25%, 
-    #16213e 50%, 
-    #0f3460 75%, 
-    #0a0a0f 100%
-  );
-  background-attachment: fixed;
-  overflow: hidden;
-  color: #fff;
-  min-height: 100vh;
-}
-
+      background-color: var(--bg-color) !important;
+      color: #ededed;
+      font-family: "Inter", sans-serif;
+      overflow: hidden;
+      height: 100vh;
+      position: relative;
+    }
 
     body::before {
       content: "";

@@ -52,7 +52,7 @@ function renderChatHistory() {
     </div>
   `).join('');
 
-  // Event listeners
+  // ✅ Event listeners (not inline onclick)
   container.querySelectorAll('.chat-item-title').forEach(title => {
     title.addEventListener('click', (e) => {
       const chatItem = e.target.closest('.chat-item');
@@ -61,29 +61,36 @@ function renderChatHistory() {
     });
   });
 
+  // ✅ Menu button listeners
   container.querySelectorAll('.chat-item-menu-btn').forEach(btn => {
     btn.addEventListener('click', (e) => {
       e.stopPropagation();
       const chatId = parseInt(btn.dataset.menuChatId);
-      toggleChatMenu(e, chatId);
+      toggleChatMenu(e, chatId, btn);
     });
   });
 }
 
+// Helper: Escape HTML
 function escapeHtml(text) {
   const div = document.createElement('div');
   div.textContent = text;
   return div.innerHTML;
 }
 
+// --- Chat Menu Toggle ---
 let currentMenuChatId = null;
 
-function toggleChatMenu(event, chatId) {
+function toggleChatMenu(event, chatId, buttonElement) {
   event.stopPropagation();
   
+  // Close existing menu
   const existingMenu = document.querySelector('.chat-dropdown-menu');
-  if (existingMenu) existingMenu.remove();
+  if (existingMenu) {
+    existingMenu.remove();
+  }
 
+  // If clicking same menu, just close
   if (currentMenuChatId === chatId) {
     currentMenuChatId = null;
     document.removeEventListener('click', closeMenuOnOutsideClick);
@@ -92,6 +99,7 @@ function toggleChatMenu(event, chatId) {
 
   currentMenuChatId = chatId;
 
+  // Create menu
   const menu = document.createElement('div');
   menu.className = 'chat-dropdown-menu show';
   menu.innerHTML = `
@@ -111,21 +119,27 @@ function toggleChatMenu(event, chatId) {
     </div>
   `;
 
+  // Position menu
   const chatItem = document.querySelector(`[data-chat-id="${chatId}"]`);
   chatItem.style.position = 'relative';
   chatItem.appendChild(menu);
 
+  // Menu item listeners
   menu.querySelectorAll('.chat-menu-item').forEach(item => {
     item.addEventListener('click', (e) => {
       e.stopPropagation();
       const action = item.dataset.action;
       const id = parseInt(item.dataset.chatId);
+      
       if (action === 'rename') renameChat(id);
       if (action === 'delete') deleteChat(id);
     });
   });
 
-  setTimeout(() => document.addEventListener('click', closeMenuOnOutsideClick), 100);
+  // Close menu on outside click
+  setTimeout(() => {
+    document.addEventListener('click', closeMenuOnOutsideClick);
+  }, 100);
 }
 
 function closeMenuOnOutsideClick(e) {
@@ -137,15 +151,18 @@ function closeMenuOnOutsideClick(e) {
   }
 }
 
+// --- Rename Chat ---
 function renameChat(chatId) {
   const chats = getChats();
   const chat = chats.find(c => c.id === chatId);
   if (!chat) return;
 
+  // Close menu
   document.querySelector('.chat-dropdown-menu')?.remove();
   currentMenuChatId = null;
   document.removeEventListener('click', closeMenuOnOutsideClick);
 
+  // Create modal
   const modal = document.createElement('div');
   modal.className = 'modal-overlay show';
   modal.innerHTML = `
@@ -153,33 +170,40 @@ function renameChat(chatId) {
       <div class="modal-title">Rename Chat</div>
       <input type="text" class="modal-input" value="${escapeHtml(chat.title)}" id="renameChatInput" maxlength="50">
       <div class="modal-buttons">
-        <button class="modal-btn modal-btn-cancel">Cancel</button>
-        <button class="modal-btn modal-btn-confirm">Save</button>
+        <button class="modal-btn modal-btn-cancel" data-action="cancel">Cancel</button>
+        <button class="modal-btn modal-btn-confirm" data-action="confirm">Save</button>
       </div>
     </div>
   `;
   document.body.appendChild(modal);
 
+  // Focus input
   setTimeout(() => {
     const input = document.getElementById('renameChatInput');
     input.focus();
     input.select();
+
+    // Enter to save
     input.addEventListener('keydown', (e) => {
       if (e.key === 'Enter') confirmRename(chatId);
       if (e.key === 'Escape') closeModal();
     });
-    modal.querySelector('.modal-btn-cancel').addEventListener('click', closeModal);
-    modal.querySelector('.modal-btn-confirm').addEventListener('click', () => confirmRename(chatId));
+
+    // Button listeners
+    modal.querySelector('[data-action="cancel"]').addEventListener('click', closeModal);
+    modal.querySelector('[data-action="confirm"]').addEventListener('click', () => confirmRename(chatId));
   }, 100);
 }
 
 function confirmRename(chatId) {
   const input = document.getElementById('renameChatInput');
   const newTitle = input.value.trim();
+  
   if (!newTitle) {
     input.style.borderColor = '#ef4444';
     return;
   }
+
   const chats = getChats();
   const chat = chats.find(c => c.id === chatId);
   if (chat) {
@@ -187,36 +211,41 @@ function confirmRename(chatId) {
     saveChats(chats);
     renderChatHistory();
   }
+
   closeModal();
 }
 
+// --- Delete Chat ---
 function deleteChat(chatId) {
   const chats = getChats();
   const chat = chats.find(c => c.id === chatId);
   if (!chat) return;
 
+  // Close menu
   document.querySelector('.chat-dropdown-menu')?.remove();
   currentMenuChatId = null;
   document.removeEventListener('click', closeMenuOnOutsideClick);
 
+  // Create confirmation modal
   const modal = document.createElement('div');
   modal.className = 'modal-overlay show';
   modal.innerHTML = `
     <div class="modal-box">
       <div class="modal-title">Delete Chat?</div>
       <p style="color: rgba(255,255,255,0.7); font-size: 0.9rem; margin-bottom: 1.5rem;">
-        Are you sure you want to delete "<strong>${escapeHtml(chat.title)}</strong>"? This cannot be undone.
+        Are you sure you want to delete "<strong>${escapeHtml(chat.title)}</strong>"? This action cannot be undone.
       </p>
       <div class="modal-buttons">
-        <button class="modal-btn modal-btn-cancel">Cancel</button>
-        <button class="modal-btn modal-btn-danger">Delete</button>
+        <button class="modal-btn modal-btn-cancel" data-action="cancel">Cancel</button>
+        <button class="modal-btn modal-btn-danger" data-action="delete">Delete</button>
       </div>
     </div>
   `;
   document.body.appendChild(modal);
 
-  modal.querySelector('.modal-btn-cancel').addEventListener('click', closeModal);
-  modal.querySelector('.modal-btn-danger').addEventListener('click', () => confirmDelete(chatId));
+  // Button listeners
+  modal.querySelector('[data-action="cancel"]').addEventListener('click', closeModal);
+  modal.querySelector('[data-action="delete"]').addEventListener('click', () => confirmDelete(chatId));
 }
 
 function confirmDelete(chatId) {
@@ -224,6 +253,7 @@ function confirmDelete(chatId) {
   chats = chats.filter(c => c.id !== chatId);
   saveChats(chats);
 
+  // If deleting current chat, start new
   if (currentChatId === chatId) {
     currentChatId = null;
     messagesList.innerHTML = '';
@@ -236,6 +266,7 @@ function confirmDelete(chatId) {
   closeModal();
 }
 
+// --- Close Modal ---
 function closeModal() {
   const modal = document.querySelector('.modal-overlay');
   if (modal) {
@@ -243,7 +274,6 @@ function closeModal() {
     setTimeout(() => modal.remove(), 200);
   }
 }
-
 
 // --- Load Chat Session ---
 function loadChatSession(chatId) {
