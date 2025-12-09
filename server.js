@@ -128,6 +128,10 @@ const DRIVE_ROOT_FOLDER_ID =
   process.env.DRIVE_FOOTAGE_FOLDER_ID ||
   process.env.DRIVE_FOLDER_ID ||
   process.env.GOOGLE_DRIVE_FOLDER_ID;
+  console.log('📁 DRIVE_ROOT_FOLDER_ID:', DRIVE_ROOT_FOLDER_ID ? 'SET' : 'MISSING');
+console.log('📁 FOOTAGE_FOLDER_ID:', FOOTAGE_FOLDER_ID ? 'SET' : 'MISSING');
+console.log('📁 AVATAR_FOLDER_ID:', AVATAR_FOLDER_ID ? 'SET' : 'MISSING');
+
 
 if (!DRIVE_ROOT_FOLDER_ID) {
   console.warn(
@@ -137,14 +141,19 @@ if (!DRIVE_ROOT_FOLDER_ID) {
 
 
 // Folder IDs (Avatar + Footage)
-// Avatar ko purane walon se bhi milne do, warna root par fallback
 const AVATAR_FOLDER_ID =
   process.env.DRIVE_FOLDER_ID ||
   process.env.GOOGLE_DRIVE_FOLDER_ID ||
   DRIVE_ROOT_FOLDER_ID;
 
-// Footage ke liye direct root ko use karo
-const FOOTAGE_FOLDER_ID = DRIVE_ROOT_FOLDER_ID;
+// Footage ke liye jitne bhi naam tum use kar sakte ho un sab ko accept karo
+const FOOTAGE_FOLDER_ID =
+  process.env.FOOTAGE_FOLDER_ID ||        // naya clear naam
+  process.env.DRIVE_FOOTAGE_FOLDER_ID ||  // jo tumne .env me dala
+  process.env.GOOGLE_DRIVE_FOLDER_ID ||   // pehle se wala
+  process.env.DRIVE_FOLDER_ID ||          // backup
+  DRIVE_ROOT_FOLDER_ID;                   // root fallback
+
 
 
 

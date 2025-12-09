@@ -763,36 +763,48 @@ if (!CURRENT_USER || !USER_ID) {
 
     // 🔁 REAL BACKEND UPLOAD
     (async () => {
+        const formData = new FormData();
+        formData.append('file', selectedFile);
+        formData.append('projectId', projectId);
+        formData.append('userId', USER_ID);
+        formData.append('fileName', selectedFile.name);
+        formData.append('sizeMB', (selectedFile.size / (1024 * 1024)).toFixed(1));
+        formData.append('thumbnailDataUrl', thumbnailDataUrl);
+        formData.append('kind', 'raw');
+
         try {
-            const formData = new FormData();
-formData.append('file', selectedFile);
-formData.append('projectId', projectId);
-formData.append('userId', USER_ID);              // ⬅️ yahan change
-formData.append('fileName', selectedFile.name);
-
-            formData.append('sizeMB', (selectedFile.size / (1024 * 1024)).toFixed(1));
-            formData.append('thumbnailDataUrl', thumbnailDataUrl);
-            formData.append('kind', 'raw');
-
             const res = await fetch(`${API_BASE}/api/footage/upload`, {
                 method: 'POST',
                 body: formData
             });
 
-            const data = await res.json();
+            let data = null;
+            const contentType = res.headers.get('content-type') || '';
+
+            if (contentType.includes('application/json')) {
+                // ✅ Normal case: server ne JSON bheja
+                data = await res.json();
+            } else {
+                // ❌ Server ne HTML/500 error page bheja
+                const text = await res.text();
+                console.error('Non-JSON response from /api/footage/upload:', text);
+                throw new Error('Server returned an HTML error page (500).');
+            }
+
             if (!res.ok || !data.success) {
-                uploadError = data.message || 'Upload failed';
+                uploadError = (data && data.message) || 'Upload failed';
             } else {
                 uploadSuccess = true;
                 // Optional: response se extra meta use kar sakte ho
             }
-        } catch (err) {
-            console.error('Footage upload error:', err);
-            uploadError = err.message || 'Network error';
+        } catch (err2) {
+            console.error('Footage upload error:', err2);
+            uploadError = err2.message || 'Network error';
         } finally {
             uploadFinished = true;
         }
     })();
+
 
     // 🎭 FAKE PROGRESS + REAL WAIT
     const interval = setInterval(() => {
