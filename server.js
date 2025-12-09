@@ -11,6 +11,8 @@ import path from 'path';
 import { fileURLToPath } from 'url';
 import { readFileSync } from 'fs';
 import bcrypt from 'bcryptjs'; // ✅ Fixed: Bcryptjs used
+import { Readable } from 'stream';
+
 // ===== 2. CONFIGURATION =====
 dotenv.config();
 
@@ -116,31 +118,34 @@ const auth = new google.auth.GoogleAuth({
   scopes: SCOPES,
 });
 
-// 👇 YE LINE MISSING HAI - ISKO ADD KARO
+// Google Drive client
 const drive = google.drive({ version: 'v3', auth });
 
-// Folder ID bhi ab setting se aayega
-// Folder IDs env se (multiple names support)
-// Tumne GOOGLE_DRIVE_FOLDER_ID use kiya hai, yahan se woh bhi pick hoga
+// ✅ Root folder ID – multiple env names support
 const DRIVE_ROOT_FOLDER_ID =
-  process.env.DRIVE_FOOTAGE_FOLDER_ID ||
-  process.env.DRIVE_FOLDER_ID ||
-  process.env.GOOGLE_DRIVE_FOLDER_ID;
+  process.env.FOOTAGE_FOLDER_ID ||         // agar tum ye naam use karo
+  process.env.DRIVE_FOOTAGE_FOLDER_ID ||   // ya ye
+  process.env.DRIVE_FOLDER_ID ||           // ya purana
+  process.env.GOOGLE_DRIVE_FOLDER_ID;      // ya ye (jo tumne set kiya)
 
-// Avatar aur Footage dono ko ab same root folder use kara diya
-const AVATAR_FOLDER_ID  = DRIVE_ROOT_FOLDER_ID;
+if (!DRIVE_ROOT_FOLDER_ID) {
+  console.warn(
+    '⚠️ DRIVE_ROOT_FOLDER_ID missing. Set GOOGLE_DRIVE_FOLDER_ID / DRIVE_FOLDER_ID / FOOTAGE_FOLDER_ID in env.'
+  );
+}
+
+// Avatars + footage dono ab isi root ke andar
+const AVATAR_FOLDER_ID = DRIVE_ROOT_FOLDER_ID;
 const FOOTAGE_FOLDER_ID = DRIVE_ROOT_FOLDER_ID;
-
-
 
 // Helper: Buffer → Readable stream
 function bufferToStream(buffer) {
-
   const stream = new Readable();
   stream.push(buffer);
   stream.push(null);
   return stream;
 }
+
 
 
 
@@ -1051,58 +1056,101 @@ app.post('/api/footage/upload', upload.single('file'), async (req, res) => {
 });
 
 // 1. FOOTAGE CREATE ROUTE (Isko pehle band karo)
-app.post('/api/footage/create', async (req, res) => {
+// ===== RAW FOOTAGE UPLOAD → GOOGLE DRIVE + FIRESTORE =====
+app.post('/api/footage/upload', upload.single('file'), async (req, res) => {
   try {
-    const { projectId, userId, fileName, fileSize, duration, title, format } = req.body;
+    const { projectId, userId, title, format, thumbnailDataUrl } = req.body;
+
+    if (!req.file) {
+      return res.status(400).json({ success: false, message: 'No file received.' });
+    }
+
+    if (!DRIVE_ROOT_FOLDER_ID || !FOOTAGE_FOLDER_ID) {
+      throw new Error('Drive root folder not configured. Check GOOGLE_DRIVE_FOLDER_ID / DRIVE_FOLDER_ID in env.');
+    }
+
+    const originalName = req.file.originalname || 'clip.mp4';
+    const mimeType = req.file.mimetype || 'video/mp4';
+    const sizeBytes = req.file.size || 0;
+    const sizeMB = Math.round(sizeBytes / (1024 * 1024));
+
+    // 1) File ko Google Drive pe upload karo
+    const driveResponse = await drive.files.create({
+      requestBody: {
+        name: originalName,
+        parents: [FOOTAGE_FOLDER_ID],
+        mimeType,
+      },
+      media: {
+        mimeType,
+        body: bufferToStream(req.file.buffer),
+      },
+      fields: 'id, name, webViewLink, webContentLink',
+    });
+
+    const fileId = driveResponse.data.id;
+    if (!fileId) {
+      throw new Error('Google Drive ne file ID return nahi ki.');
+    }
+
+    // 2) Public readable permission
+    await drive.permissions.create({
+      fileId,
+      requestBody: {
+        role: 'reader',
+        type: 'anyone',
+      },
+    });
+
+    // 3) Final link fetch
+    const fileMeta = await drive.files.get({
+      fileId,
+      fields: 'id, name, webViewLink, webContentLink',
+    });
+
+    const driveLink =
+      fileMeta.data.webViewLink ||
+      fileMeta.data.webContentLink ||
+      `https://drive.google.com/file/d/${fileId}/view`;
+
+    // 4) Firestore me doc create
+    const now = admin.firestore.FieldValue.serverTimestamp();
 
     const footageData = {
       projectId,
       userId,
-      fileName,
-      fileSize: fileSize || 0,
-      duration: duration || '00:00',
-      title: title || fileName,
+      title: title || originalName,
+      fileName: originalName,
+      fileSize: sizeMB,
+      duration: '00:00',               // abhi placeholder
       format: format || 'long',
-      status: 'queued',
       kind: 'raw',
-      rawDriveLink: '',
+      thumbnailDataUrl: thumbnailDataUrl || '',
+      status: 'uploaded',
+      rawDriveId: fileId,
+      rawDriveLink: driveLink,
       editedDriveLink: '',
-      createdAt: new Date().toISOString(),
-      updatedAt: new Date().toISOString()
+      createdAt: now,
+      updatedAt: now,
     };
 
     const docRef = await db.collection('footage').add(footageData);
-    res.json({ success: true, footageId: docRef.id });
 
+    return res.json({
+      success: true,
+      message: 'Footage uploaded & queued.',
+      footageId: docRef.id,
+      driveLink,
+    });
   } catch (err) {
-    console.error('Footage create error:', err);
-    res.status(500).json({ error: 'Failed to create footage doc' });
+    console.error('❌ Footage upload error:', err);
+    return res.status(500).json({
+      success: false,
+      message: err.message || 'Failed to upload footage',
+    });
   }
 });
 
-
-// 2. FOOTAGE LIST ROUTE (Isko alag se neeche likho)
-app.get('/api/footage/list', async (req, res) => {
-  try {
-    const { projectId } = req.query;
-
-    let q = db.collection('footage');
-    if (projectId) {
-      q = q.where('projectId', '==', projectId);
-    }
-
-    const snap = await q.get();
-    const items = snap.docs.map(d => ({ id: d.id, ...d.data() }));
-    
-    // Sort in JS to avoid Firestore index error
-    items.sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt));
-
-    res.json({ items });
-  } catch (err) {
-    console.error('Footage list error:', err);
-    res.status(500).json({ error: 'Failed to load footage' });
-  }
-});
 
 
 
