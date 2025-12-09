@@ -252,7 +252,18 @@ function removeTyping(id) {
 }
 
 // --- API ----------------------------------------------------
-async function sendMessage(userMessage) {
+async function sendMessage(userMessage, imageData = null) {
+  // ✅ ADD THIS BLOCK AT THE TOP:
+  const mainContent = document.getElementById('mainContent');
+  const wrapper = document.getElementById('mainWrapper');
+  
+  // Activate chat mode on first message
+  if (!wrapper.classList.contains('mode-active')) {
+    wrapper.classList.add('mode-active');
+    if (mainContent) {
+      mainContent.classList.add('mode-active');
+    }
+  }
   if (!userMessage || !userMessage.trim()) return;
 
   // chat create if first msg
