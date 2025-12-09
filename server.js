@@ -119,19 +119,15 @@ const auth = new google.auth.GoogleAuth({
 });
 
 // Google Drive client
+// Google Drive client
 const drive = google.drive({ version: 'v3', auth });
 
 // ✅ Root folder ID – multiple env names support
-// ✅ Root folder ID – multiple env names support
 const DRIVE_ROOT_FOLDER_ID =
-  process.env.FOOTAGE_FOLDER_ID ||
-  process.env.DRIVE_FOOTAGE_FOLDER_ID ||
-  process.env.DRIVE_FOLDER_ID ||
-  process.env.GOOGLE_DRIVE_FOLDER_ID;
-  console.log('📁 DRIVE_ROOT_FOLDER_ID:', DRIVE_ROOT_FOLDER_ID ? 'SET' : 'MISSING');
-console.log('📁 FOOTAGE_FOLDER_ID:', FOOTAGE_FOLDER_ID ? 'SET' : 'MISSING');
-console.log('📁 AVATAR_FOLDER_ID:', AVATAR_FOLDER_ID ? 'SET' : 'MISSING');
-
+  process.env.FOOTAGE_FOLDER_ID ||        // clear naam
+  process.env.DRIVE_FOOTAGE_FOLDER_ID ||  // jo .env me hai
+  process.env.DRIVE_FOLDER_ID ||          // backup
+  process.env.GOOGLE_DRIVE_FOLDER_ID;     // ya ye (agar sirf ye diya ho)
 
 if (!DRIVE_ROOT_FOLDER_ID) {
   console.warn(
@@ -139,23 +135,24 @@ if (!DRIVE_ROOT_FOLDER_ID) {
   );
 }
 
-
 // Folder IDs (Avatar + Footage)
 const AVATAR_FOLDER_ID =
   process.env.DRIVE_FOLDER_ID ||
   process.env.GOOGLE_DRIVE_FOLDER_ID ||
   DRIVE_ROOT_FOLDER_ID;
 
-// Footage ke liye jitne bhi naam tum use kar sakte ho un sab ko accept karo
+// Footage ke liye direct root ko use karo
 const FOOTAGE_FOLDER_ID =
-  process.env.FOOTAGE_FOLDER_ID ||        // naya clear naam
-  process.env.DRIVE_FOOTAGE_FOLDER_ID ||  // jo tumne .env me dala
-  process.env.GOOGLE_DRIVE_FOLDER_ID ||   // pehle se wala
-  process.env.DRIVE_FOLDER_ID ||          // backup
-  DRIVE_ROOT_FOLDER_ID;                   // root fallback
+  process.env.FOOTAGE_FOLDER_ID ||
+  process.env.DRIVE_FOOTAGE_FOLDER_ID ||
+  process.env.GOOGLE_DRIVE_FOLDER_ID ||
+  process.env.DRIVE_FOLDER_ID ||
+  DRIVE_ROOT_FOLDER_ID;
 
-
-
+// ✅ Ab YAHAN logging karo (const ke baad)
+console.log('📁 DRIVE_ROOT_FOLDER_ID:', DRIVE_ROOT_FOLDER_ID ? 'SET' : 'MISSING');
+console.log('📁 AVATAR_FOLDER_ID:', AVATAR_FOLDER_ID ? 'SET' : 'MISSING');
+console.log('📁 FOOTAGE_FOLDER_ID:', FOOTAGE_FOLDER_ID ? 'SET' : 'MISSING');
 
 // Helper: Buffer → Readable stream
 function bufferToStream(buffer) {
@@ -164,6 +161,7 @@ function bufferToStream(buffer) {
   stream.push(null);
   return stream;
 }
+
 
 
 
