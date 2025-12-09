@@ -697,7 +697,38 @@ app.post('/api/user/profile', isAuthenticated, async (req, res) => {
 });
 
 // Get all projects (All users)
-// Main chat endpoint (✅ SIMPLE & WORKING VERSION)
+app.post('/api/user/projects', isAuthenticated, async (req, res) => {
+  try {
+    const projectsSnapshot = await db.collection('projects')
+      .where('status', '==', 'active')
+      .get();
+    
+    const projects = [];
+    projectsSnapshot.forEach(doc => {
+      projects.push({ projectId: doc.id, ...doc.data() });
+    });
+    
+    // Sort by createdAt (newest first)
+    projects.sort((a, b) => {
+      if (a.createdAt && b.createdAt) {
+        return b.createdAt.toMillis() - a.createdAt.toMillis();
+      }
+      return 0;
+    });
+    
+    console.log(`✅ User fetched ${projects.length} projects`);
+    res.json({ success: true, projects });
+    
+  } catch (err) {
+    console.error('❌ Get projects error:', err);
+    res.status(500).json({ success: false, message: 'Server error' });
+  }
+});
+
+console.log('✅ User routes configured');
+
+
+// Main chat endpoint
 app.post('/api/chat', async (req, res) => {
   const { userMessage, model } = req.body;
   
@@ -763,7 +794,6 @@ app.post('/api/chat', async (req, res) => {
       console.log('✅ Perplexity Response received');
       return res.json(response.data);
     }
-    
     // ============= GROQ MODELS =============
     else if (model?.startsWith('groq-')) {
       console.log('⚡ Using Groq API...');
@@ -774,8 +804,7 @@ app.post('/api/chat', async (req, res) => {
       }
 
       const groqModels = {
-        'groq-llama-8b': 'llama-3.1-8b-instant',
-        'groq-llama-70b': 'llama-3.1-70b-versatile'
+        'groq-llama-8b': 'llama-3.1-8b-instant'
       };
 
       const groqModel = groqModels[model] || 'llama-3.1-8b-instant';
@@ -872,6 +901,186 @@ app.post('/api/chat', async (req, res) => {
   }
 });
 
+// 1. FOOTAGE CREATE ROUTE (Isko pehle band karo)
+app.post('/api/footage/create', async (req, res) => {
+  try {
+    const { projectId, userId, fileName, fileSize, duration, title, format } = req.body;
+
+    const footageData = {
+      projectId,
+      userId,
+      fileName,
+      fileSize: fileSize || 0,
+      duration: duration || '00:00',
+      title: title || fileName,
+      format: format || 'long',
+      status: 'queued',
+      kind: 'raw',
+      rawDriveLink: '',
+      editedDriveLink: '',
+      createdAt: new Date().toISOString(),
+      updatedAt: new Date().toISOString()
+    };
+
+    const docRef = await db.collection('footage').add(footageData);
+    res.json({ success: true, footageId: docRef.id });
+
+  } catch (err) {
+    console.error('Footage create error:', err);
+    res.status(500).json({ error: 'Failed to create footage doc' });
+  }
+});
+
+// 2. FOOTAGE LIST ROUTE (Isko alag se neeche likho)
+app.get('/api/footage/list', async (req, res) => {
+  try {
+    const { projectId } = req.query;
+
+    let q = db.collection('footage');
+    if (projectId) {
+      q = q.where('projectId', '==', projectId);
+    }
+
+    const snap = await q.get();
+    const items = snap.docs.map(d => ({ id: d.id, ...d.data() }));
+    
+    // Sort in JS to avoid Firestore index error
+    items.sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt));
+
+    res.json({ items });
+  } catch (err) {
+    console.error('Footage list error:', err);
+    res.status(500).json({ error: 'Failed to load footage' });
+  }
+});
+
+
+
+// ==========================================
+// 🔥 GOD MODE ADMIN APIs (Insert at Bottom)
+// ==========================================
+
+// Middleware to check Admin
+const requireAdmin = async (req, res, next) => {
+    const { adminEmail } = req.body; 
+    // Frontend se email aayega verify karne ke liye
+    if (adminEmail !== ADMIN_EMAIL) {
+        return res.status(403).json({ success: false, message: "UNAUTHORIZED ACCESS: You are not the Admin." });
+    }
+    next();
+};
+
+// 1. Get Dashboard Stats
+app.post('/api/admin/stats', requireAdmin, async (req, res) => {
+    if(!db) return res.json({ users: 0, projects: 0, storage: '0 GB' });
+
+    try {
+        const usersSnap = await db.collection('users').count().get();
+        const projectsSnap = await db.collection('projects').count().get();
+        // Storage calculation is complex, showing placeholder for speed
+        res.json({
+            success: true,
+            users: usersSnap.data().count,
+            projects: projectsSnap.data().count,
+            storage: '2.4 GB', 
+            serverStatus: 'Online 🟢'
+        });
+    } catch(e) { res.json({ success: false }); }
+});
+
+// 2. Get All Users List
+app.post('/api/admin/users-list', requireAdmin, async (req, res) => {
+    try {
+        const snapshot = await db.collection('users').orderBy('createdAt', 'desc').get();
+        const users = snapshot.docs.map(doc => {
+            const d = doc.data();
+            return { 
+                id: doc.id, 
+                username: d.username, 
+                email: d.email, 
+                role: d.role, 
+                createdAt: d.createdAt 
+            };
+        });
+        res.json({ success: true, users });
+    } catch(e) { res.status(500).json({ success: false }); }
+});
+
+// 3. Delete/Ban User Action
+// 4. Update User Details (Role/Subscription) [NEW]
+app.post('/api/admin/update-user-details', requireAdmin, async (req, res) => {
+    const { targetUserId, role, subscription } = req.body;
+    try {
+        await db.collection('users').doc(targetUserId).update({
+            role: role,
+            subscription: subscription,
+            updatedAt: admin.firestore.FieldValue.serverTimestamp()
+        });
+        return res.json({ success: true, message: "User details updated successfully." });
+    } catch(e) { 
+        console.error(e);
+        return res.status(500).json({ success: false, message: "Failed to update user." }); 
+    }
+});
+
+
+// 5. 👻 GHOST MODE (Impersonate User)
+app.post('/api/admin/ghost-login', requireAdmin, async (req, res) => {
+    const { targetUserId } = req.body;
+    try {
+        const doc = await db.collection('users').doc(targetUserId).get();
+        if (!doc.exists) return res.status(404).json({ success: false, message: "User not found" });
+        
+        // Return user data (Simulating a login)
+        return res.json({ success: true, user: { userId: doc.id, ...doc.data() } });
+    } catch(e) { 
+        console.error(e);
+        return res.status(500).json({ success: false, message: "Ghost login failed" }); 
+    }
+});
+
+// 6. 📢 SET ANNOUNCEMENT (Admin Only)
+app.post('/api/admin/announce', requireAdmin, async (req, res) => {
+    const { message, type } = req.body; // type: 'info', 'warning', 'success'
+    try {
+        // Save to a specific document in 'system' collection
+        await db.collection('system').doc('global_announcement').set({
+            message: message, // If empty, it clears the announcement
+            type: type || 'info',
+            timestamp: admin.firestore.FieldValue.serverTimestamp(),
+            active: !!message
+        });
+        return res.json({ success: true, message: "Announcement updated." });
+    } catch(e) { 
+        console.error(e);
+        return res.status(500).json({ success: false }); 
+    }
+});
+
+// 7. 📡 GET ANNOUNCEMENT (Public API for all users)
+app.get('/api/get-announcement', async (req, res) => {
+    try {
+        const doc = await db.collection('system').doc('global_announcement').get();
+        if (doc.exists && doc.data().active) {
+            return res.json({ success: true, announcement: doc.data() });
+        }
+        return res.json({ success: false });
+    } catch(e) { return res.json({ success: false }); }
+});
+
+// ==========================================
+const PORT = process.env.PORT || 3000;
+
+app.listen(PORT, () => {
+  console.log(`✅ Server running on port ${PORT}`);
+  console.log(`\n🚀 Multi-AI API Proxy running at http://localhost:${PORT}`);
+  console.log('📡 Endpoints:');
+  console.log('   GET  /              - Health check');
+  console.log('   POST /api/send-otp  - Send OTP');
+  console.log('   POST /api/verify-otp- Verify OTP');
+  console.log('   POST /api/chat      - Chat endpoint');
+  console.log('\n✅ Ready to receive requests!\n');
+});
 
 // ============ FOOTAGE QUEUE ENDPOINT ============
 app.post('/api/footage/create-queue', async (req, res) => {
@@ -910,16 +1119,4 @@ app.post('/api/footage/create-queue', async (req, res) => {
     console.error('❌ Create footage queue error:', err);
     return res.status(500).json({ success: false, message: 'Server error' });
   }
-});
-
-console.log('✅ Middleware configured');
-console.log('✅ Admin routes configured');
-console.log('✅ User routes configured');
-
-const PORT = process.env.PORT || 3000;
-
-app.listen(PORT, () => {
-  console.log(`✅ Server running on port ${PORT}`);
-  console.log(`\n🚀 Multi-AI API Proxy running`);
-  console.log('✅ Ready!\n');
 });
