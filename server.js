@@ -697,115 +697,81 @@ app.post('/api/user/profile', isAuthenticated, async (req, res) => {
 });
 
 // Get all projects (All users)
-app.post('/api/user/projects', isAuthenticated, async (req, res) => {
-  try {
-    const projectsSnapshot = await db.collection('projects')
-      .where('status', '==', 'active')
-      .get();
-    
-    const projects = [];
-    projectsSnapshot.forEach(doc => {
-      projects.push({ projectId: doc.id, ...doc.data() });
-    });
-    
-    // Sort by createdAt (newest first)
-    projects.sort((a, b) => {
-      if (a.createdAt && b.createdAt) {
-        return b.createdAt.toMillis() - a.createdAt.toMillis();
-      }
-      return 0;
-    });
-    
-    console.log(`✅ User fetched ${projects.length} projects`);
-    res.json({ success: true, projects });
-    
-  } catch (err) {
-    console.error('❌ Get projects error:', err);
-    res.status(500).json({ success: false, message: 'Server error' });
-  }
-});
-
-console.log('✅ User routes configured');
-
-// Main chat endpoint (✅ Complete & Fixed)
+// Main chat endpoint (✅ SIMPLE & WORKING VERSION)
 app.post('/api/chat', async (req, res) => {
-  const { userMessage, model, image } = req.body;
+  const { userMessage, model } = req.body;
   
   console.log('\n🟢 === NEW REQUEST ===');
   console.log('📝 Message:', userMessage);
   console.log('🤖 Model:', model);
-  console.log('📷 Image:', image ? 'Yes' : 'No');
   console.log('⏰ Time:', new Date().toLocaleTimeString());
   
-  if (!userMessage && !image) {
-    return res.status(400).json({ error: 'Message or image required' });
+  if (!userMessage) {
+    return res.status(400).json({ error: 'Message is required' });
   }
 
   try {
     let response;
     
-    // ============= VISION (Priority 1) =============
-    if (image && image.data) {
-      console.log('🔷 Using Gemini Vision...');
-      const GEMINI_API_KEY = process.env.GEMINI_API_KEY;
-      if (!GEMINI_API_KEY) throw new Error('GEMINI_API_KEY missing');
-
-      const visionUrl = `https://generativelanguage.googleapis.com/v1beta/models/gemini-pro-vision:generateContent?key=${GEMINI_API_KEY}`;
-
-      response = await axios.post(visionUrl, {
-        contents: [{
-          parts: [
-            { text: userMessage || 'Describe this image' },
-            { inline_data: { mime_type: image.mimeType, data: image.data } }
-          ]
-        }]
-      });
-
-      console.log('✅ Vision response received');
-      return res.json(response.data);
-    }
-    
-    // ============= GEMINI TEXT =============
+    // ============= GEMINI MODELS =============
     if (model?.startsWith('gemini-')) {
-      console.log('🔷 Using Gemini...');
+      console.log('🔷 Using Gemini API...');
+      
       const GEMINI_API_KEY = process.env.GEMINI_API_KEY;
-      if (!GEMINI_API_KEY) throw new Error('GEMINI_API_KEY missing');
+      if (!GEMINI_API_KEY) {
+        throw new Error('GEMINI_API_KEY not found in .env file');
+      }
 
       const geminiUrl = `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${GEMINI_API_KEY}`;
 
       response = await axios.post(geminiUrl, {
-        contents: [{ parts: [{ text: userMessage }] }]
+        contents: [{
+          parts: [{ text: userMessage }]
+        }]
       });
 
-      console.log('✅ Gemini response received');
+      console.log('✅ Gemini Response received');
       return res.json(response.data);
     }
     
     // ============= PERPLEXITY =============
-    if (model === 'perplexity-online') {
-      console.log('🟣 Using Perplexity...');
+    else if (model === 'perplexity-online') {
+      console.log('🟣 Using Perplexity API...');
+      
       const PERPLEXITY_API_KEY = process.env.PERPLEXITY_API_KEY;
-      if (!PERPLEXITY_API_KEY) throw new Error('PERPLEXITY_API_KEY missing');
+      if (!PERPLEXITY_API_KEY) {
+        throw new Error('PERPLEXITY_API_KEY not found in .env file');
+      }
 
-      response = await axios.post('https://api.perplexity.ai/chat/completions', {
-        model: 'sonar',
-        messages: [{ role: 'user', content: userMessage }]
-      }, {
-        headers: {
-          'Authorization': `Bearer ${PERPLEXITY_API_KEY}`,
-          'Content-Type': 'application/json'
+      response = await axios.post(
+        'https://api.perplexity.ai/chat/completions',
+        {
+          model: 'sonar',
+          messages: [{ 
+            role: 'user', 
+            content: userMessage 
+          }]
+        },
+        {
+          headers: {
+            'Authorization': `Bearer ${PERPLEXITY_API_KEY}`,
+            'Content-Type': 'application/json'
+          }
         }
-      });
+      );
 
-      console.log('✅ Perplexity response received');
+      console.log('✅ Perplexity Response received');
       return res.json(response.data);
     }
     
-    // ============= GROQ =============
-    if (model?.startsWith('groq-')) {
-      console.log('⚡ Using Groq...');
+    // ============= GROQ MODELS =============
+    else if (model?.startsWith('groq-')) {
+      console.log('⚡ Using Groq API...');
+      
       const GROQ_API_KEY = process.env.GROQ_API_KEY;
-      if (!GROQ_API_KEY) throw new Error('GROQ_API_KEY missing');
+      if (!GROQ_API_KEY) {
+        throw new Error('GROQ_API_KEY not found in .env file');
+      }
 
       const groqModels = {
         'groq-llama-8b': 'llama-3.1-8b-instant',
@@ -814,76 +780,97 @@ app.post('/api/chat', async (req, res) => {
 
       const groqModel = groqModels[model] || 'llama-3.1-8b-instant';
 
-      response = await axios.post('https://api.groq.com/openai/v1/chat/completions', {
-        model: groqModel,
-        messages: [{ role: 'user', content: userMessage }],
-        temperature: 0.7,
-        max_tokens: 1024
-      }, {
-        headers: {
-          'Authorization': `Bearer ${GROQ_API_KEY}`,
-          'Content-Type': 'application/json'
+      response = await axios.post(
+        'https://api.groq.com/openai/v1/chat/completions',
+        {
+          model: groqModel,
+          messages: [{ 
+            role: 'user', 
+            content: userMessage 
+          }],
+          temperature: 0.7,
+          max_tokens: 1024
+        },
+        {
+          headers: {
+            'Authorization': `Bearer ${GROQ_API_KEY}`,
+            'Content-Type': 'application/json'
+          }
         }
-      });
+      );
 
-      console.log('✅ Groq response received');
+      console.log('✅ Groq Response received');
       return res.json(response.data);
     }
 
-    // ============= SERPER =============
-    if (model === 'serper-search') {
-      console.log('🔍 Using Serper...');
+    // ============= SERPER SEARCH =============
+    else if (model === 'serper-search') {
+      console.log('🔍 Using Serper Google Search...');
+      
       const SERPER_API_KEY = process.env.SERPER_API_KEY;
-      if (!SERPER_API_KEY) throw new Error('SERPER_API_KEY missing');
+      if (!SERPER_API_KEY) {
+        throw new Error('SERPER_API_KEY not found in .env file');
+      }
 
-      response = await axios.post('https://google.serper.dev/search', {
-        q: userMessage,
-        num: 5
-      }, {
-        headers: {
-          'X-API-KEY': SERPER_API_KEY,
-          'Content-Type': 'application/json'
+      response = await axios.post(
+        'https://google.serper.dev/search',
+        {
+          q: userMessage,
+          num: 5
+        },
+        {
+          headers: {
+            'X-API-KEY': SERPER_API_KEY,
+            'Content-Type': 'application/json'
+          }
         }
-      });
+      );
 
-      console.log('✅ Serper completed');
+      console.log('✅ Serper Search completed');
       
       const results = response.data.organic || [];
-      const formatted = results.map((r, i) => 
-        `${i+1}. **${r.title}**\n${r.snippet}\n${r.link}`
+      const formattedResults = results.map((r, i) => 
+        `${i+1}. **${r.title}**\n${r.snippet}\n[${r.link}](${r.link})`
       ).join('\n\n');
 
       return res.json({
         candidates: [{
           content: {
-            parts: [{ text: `🔍 **Search Results:**\n\n${formatted}` }]
+            parts: [{
+              text: `🔍 **Google Search Results:**\n\n${formattedResults}`
+            }]
           }
         }]
       });
     }
     
-    // ============= FALLBACK =============
-    console.log('⚠️ Fallback to Gemini');
-    const GEMINI_API_KEY = process.env.GEMINI_API_KEY;
-    const fallbackUrl = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash-exp:generateContent?key=${GEMINI_API_KEY}`;
+    // ============= DEFAULT FALLBACK =============
+    else {
+      console.log('⚠️ Unknown model, using Gemini 2.0 Flash as fallback');
+      const GEMINI_API_KEY = process.env.GEMINI_API_KEY;
+      const geminiUrl = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash-exp:generateContent?key=${GEMINI_API_KEY}`;
 
-    response = await axios.post(fallbackUrl, {
-      contents: [{ parts: [{ text: userMessage }] }]
-    });
+      response = await axios.post(geminiUrl, {
+        contents: [{
+          parts: [{ text: userMessage }]
+        }]
+      });
 
-    return res.json(response.data);
+      return res.json(response.data);
+    }
 
   } catch (error) {
-    console.error('\n❌ ERROR:', error.message);
-    console.error('Details:', error.response?.data);
+    console.error('\n❌ === ERROR ===');
+    console.error('Message:', error.message);
+    console.error('Response:', error.response?.data);
     
     res.status(500).json({
       error: 'API Error',
       message: error.message,
-      details: error.response?.data || 'No details'
+      details: error.response?.data || 'No additional details'
     });
   }
-}); // ✅ Closing bracket - CHECK THIS!
+});
 
 
 // ============ FOOTAGE QUEUE ENDPOINT ============
