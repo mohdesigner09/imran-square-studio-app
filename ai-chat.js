@@ -251,99 +251,59 @@ function removeTyping(id) {
   if (el && el.parentNode) el.parentNode.removeChild(el);
 }
 
-// ---------- API ----------
-async function sendMessage(userMessage, imageData = null) {
-  if (!userMessage || !userMessage.trim()) {
-    if (!imageData) return; // No text and no image
-    userMessage = 'What is in this image?'; // Default question for image-only
-  }
+// --- API ----------------------------------------------------
+async function sendMessage(userMessage) {
+  if (!userMessage || !userMessage.trim()) return;
 
+  // chat create if first msg
   if (!currentChatId) {
     const newChat = addChatSession(userMessage.slice(0, 30), []);
     currentChatId = newChat.id;
     renderChatHistory();
   }
 
-  // Add user message with image if present
-  if (imageData) {
-    const imageHTML = `<img src="data:${imageData.mimeType};base64,${imageData.base64}" class="msg-image" style="max-width: 300px; border-radius: 8px; margin-bottom: 8px;">`;
-    addMessage(imageHTML + '<br>' + userMessage, 'user', true);
-  } else {
-    addMessage(userMessage, 'user', true);
-  }
-
+  addMessage(userMessage, 'user', true);
   const typingId = showTyping();
 
   try {
     const model = document.getElementById('modelSelect')?.value || 'gemini-2.5-flash';
 
-    // ✅ Vision API Call (if image present)
-    if (imageData) {
-      console.log('📷 Using Gemini Vision API...');
-      
-      const GEMINI_API_KEY = 'YOUR_GEMINI_API_KEY'; // Will use from server
-      const visionUrl = `${API_BASE}/api/chat`;
+    const res = await fetch(`${API_BASE}/api/chat`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ userMessage, model })
+    });
 
-      const res = await fetch(visionUrl, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          userMessage,
-          model: 'gemini-pro-vision',
-          image: {
-            data: imageData.base64,
-            mimeType: imageData.mimeType
-          }
-        })
-      });
+    if (!res.ok) throw new Error(`Server error: ${res.status}`);
 
-      if (!res.ok) throw new Error(`Vision API error: ${res.status}`);
-      const data = await res.json();
+    const data = await res.json();
 
-      let aiText =
-        data.candidates?.[0]?.content?.parts?.[0]?.text ||
-        data.response ||
-        data.text ||
-        '';
+    let aiText =
+      data.candidates?.[0]?.content?.parts?.[0]?.text ||
+      data.response ||
+      data.text ||
+      data.choices?.[0]?.message?.content ||
+      (typeof data === 'string' ? data : '');
 
-      if (!aiText || !aiText.trim()) throw new Error('Empty vision response');
+    if (!aiText || !aiText.trim()) throw new Error('Empty response');
 
-      removeTyping(typingId);
-      addMessage(aiText, 'ai', true);
-    } else {
-      // Regular text-only chat
-      const res = await fetch(`${API_BASE}/api/chat`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ userMessage, model })
-      });
+    // basic markdown: **bold**
+    aiText = aiText
+      .replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>')
+      .replace(/\n/g, '<br>');
 
-      if (!res.ok) throw new Error(`Server error: ${res.status}`);
-      const data = await res.json();
-
-      let aiText =
-        data.candidates?.[0]?.content?.parts?.[0]?.text ||
-        data.response ||
-        data.text ||
-        data.choices?.[0]?.message?.content ||
-        (typeof data === 'string' ? data : '');
-
-      if (!aiText || !aiText.trim()) throw new Error('Empty response');
-
-      aiText = aiText
-        .replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>')
-        .replace(/\n/g, '<br>');
-
-      removeTyping(typingId);
-      addMessage(aiText, 'ai', true);
-    }
+    removeTyping(typingId);
+    addMessage(aiText, 'ai', true);
   } catch (err) {
     console.error(err);
     removeTyping(typingId);
-    addMessage(`<strong style="color:#ef4444;">Error:</strong> ${err.message}`, 'ai', true);
+    addMessage(
+      `<strong style="color:#ef4444;">Error:</strong> ${err.message}`,
+      'ai',
+      true
+    );
   }
 }
-
 
 // --- DOWNLOAD ----------------------------------------------
 function downloadChat() {
