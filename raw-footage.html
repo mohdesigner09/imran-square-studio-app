@@ -434,17 +434,14 @@
 
     <!-- JS LOGIC -->
     <script>
+        
         // --- GLOBAL CONFIG (API + USER) ---
-const API_BASE =
-  window.location.hostname === 'localhost'
-    ? 'http://localhost:10000'   // ⬅️ yahan 3000 → 10000
-    : 'https://imran-square-studio.onrender.com';
 
-
+// --- API & AUTH CONTEXT ---
+const API_BASE = window.location.origin;  // same domain/port (local + Render dono me chalega)
 const CURRENT_USER = JSON.parse(localStorage.getItem('imranUser') || 'null');
-
-// File selection state (upload modal)
 let selectedFile = null;
+
 
         // --- DATA & STATE ---
         let currentType = 'shorts'; 
@@ -664,13 +661,14 @@ let selectedFile = null;
         }
 
         // --- UPLOAD LOGIC (Your Logic + New UI) ---
-        document.getElementById('footageFileInput').addEventListener('change', (e) => {
-            const file = e.target.files[0];
-            if (!file) return;
-            selectedFile = file;
+      document.getElementById('footageFileInput').addEventListener('change', (e) => {
+    const file = e.target.files[0];
+    if (!file) return;
 
-            // Preview
-            const preview = document.getElementById('filePreview');
+    // ✅ backend upload ke liye yaad rakho
+    selectedFile = file;
+
+    const preview = document.getElementById('filePreview');
             document.getElementById('previewFileName').textContent = file.name;
             document.getElementById('previewFileSize').textContent = (file.size / (1024 * 1024)).toFixed(2) + ' MB';
             preview.classList.remove('hidden');
@@ -708,63 +706,161 @@ let selectedFile = null;
             document.getElementById('uploadFootageModal').classList.add('hidden');
         }
 
-function sendToStudio() {
-    // UI Transition
-    document.getElementById('uploadStep1').classList.add('hidden');
-    document.getElementById('uploadStep2').classList.remove('hidden');
+async function sendToStudio() {
+    if (!selectedFile) {
+        alert('Please choose a video file first.');
+        return;
+    }
 
-    let progress = 0;
+    const titleInput = document.getElementById('previewTitleInput');
+    const fileNameEl = document.getElementById('previewFileName');
+    const thumbEl = document.getElementById('previewThumbnail');
+
+    const clipTitle =
+        (titleInput && titleInput.value.trim()) ||
+        (fileNameEl && fileNameEl.textContent) ||
+        selectedFile.name.replace(/\.[^/.]+$/, '');
+
+    const thumbnailDataUrl = thumbEl ? thumbEl.src : '';
+
+
+   // URL se projectId
+const params = new URLSearchParams(window.location.search);
+const projectId = params.get('id');
+
+if (!projectId) {
+    alert('Project missing in URL.');
+    return;
+}
+
+// ✅ USER_ID ko flexibily pick karo: userId | uid | email
+const USER_ID =
+    CURRENT_USER &&
+    (CURRENT_USER.userId || CURRENT_USER.uid || CURRENT_USER.email || null);
+
+if (!CURRENT_USER || !USER_ID) {
+    alert('Please login again. (User missing)');
+    return;
+}
+
+
+    // STEP 1 → STEP 2 (UI)
+    const step1 = document.getElementById('uploadStep1');
+    const step2 = document.getElementById('uploadStep2');
+    const step3 = document.getElementById('uploadStep3');
+
+    step1.classList.add('hidden');
+    step2.classList.remove('hidden');
+    step3.classList.add('hidden');
+
     const bar = document.getElementById('uploadProgressBar');
     const text = document.getElementById('uploadProgressText');
-    
+
+    let progress = 0;
+    let uploadFinished = false;
+    let uploadSuccess = false;
+    let uploadError = null;
+
+    // 🔁 REAL BACKEND UPLOAD
+    (async () => {
+        try {
+            const formData = new FormData();
+formData.append('file', selectedFile);
+formData.append('projectId', projectId);
+formData.append('userId', USER_ID);              // ⬅️ yahan change
+formData.append('fileName', selectedFile.name);
+
+            formData.append('sizeMB', (selectedFile.size / (1024 * 1024)).toFixed(1));
+            formData.append('thumbnailDataUrl', thumbnailDataUrl);
+            formData.append('kind', 'raw');
+
+            const res = await fetch(`${API_BASE}/api/footage/upload`, {
+                method: 'POST',
+                body: formData
+            });
+
+            const data = await res.json();
+            if (!res.ok || !data.success) {
+                uploadError = data.message || 'Upload failed';
+            } else {
+                uploadSuccess = true;
+                // Optional: response se extra meta use kar sakte ho
+            }
+        } catch (err) {
+            console.error('Footage upload error:', err);
+            uploadError = err.message || 'Network error';
+        } finally {
+            uploadFinished = true;
+        }
+    })();
+
+    // 🎭 FAKE PROGRESS + REAL WAIT
     const interval = setInterval(() => {
         progress += 5;
-        bar.style.width = progress + '%';
-        if (progress > 30) text.textContent = "Compressing.";
-        if (progress > 70) text.textContent = "Finalizing.";
+        if (progress < 30) text.textContent = 'Encrypting footage.';
+        else if (progress < 70) text.textContent = 'Syncing to studio vault.';
+        else if (progress < 95) text.textContent = 'Locking into project vault.';
+        else text.textContent = 'Finalizing metadata.';
 
-        if (progress >= 100) {
-            clearInterval(interval);
-            
-            // Add Clip Logic (safe title handling)
-            const titleInput = document.getElementById('previewTitleInput');
-            const fileNameEl = document.getElementById('previewFileName');
-
-            const title =
-                (titleInput && titleInput.value.trim()) ||
-                (fileNameEl && fileNameEl.textContent) ||
-                'Untitled Clip';
-
-            const thumbEl = document.getElementById('previewThumbnail');
-            const thumb = thumbEl ? thumbEl.src : '';
-
-            const newClip = {
-                id: Date.now().toString(),
-                title: title,
-                type: lastVideoHeight > lastVideoWidth ? 'shorts' : 'longs', // Logic from your file
-                date: 'today',
-                duration: '0:XX', // Placeholder
-                width: lastVideoWidth,
-                height: lastVideoHeight,
-                thumb: thumb
-            };
-            
-            rawClips.unshift(newClip);
-            
-            // Save
-            const projectId = new URLSearchParams(window.location.search).get('id');
-            if (projectId) {
-                localStorage.setItem(`footage_${projectId}`, JSON.stringify(rawClips));
-            }
-            
-            // Success UI
-            document.getElementById('uploadStep2').classList.add('hidden');
-            document.getElementById('uploadStep3').classList.remove('hidden');
-            
-            renderVideos();
+        // Backend khatam hone tak 95% par atak ke rakho
+        if (progress >= 95 && !uploadFinished) {
+            progress = 95;
         }
-    }, 100);
+
+        if (uploadFinished && progress < 100) {
+            progress = 100;
+        }
+
+        bar.style.width = progress + '%';
+
+        if (progress >= 100 && uploadFinished) {
+            clearInterval(interval);
+
+            if (!uploadSuccess) {
+                alert(uploadError || 'Upload failed. Please try again.');
+                // UI ko wapas step-1 par le aa
+                step2.classList.add('hidden');
+                step1.classList.remove('hidden');
+                step3.classList.add('hidden');
+                return;
+            }
+
+            // ✅ SUCCESS UI + LOCAL LIST UPDATE
+            setTimeout(() => {
+                step2.classList.add('hidden');
+                step3.classList.remove('hidden');
+
+                const newClip = {
+                    id: `clip-${Date.now()}`,
+                    title: clipTitle,
+                    type: lastVideoHeight > lastVideoWidth ? 'shorts' : 'longs',
+                    date: 'today',
+                    duration: '0:XX',
+                    width: lastVideoWidth || 1080,
+                    height: lastVideoHeight || 1920,
+                    thumb: thumbnailDataUrl
+                };
+
+                rawClips.unshift(newClip);
+
+                const pid = new URLSearchParams(window.location.search).get('id');
+                if (pid) {
+                    localStorage.setItem(`footage_${pid}`, JSON.stringify(rawClips));
+                }
+
+                renderVideos();
+
+                setTimeout(() => {
+                    closeUploadModal();
+                    selectedFile = null;
+                    const input = document.getElementById('footageFileInput');
+                    if (input) input.value = '';
+                }, 1500);
+            }, 600);
+        }
+    }, 300);
 }
+
 
 
 
