@@ -134,9 +134,11 @@ if (!DRIVE_ROOT_FOLDER_ID) {
   );
 }
 
-// Avatars + footage dono ab isi root ke andar
-const AVATAR_FOLDER_ID = DRIVE_ROOT_FOLDER_ID;
-const FOOTAGE_FOLDER_ID = DRIVE_ROOT_FOLDER_ID;
+
+// Folder IDs (Avatar + Footage)
+const AVATAR_FOLDER_ID = process.env.DRIVE_FOLDER_ID || process.env.GOOGLE_DRIVE_FOLDER_ID;
+const FOOTAGE_FOLDER_ID = process.env.GOOGLE_DRIVE_FOLDER_ID || process.env.DRIVE_FOLDER_ID;
+
 
 // Helper: Buffer → Readable stream
 function bufferToStream(buffer) {
@@ -498,6 +500,122 @@ app.post('/api/account/upload-avatar', upload.single('avatar'), async (req, res)
   } catch (err) {
     console.error('❌ Upload avatar error:', err);
     return res.status(500).json({ success: false, message: 'Server error' });
+  }
+});
+
+// ========================
+// RAW FOOTAGE UPLOAD → GOOGLE DRIVE + FIRESTORE
+// ========================
+app.post('/api/footage/upload', upload.single('file'), async (req, res) => {
+  try {
+    const { projectId, userId, fileName, sizeMB, thumbnailDataUrl, kind } = req.body;
+
+    if (!FOOTAGE_FOLDER_ID) {
+      console.error('❌ FOOTAGE_FOLDER_ID not configured in env');
+      return res.status(500).json({
+        success: false,
+        message: 'Footage Drive folder not configured on server'
+      });
+    }
+
+    if (!projectId || !userId) {
+      return res.status(400).json({
+        success: false,
+        message: 'Missing projectId or userId'
+      });
+    }
+
+    if (!req.file) {
+      return res.status(400).json({
+        success: false,
+        message: 'No video file uploaded'
+      });
+    }
+
+    // ✅ File name safe bana lo
+    const safeFileName =
+      fileName ||
+      req.file.originalname ||
+      `footage-${Date.now()}.mp4`;
+
+    // ✅ Google Drive pe upload
+    const fileMetadata = {
+      name: safeFileName,
+      parents: [FOOTAGE_FOLDER_ID],
+    };
+
+    const media = {
+      mimeType: req.file.mimetype || 'video/mp4',
+      body: bufferToStream(req.file.buffer),
+    };
+
+    const driveRes = await drive.files.create({
+      requestBody: fileMetadata,
+      media,
+      fields: 'id',
+    });
+
+    const fileId = driveRes.data.id;
+
+    // ✅ Public permission (anyone with link can view)
+    await drive.permissions.create({
+      fileId,
+      requestBody: {
+        role: 'reader',
+        type: 'anyone',
+      },
+    });
+
+    // ✅ Download/View link le lo
+    const driveFile = await drive.files.get({
+      fileId,
+      fields: 'webContentLink, webViewLink',
+    });
+
+    const rawDriveLink =
+      driveFile.data.webContentLink ||
+      driveFile.data.webViewLink ||
+      '';
+
+    // ✅ Firestore me metadata doc banao (footage collection)
+    const footageData = {
+      projectId,
+      userId,
+      fileName: safeFileName,
+      sizeMB: parseFloat(sizeMB) || 0,
+      title: safeFileName,
+      kind: kind || 'raw',
+      status: 'uploaded',      // queued / processing / ready later change kar sakte ho
+      rawDriveLink,
+      editedDriveLink: '',
+      thumbnailDataUrl: thumbnailDataUrl || '',
+      createdAt: new Date().toISOString(),
+      updatedAt: new Date().toISOString(),
+    };
+
+    const docRef = await db.collection('footage').add(footageData);
+
+    console.log('✅ Footage uploaded:', {
+      footageId: docRef.id,
+      fileId,
+      rawDriveLink,
+    });
+
+    return res.json({
+      success: true,
+      message: 'Footage uploaded successfully',
+      footageId: docRef.id,
+      driveFileId: fileId,
+      rawDriveLink,
+    });
+
+  } catch (err) {
+    console.error('❌ Footage upload error:', err);
+    return res.status(500).json({
+      success: false,
+      message: 'Failed to upload footage',
+      error: err.message,
+    });
   }
 });
 
@@ -955,201 +1073,6 @@ if (model?.startsWith('gemini-')) {
   }
 });
 
-// ========= RAW FOOTAGE DIRECT UPLOAD → GOOGLE DRIVE =========
-app.post('/api/footage/upload', upload.single('file'), async (req, res) => {
-  try {
-    const { projectId, userId, fileName, sizeMB, thumbnailDataUrl, kind } = req.body;
-
-    if (!req.file) {
-      return res.status(400).json({ success: false, message: 'No file uploaded.' });
-    }
-    if (!projectId || !userId) {
-      return res.status(400).json({ success: false, message: 'projectId / userId missing.' });
-    }
-  if (!FOOTAGE_FOLDER_ID) {
-  return res.status(500).json({ success: false, message: 'FOOTAGE_FOLDER_ID not set in env.' });
-}
-
-
-    const originalName = fileName || req.file.originalname || 'clip.mp4';
-
-    // 1) Firestore doc create karo (status = uploading)
-    const nowIso = new Date().toISOString();
-    const baseData = {
-      projectId,
-      userId,
-      fileName: originalName,
-      fileSize: req.file.size || (Number(sizeMB) * 1024 * 1024) || 0,
-      duration: '00:00',
-      title: originalName.replace(/\.[^/.]+$/, ''),
-      format: 'long',
-      status: 'uploading',
-      kind: kind || 'raw',
-      rawDriveLink: '',
-      editedDriveLink: '',
-      thumbnail: thumbnailDataUrl || '',
-      createdAt: nowIso,
-      updatedAt: nowIso,
-    };
-
-    const docRef = await db.collection('footage').add(baseData);
-
-    // 2) Google Drive pe upload
-    const driveFileName = `footage-${projectId}-${Date.now()}-${originalName}`;
-
-    const fileMetadata = {
-      name: driveFileName,
-      parents: [FOOTAGE_FOLDER_ID],
-    };
-
-    const media = {
-      mimeType: req.file.mimetype || 'video/mp4',
-      body: bufferToStream(req.file.buffer),
-    };
-
-    const driveRes = await drive.files.create({
-      requestBody: fileMetadata,
-      media,
-      fields: 'id',
-    });
-
-    const fileId = driveRes.data.id;
-
-    // 3) Public permission
-    await drive.permissions.create({
-      fileId,
-      requestBody: {
-        role: 'reader',
-        type: 'anyone',
-      },
-    });
-
-    const driveInfo = await drive.files.get({
-      fileId,
-      fields: 'webViewLink, webContentLink',
-    });
-
-    const rawDriveLink =
-      driveInfo.data.webContentLink ||
-      driveInfo.data.webViewLink ||
-      `https://drive.google.com/file/d/${fileId}/view`;
-
-    // 4) Firestore doc update → status queued + drive link
-    await docRef.update({
-      status: 'queued',
-      rawDriveLink,
-      updatedAt: new Date().toISOString(),
-    });
-
-    return res.json({
-      success: true,
-      message: 'Footage uploaded & queued.',
-      footageId: docRef.id,
-      rawDriveLink,
-    });
-  } catch (err) {
-    console.error('Footage upload error:', err);
-    return res
-      .status(500)
-      .json({ success: false, message: 'Failed to upload footage' });
-  }
-});
-
-// 1. FOOTAGE CREATE ROUTE (Isko pehle band karo)
-// ===== RAW FOOTAGE UPLOAD → GOOGLE DRIVE + FIRESTORE =====
-app.post('/api/footage/upload', upload.single('file'), async (req, res) => {
-  try {
-    const { projectId, userId, title, format, thumbnailDataUrl } = req.body;
-
-    if (!req.file) {
-      return res.status(400).json({ success: false, message: 'No file received.' });
-    }
-
-    if (!DRIVE_ROOT_FOLDER_ID || !FOOTAGE_FOLDER_ID) {
-      throw new Error('Drive root folder not configured. Check GOOGLE_DRIVE_FOLDER_ID / DRIVE_FOLDER_ID in env.');
-    }
-
-    const originalName = req.file.originalname || 'clip.mp4';
-    const mimeType = req.file.mimetype || 'video/mp4';
-    const sizeBytes = req.file.size || 0;
-    const sizeMB = Math.round(sizeBytes / (1024 * 1024));
-
-    // 1) File ko Google Drive pe upload karo
-    const driveResponse = await drive.files.create({
-      requestBody: {
-        name: originalName,
-        parents: [FOOTAGE_FOLDER_ID],
-        mimeType,
-      },
-      media: {
-        mimeType,
-        body: bufferToStream(req.file.buffer),
-      },
-      fields: 'id, name, webViewLink, webContentLink',
-    });
-
-    const fileId = driveResponse.data.id;
-    if (!fileId) {
-      throw new Error('Google Drive ne file ID return nahi ki.');
-    }
-
-    // 2) Public readable permission
-    await drive.permissions.create({
-      fileId,
-      requestBody: {
-        role: 'reader',
-        type: 'anyone',
-      },
-    });
-
-    // 3) Final link fetch
-    const fileMeta = await drive.files.get({
-      fileId,
-      fields: 'id, name, webViewLink, webContentLink',
-    });
-
-    const driveLink =
-      fileMeta.data.webViewLink ||
-      fileMeta.data.webContentLink ||
-      `https://drive.google.com/file/d/${fileId}/view`;
-
-    // 4) Firestore me doc create
-    const now = admin.firestore.FieldValue.serverTimestamp();
-
-    const footageData = {
-      projectId,
-      userId,
-      title: title || originalName,
-      fileName: originalName,
-      fileSize: sizeMB,
-      duration: '00:00',               // abhi placeholder
-      format: format || 'long',
-      kind: 'raw',
-      thumbnailDataUrl: thumbnailDataUrl || '',
-      status: 'uploaded',
-      rawDriveId: fileId,
-      rawDriveLink: driveLink,
-      editedDriveLink: '',
-      createdAt: now,
-      updatedAt: now,
-    };
-
-    const docRef = await db.collection('footage').add(footageData);
-
-    return res.json({
-      success: true,
-      message: 'Footage uploaded & queued.',
-      footageId: docRef.id,
-      driveLink,
-    });
-  } catch (err) {
-    console.error('❌ Footage upload error:', err);
-    return res.status(500).json({
-      success: false,
-      message: err.message || 'Failed to upload footage',
-    });
-  }
-});
 
 
 
