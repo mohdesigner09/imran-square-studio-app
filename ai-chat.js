@@ -401,22 +401,15 @@ window.addEventListener('DOMContentLoaded', () => {
     }
   });
 
-// hero: button
-heroSendBtn?.addEventListener('click', () => {
-  const text = heroInput?.value.trim();
-  const imageData = heroImageData;
-  
-  if (text || imageData) {
-    sendMessage(text, imageData);
-    heroInput.value = '';
-    heroInput.style.height = '24px';
-    
-    // Clear image after sending
-    if (imageData) {
-      clearImage('hero', document.getElementById('heroImageInput'), document.getElementById('heroImagePreview'));
+  // hero: button
+  heroSendBtn?.addEventListener('click', () => {
+    const text = heroInput?.value.trim();
+    if (text) {
+      sendMessage(text);
+      heroInput.value = '';
+      heroInput.style.height = '24px';
     }
-  }
-});
+  });
 
   // bottom: Enter
   bottomInput?.addEventListener('keydown', e => {
@@ -431,22 +424,15 @@ heroSendBtn?.addEventListener('click', () => {
     }
   });
 
-// bottom: button
-bottomSendBtn?.addEventListener('click', () => {
-  const text = bottomInput?.value.trim();
-  const imageData = bottomImageData;
-  
-  if (text || imageData) {
-    sendMessage(text, imageData);
-    bottomInput.value = '';
-    bottomInput.style.height = '24px';
-    
-    // Clear image after sending
-    if (imageData) {
-      clearImage('bottom', document.getElementById('bottomImageInput'), document.getElementById('bottomImagePreview'));
+  // bottom: button
+  bottomSendBtn?.addEventListener('click', () => {
+    const text = bottomInput?.value.trim();
+    if (text) {
+      sendMessage(text);
+      bottomInput.value = '';
+      bottomInput.style.height = '24px';
     }
-  }
-});
+  });
 
   // new chat
   newChatBtn?.addEventListener('click', startNewChat);
