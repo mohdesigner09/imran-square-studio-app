@@ -744,26 +744,63 @@ app.post('/api/chat', async (req, res) => {
   try {
     let response;
     
-    // ============= GEMINI MODELS =============
-    if (model?.startsWith('gemini-')) {
-      console.log('🔷 Using Gemini API...');
+    // ============= GEMINI MODELS (WITH KEY ROTATION) =============
+if (model?.startsWith('gemini-')) {
+  console.log('🔷 Using Gemini API...');
+  
+  // ✅ KEY ROTATION (4 keys cycle)
+  const keys = [
+    process.env.GEMINI_API_KEY_1,
+    process.env.GEMINI_API_KEY_2,
+    process.env.GEMINI_API_KEY_3,
+    process.env.GEMINI_API_KEY_4
+  ].filter(k => k); // Remove empty keys
+
+  if (keys.length === 0) {
+    throw new Error('No Gemini API keys found');
+  }
+
+  // Random key selection (better distribution)
+  const randomKey = keys[Math.floor(Math.random() * keys.length)];
+  
+  console.log(`🔑 Using key #${keys.indexOf(randomKey) + 1} of ${keys.length}`);
+
+  const geminiUrl = `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${randomKey}`;
+
+  try {
+    response = await axios.post(geminiUrl, {
+      contents: [{
+        parts: [{ text: userMessage }]
+      }]
+    });
+
+    console.log('✅ Gemini Response received');
+    return res.json(response.data);
+    
+  } catch (error) {
+    // ✅ IF 429, TRY NEXT KEY
+    if (error.response?.status === 429 && keys.length > 1) {
+      console.log('⚠️ Rate limit hit, trying another key...');
       
-      const GEMINI_API_KEY = process.env.GEMINI_API_KEY;
-      if (!GEMINI_API_KEY) {
-        throw new Error('GEMINI_API_KEY not found in .env file');
-      }
-
-      const geminiUrl = `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${GEMINI_API_KEY}`;
-
-      response = await axios.post(geminiUrl, {
+      // Try next key
+      const nextKey = keys[(keys.indexOf(randomKey) + 1) % keys.length];
+      const retryUrl = `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${nextKey}`;
+      
+      response = await axios.post(retryUrl, {
         contents: [{
           parts: [{ text: userMessage }]
         }]
       });
-
-      console.log('✅ Gemini Response received');
+      
+      console.log('✅ Retry successful with different key');
       return res.json(response.data);
     }
+    
+    throw error; // Re-throw if not 429 or no more keys
+  }
+}
+
+
     
     // ============= PERPLEXITY =============
     else if (model === 'perplexity-online') {
@@ -1120,3 +1157,4 @@ app.post('/api/footage/create-queue', async (req, res) => {
     return res.status(500).json({ success: false, message: 'Server error' });
   }
 });
+
