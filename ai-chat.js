@@ -33,19 +33,216 @@ function renderChatHistory() {
   if (!container) return;
 
   const chats = getChats();
-  container.innerHTML = '<div class="text-[10px] text-gray-500 font-bold uppercase mb-2 px-2 tracking-widest">Recent</div>';
+  
+  if (chats.length === 0) {
+    container.innerHTML = '<div style="padding:1rem;text-align:center;color:rgba(255,255,255,0.3);font-size:0.85rem;">No chats yet</div>';
+    return;
+  }
 
-  chats.forEach(chat => {
-    const item = document.createElement('div');
-    item.className =
-      'history-item flex items-center justify-between gap-2 px-2 py-1.5 rounded-lg hover:bg-white/5 cursor-pointer' +
-      (chat.id === currentChatId ? ' active' : '');
-    item.dataset.chatId = chat.id;
-    item.innerHTML = `<div class="truncate text-sm">${chat.title}</div>`;
-    item.addEventListener('click', () => loadChatSession(chat.id));
-    container.appendChild(item);
+  container.innerHTML = chats.map(chat => `
+    <div class="chat-item ${chat.id === currentChatId ? 'active' : ''}" data-chat-id="${chat.id}">
+      <span class="chat-item-title">${escapeHtml(chat.title)}</span>
+      <button class="chat-item-menu-btn" onclick="toggleChatMenu(event, ${chat.id})">
+        <svg width="16" height="16" viewBox="0 0 16 16" fill="currentColor">
+          <circle cx="8" cy="3" r="1.5"/>
+          <circle cx="8" cy="8" r="1.5"/>
+          <circle cx="8" cy="13" r="1.5"/>
+        </svg>
+      </button>
+    </div>
+  `).join('');
+
+  // Add click listeners to chat items (not menu buttons)
+  container.querySelectorAll('.chat-item-title').forEach(title => {
+    title.addEventListener('click', (e) => {
+      const chatItem = e.target.closest('.chat-item');
+      const chatId = parseInt(chatItem.dataset.chatId);
+      loadChat(chatId);
+    });
   });
 }
+
+// Helper: Escape HTML
+function escapeHtml(text) {
+  const div = document.createElement('div');
+  div.textContent = text;
+  return div.innerHTML;
+}
+
+// --- Chat Menu Toggle ---
+let currentMenuChatId = null;
+
+function toggleChatMenu(event, chatId) {
+  event.stopPropagation(); // Prevent chat load
+  
+  // Close existing menu if any
+  const existingMenu = document.querySelector('.chat-dropdown-menu');
+  if (existingMenu) {
+    existingMenu.remove();
+  }
+
+  // If clicking same menu, just close
+  if (currentMenuChatId === chatId) {
+    currentMenuChatId = null;
+    return;
+  }
+
+  currentMenuChatId = chatId;
+
+  // Create menu
+  const menu = document.createElement('div');
+  menu.className = 'chat-dropdown-menu show';
+  menu.innerHTML = `
+    <div class="chat-menu-item" onclick="renameChat(${chatId})">
+      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+        <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"></path>
+        <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"></path>
+      </svg>
+      Rename
+    </div>
+    <div class="chat-menu-item danger" onclick="deleteChat(${chatId})">
+      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+        <polyline points="3 6 5 6 21 6"></polyline>
+        <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path>
+      </svg>
+      Delete
+    </div>
+  `;
+
+  // Position menu
+  const chatItem = document.querySelector(`[data-chat-id="${chatId}"]`);
+  chatItem.style.position = 'relative';
+  chatItem.appendChild(menu);
+
+  // Close menu on outside click
+  setTimeout(() => {
+    document.addEventListener('click', closeMenuOnOutsideClick);
+  }, 100);
+}
+
+function closeMenuOnOutsideClick(e) {
+  if (!e.target.closest('.chat-dropdown-menu') && !e.target.closest('.chat-item-menu-btn')) {
+    const menu = document.querySelector('.chat-dropdown-menu');
+    if (menu) menu.remove();
+    currentMenuChatId = null;
+    document.removeEventListener('click', closeMenuOnOutsideClick);
+  }
+}
+
+// --- Rename Chat ---
+function renameChat(chatId) {
+  const chats = getChats();
+  const chat = chats.find(c => c.id === chatId);
+  if (!chat) return;
+
+  // Close menu
+  document.querySelector('.chat-dropdown-menu')?.remove();
+  currentMenuChatId = null;
+
+  // Create modal
+  const modal = document.createElement('div');
+  modal.className = 'modal-overlay show';
+  modal.innerHTML = `
+    <div class="modal-box">
+      <div class="modal-title">Rename Chat</div>
+      <input type="text" class="modal-input" value="${escapeHtml(chat.title)}" id="renameChatInput" maxlength="50">
+      <div class="modal-buttons">
+        <button class="modal-btn modal-btn-cancel" onclick="closeModal()">Cancel</button>
+        <button class="modal-btn modal-btn-confirm" onclick="confirmRename(${chatId})">Save</button>
+      </div>
+    </div>
+  `;
+  document.body.appendChild(modal);
+
+  // Focus input
+  setTimeout(() => {
+    const input = document.getElementById('renameChatInput');
+    input.focus();
+    input.select();
+
+    // Enter to save
+    input.addEventListener('keydown', (e) => {
+      if (e.key === 'Enter') confirmRename(chatId);
+      if (e.key === 'Escape') closeModal();
+    });
+  }, 100);
+}
+
+function confirmRename(chatId) {
+  const input = document.getElementById('renameChatInput');
+  const newTitle = input.value.trim();
+  
+  if (!newTitle) {
+    input.style.borderColor = '#ef4444';
+    return;
+  }
+
+  const chats = getChats();
+  const chat = chats.find(c => c.id === chatId);
+  if (chat) {
+    chat.title = newTitle;
+    saveChats(chats);
+    renderChatHistory();
+  }
+
+  closeModal();
+}
+
+// --- Delete Chat ---
+function deleteChat(chatId) {
+  const chats = getChats();
+  const chat = chats.find(c => c.id === chatId);
+  if (!chat) return;
+
+  // Close menu
+  document.querySelector('.chat-dropdown-menu')?.remove();
+  currentMenuChatId = null;
+
+  // Create confirmation modal
+  const modal = document.createElement('div');
+  modal.className = 'modal-overlay show';
+  modal.innerHTML = `
+    <div class="modal-box">
+      <div class="modal-title">Delete Chat?</div>
+      <p style="color: rgba(255,255,255,0.7); font-size: 0.9rem; margin-bottom: 1.5rem;">
+        Are you sure you want to delete "<strong>${escapeHtml(chat.title)}</strong>"? This action cannot be undone.
+      </p>
+      <div class="modal-buttons">
+        <button class="modal-btn modal-btn-cancel" onclick="closeModal()">Cancel</button>
+        <button class="modal-btn modal-btn-danger" onclick="confirmDelete(${chatId})">Delete</button>
+      </div>
+    </div>
+  `;
+  document.body.appendChild(modal);
+}
+
+function confirmDelete(chatId) {
+  let chats = getChats();
+  chats = chats.filter(c => c.id !== chatId);
+  saveChats(chats);
+
+  // If deleting current chat, start new
+  if (currentChatId === chatId) {
+    currentChatId = null;
+    messagesList.innerHTML = '';
+    wrapper.classList.remove('mode-active');
+    const mainContent = document.getElementById('mainContent');
+    if (mainContent) mainContent.classList.remove('mode-active');
+  }
+
+  renderChatHistory();
+  closeModal();
+}
+
+// --- Close Modal ---
+function closeModal() {
+  const modal = document.querySelector('.modal-overlay');
+  if (modal) {
+    modal.classList.remove('show');
+    setTimeout(() => modal.remove(), 200);
+  }
+}
+
 
 function loadChatSession(chatId) {
   const chats = getChats();
