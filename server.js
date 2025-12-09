@@ -122,11 +122,12 @@ const auth = new google.auth.GoogleAuth({
 const drive = google.drive({ version: 'v3', auth });
 
 // ✅ Root folder ID – multiple env names support
+// ✅ Root folder ID – multiple env names support
 const DRIVE_ROOT_FOLDER_ID =
-  process.env.FOOTAGE_FOLDER_ID ||         // agar tum ye naam use karo
-  process.env.DRIVE_FOOTAGE_FOLDER_ID ||   // ya ye
-  process.env.DRIVE_FOLDER_ID ||           // ya purana
-  process.env.GOOGLE_DRIVE_FOLDER_ID;      // ya ye (jo tumne set kiya)
+  process.env.FOOTAGE_FOLDER_ID ||
+  process.env.DRIVE_FOOTAGE_FOLDER_ID ||
+  process.env.DRIVE_FOLDER_ID ||
+  process.env.GOOGLE_DRIVE_FOLDER_ID;
 
 if (!DRIVE_ROOT_FOLDER_ID) {
   console.warn(
@@ -136,8 +137,15 @@ if (!DRIVE_ROOT_FOLDER_ID) {
 
 
 // Folder IDs (Avatar + Footage)
-const AVATAR_FOLDER_ID = process.env.DRIVE_FOLDER_ID || process.env.GOOGLE_DRIVE_FOLDER_ID;
-const FOOTAGE_FOLDER_ID = process.env.GOOGLE_DRIVE_FOLDER_ID || process.env.DRIVE_FOLDER_ID;
+// Avatar ko purane walon se bhi milne do, warna root par fallback
+const AVATAR_FOLDER_ID =
+  process.env.DRIVE_FOLDER_ID ||
+  process.env.GOOGLE_DRIVE_FOLDER_ID ||
+  DRIVE_ROOT_FOLDER_ID;
+
+// Footage ke liye direct root ko use karo
+const FOOTAGE_FOLDER_ID = DRIVE_ROOT_FOLDER_ID;
+
 
 
 // Helper: Buffer → Readable stream
