@@ -1,6 +1,8 @@
-const API_BASE = window.location.hostname === 'localhost'
-  ? 'http://localhost:3000'
-  : 'https://imran-square-studio.onrender.com';
+const API_BASE =
+  window.location.hostname === 'localhost'
+    ? 'http://localhost:10000'   // ⬅️ yahan 3000 → 10000
+    : 'https://imran-square-studio.onrender.com';
+
 
 // niche tumhara pura JS code...
 
