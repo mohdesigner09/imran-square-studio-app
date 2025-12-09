@@ -141,10 +141,15 @@ function removeTyping(id) {
 }
 
 // --- API ----------------------------------------------------
+// ---------- API ----------
 async function sendMessage(userMessage) {
   if (!userMessage || !userMessage.trim()) return;
 
-  // chat create if first msg
+  // Activate chat mode
+  const mainContent = document.getElementById('mainContent');
+  if (mainContent) mainContent.classList.add('mode-active');
+  if (wrapper) wrapper.classList.add('mode-active');
+
   if (!currentChatId) {
     const newChat = addChatSession(userMessage.slice(0, 30), []);
     currentChatId = newChat.id;
@@ -156,43 +161,76 @@ async function sendMessage(userMessage) {
 
   try {
     const model = document.getElementById('modelSelect')?.value || 'gemini-2.5-flash';
+    
+    console.log('📤 Sending:', userMessage);
 
-    const res = await fetch(`${API_BASE}/api/chat`, {
+    // ✅ TRY SELECTED MODEL FIRST
+    let response = await fetch(`${API_BASE}/api/chat`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ userMessage, model })
     });
 
-    if (!res.ok) throw new Error(`Server error: ${res.status}`);
+    // ✅ IF 429 ERROR, AUTO-FALLBACK TO GROQ
+    if (response.status === 429) {
+      console.log('⚠️ Rate limit hit, trying Groq fallback...');
+      
+      response = await fetch(`${API_BASE}/api/chat`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ 
+          userMessage, 
+          model: 'groq-llama-70b' // Fast & free alternative
+        })
+      });
+    }
 
-    const data = await res.json();
+    if (!response.ok) {
+      const errorData = await response.json();
+      throw new Error(errorData.message || `Server error: ${response.status}`);
+    }
 
-    let aiText =
-      data.candidates?.[0]?.content?.parts?.[0]?.text ||
-      data.response ||
+    const data = await response.json();
+
+    // Parse response based on model
+    let aiText = 
+      data.candidates?.[0]?.content?.parts?.[0]?.text || // Gemini
+      data.choices?.[0]?.message?.content ||             // Groq/Perplexity
+      data.response ||                                    // Generic
       data.text ||
-      data.choices?.[0]?.message?.content ||
       (typeof data === 'string' ? data : '');
 
-    if (!aiText || !aiText.trim()) throw new Error('Empty response');
+    if (!aiText || !aiText.trim()) {
+      throw new Error('Empty response received');
+    }
 
-    // basic markdown: **bold**
+    // Simple formatting
     aiText = aiText
       .replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>')
       .replace(/\n/g, '<br>');
 
     removeTyping(typingId);
     addMessage(aiText, 'ai', true);
+
   } catch (err) {
     console.error(err);
     removeTyping(typingId);
-    addMessage(
-      `<strong style="color:#ef4444;">Error:</strong> ${err.message}`,
-      'ai',
-      true
-    );
+    
+    // ✅ USER-FRIENDLY ERROR MESSAGE
+    let errorMsg = '<strong style="color:#ef4444;">⚠️ Error:</strong> ';
+    
+    if (err.message.includes('429') || err.message.includes('quota')) {
+      errorMsg += 'API limit reached. Please wait 1 minute or try Groq/Perplexity models.';
+    } else if (err.message.includes('Failed to fetch')) {
+      errorMsg += 'Network error. Check your internet connection.';
+    } else {
+      errorMsg += err.message;
+    }
+    
+    addMessage(errorMsg, 'ai', true);
   }
 }
+
 
 // --- DOWNLOAD ----------------------------------------------
 function downloadChat() {
