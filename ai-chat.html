@@ -654,17 +654,23 @@
 }
 
 .user-message .message-content {
-  background: linear-gradient(135deg, #4ade80 0%, #22c55e 100%);
-  color: #000;
+  background: rgba(30, 30, 35, 0.9);
+  backdrop-filter: blur(12px);
+  color: #ffffff;
   padding: 0.875rem 1.25rem;
   border-radius: 18px 18px 4px 18px;
   max-width: 70%;
   word-wrap: break-word;
   font-size: 0.95rem;
   line-height: 1.5;
-  box-shadow: 0 2px 8px rgba(74, 222, 128, 0.3);
+  border: 1px solid rgba(74, 222, 128, 0.3);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.4), 
+              0 0 20px rgba(74, 222, 128, 0.1);
   font-weight: 500;
 }
+
+
+
 
 .ai-message {
   display: flex;

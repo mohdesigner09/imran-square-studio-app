@@ -755,6 +755,8 @@ if (!CURRENT_USER || !USER_ID) {
 
     const bar = document.getElementById('uploadProgressBar');
     const text = document.getElementById('uploadProgressText');
+   
+    let backendMeta = null;   // ⬅️ server se aaya response yahan store hoga
 
     let progress = 0;
     let uploadFinished = false;
@@ -794,7 +796,7 @@ if (!CURRENT_USER || !USER_ID) {
                 uploadError = (data && data.message) || 'Upload failed';
             } else {
                 uploadSuccess = true;
-                // Optional: response se extra meta use kar sakte ho
+                 backendMeta = data;
             }
         } catch (err2) {
             console.error('Footage upload error:', err2);
@@ -841,16 +843,24 @@ if (!CURRENT_USER || !USER_ID) {
                 step2.classList.add('hidden');
                 step3.classList.remove('hidden');
 
-                const newClip = {
-                    id: `clip-${Date.now()}`,
-                    title: clipTitle,
-                    type: lastVideoHeight > lastVideoWidth ? 'shorts' : 'longs',
-                    date: 'today',
-                    duration: '0:XX',
-                    width: lastVideoWidth || 1080,
-                    height: lastVideoHeight || 1920,
-                    thumb: thumbnailDataUrl
-                };
+               const videoSrcFromDrive = backendMeta && backendMeta.rawDriveLink;
+const fallbackBlobUrl   = URL.createObjectURL(selectedFile);
+
+const newClip = {
+    id: backendMeta?.footageId || `clip-${Date.now()}`,
+    title: clipTitle,
+    type: lastVideoHeight > lastVideoWidth ? 'shorts' : 'longs',
+    date: 'today',
+    duration: '0:XX',
+    width: lastVideoWidth || 1080,
+    height: lastVideoHeight || 1920,
+    thumb: thumbnailDataUrl,
+
+    // 🔥 IMPORTANT: actual video ka source
+    src: videoSrcFromDrive || fallbackBlobUrl,
+    rawDriveLink: videoSrcFromDrive || null
+};
+
 
                 rawClips.unshift(newClip);
 
@@ -876,22 +886,40 @@ if (!CURRENT_USER || !USER_ID) {
 
 
         // --- THEATER LOGIC (Preserved) ---
-        function openTheater(clip) {
-            const modal = document.getElementById('theaterModal');
-            document.getElementById('playerTitle').textContent = clip.title;
-            document.getElementById('playerMeta').textContent = `${clip.date} • ${clip.width}x${clip.height}`;
-            document.getElementById('playerFormatBadge').textContent = clip.type === 'shorts' ? 'SHORT' : 'LONG';
-            
-            // Dummy Player
-            const container = document.getElementById('playerContainer');
-            container.innerHTML = `<div class="text-white text-xs">Video Player Placeholder (Src: ${clip.title})</div>`; // Replace with real video tag if src exists
-            
-            modal.classList.remove('hidden');
-            setTimeout(() => modal.style.opacity = '1', 10);
-            
-            // Key Handler
-            window.addEventListener('keydown', theaterKeyHandler);
-        }
+      function openTheater(clip) {
+    const modal = document.getElementById('theaterModal');
+    document.getElementById('playerTitle').textContent = clip.title;
+    document.getElementById('playerMeta').textContent =
+        `${clip.date || 'today'} • ${clip.width || 1080}x${clip.height || 1920}`;
+    document.getElementById('playerFormatBadge').textContent =
+        clip.type === 'shorts' ? 'SHORT' : 'LONG';
+
+    const container = document.getElementById('playerContainer');
+    const src = clip.src || clip.rawDriveLink;   // ⬅️ yahan se link le rahe
+
+    if (src) {
+        container.innerHTML = `
+            <video id="theaterVideo"
+                   class="w-full h-full object-contain bg-black"
+                   controls
+                   autoplay>
+                <source src="${src}" type="video/mp4" />
+                Your browser does not support HTML5 video.
+            </video>
+        `;
+    } else {
+        // fallback – agar src nahi mila to purana placeholder
+        container.innerHTML = `<div class="text-white text-xs">
+            Video source missing for: ${clip.title}
+        </div>`;
+    }
+
+    modal.classList.remove('hidden');
+    setTimeout(() => (modal.style.opacity = '1'), 10);
+
+    window.addEventListener('keydown', theaterKeyHandler);
+}
+
 
         function closeTheater() {
             const modal = document.getElementById('theaterModal');
@@ -908,10 +936,13 @@ if (!CURRENT_USER || !USER_ID) {
         }
 
         // Speed Control
-        document.getElementById('playbackSpeed').addEventListener('change', (e) => {
-            // Apply logic to video element if it exists
-            console.log("Speed changed to", e.target.value);
-        });
+       document.getElementById('playbackSpeed').addEventListener('change', (e) => {
+    const video = document.getElementById('theaterVideo');
+    if (video) {
+        video.playbackRate = parseFloat(e.target.value || '1');
+    }
+});
+
 
         // --- NAV ---
         function goBackToFootageVault() {
