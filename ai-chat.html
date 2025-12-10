@@ -750,6 +750,129 @@
   animation-delay: 0.4s;
 }
 
+/* ========== MESSAGE ACTION BUTTONS ========== */
+.message-actions {
+  display: flex;
+  gap: 0.5rem;
+  margin-top: 0.5rem;
+  opacity: 0;
+  transition: opacity 0.2s ease;
+}
+
+.user-message:hover .message-actions,
+.ai-message:hover .message-actions {
+  opacity: 1;
+}
+
+.action-btn {
+  background: rgba(255, 255, 255, 0.08);
+  border: 1px solid rgba(255, 255, 255, 0.15);
+  color: rgba(255, 255, 255, 0.7);
+  padding: 0.35rem 0.75rem;
+  border-radius: 6px;
+  font-size: 0.75rem;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  display: flex;
+  align-items: center;
+  gap: 0.35rem;
+  backdrop-filter: blur(5px);
+}
+
+.action-btn:hover {
+  background: rgba(255, 255, 255, 0.15);
+  border-color: rgba(74, 222, 128, 0.4);
+  color: #ffffff;
+  transform: translateY(-1px);
+}
+
+.action-btn:active {
+  transform: translateY(0);
+}
+
+.action-btn svg {
+  width: 12px;
+  height: 12px;
+}
+
+/* Copy success feedback */
+.action-btn.copied {
+  background: rgba(74, 222, 128, 0.2);
+  border-color: #4ade80;
+  color: #4ade80;
+}
+
+/* Edit mode */
+.message-content.editing {
+  background: rgba(255, 255, 255, 0.1);
+  border: 2px solid #4ade80;
+  padding: 0.5rem;
+}
+
+.edit-textarea {
+  width: 100%;
+  background: rgba(0, 0, 0, 0.3);
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  border-radius: 8px;
+  padding: 0.75rem;
+  color: #ffffff;
+  font-size: 0.95rem;
+  font-family: 'Inter', sans-serif;
+  resize: vertical;
+  min-height: 60px;
+  outline: none;
+}
+
+.edit-textarea:focus {
+  border-color: #4ade80;
+  background: rgba(0, 0, 0, 0.4);
+}
+
+.edit-actions {
+  display: flex;
+  gap: 0.5rem;
+  margin-top: 0.5rem;
+}
+
+.edit-btn-save,
+.edit-btn-cancel {
+  padding: 0.5rem 1rem;
+  border-radius: 6px;
+  font-size: 0.85rem;
+  cursor: pointer;
+  transition: all 0.2s;
+  border: none;
+  font-weight: 500;
+}
+
+.edit-btn-save {
+  background: #4ade80;
+  color: #000;
+}
+
+.edit-btn-save:hover {
+  background: #22c55e;
+}
+
+.edit-btn-cancel {
+  background: rgba(255, 255, 255, 0.1);
+  color: rgba(255, 255, 255, 0.8);
+}
+
+.edit-btn-cancel:hover {
+  background: rgba(255, 255, 255, 0.15);
+  color: #ffffff;
+}
+
+/* Timestamp */
+.message-timestamp {
+  font-size: 0.7rem;
+  color: rgba(255, 255, 255, 0.4);
+  margin-top: 0.35rem;
+  display: block;
+}
+
+
 @keyframes typing {
   0%, 60%, 100% {
     transform: translateY(0);

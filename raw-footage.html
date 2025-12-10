@@ -712,6 +712,7 @@ async function sendToStudio() {
         return;
     }
 
+    // Title / thumb elements
     const titleInput = document.getElementById('previewTitleInput');
     const fileNameEl = document.getElementById('previewFileName');
     const thumbEl = document.getElementById('previewThumbnail');
@@ -723,80 +724,67 @@ async function sendToStudio() {
 
     const thumbnailDataUrl = thumbEl ? thumbEl.src : '';
 
+    // URL se projectId
+    const params = new URLSearchParams(window.location.search);
+    const projectId = params.get('id');
 
-   // URL se projectId
-const params = new URLSearchParams(window.location.search);
-const projectId = params.get('id');
+    if (!projectId) {
+        alert('Project missing in URL.');
+        return;
+    }
 
-if (!projectId) {
-    alert('Project missing in URL.');
-    return;
-}
+    // ✅ USER_ID ko flexibly pick karo
+    const USER_ID =
+        CURRENT_USER &&
+        (CURRENT_USER.userId || CURRENT_USER.uid || CURRENT_USER.email || null);
 
-// ✅ USER_ID ko flexibily pick karo: userId | uid | email
-const USER_ID =
-    CURRENT_USER &&
-    (CURRENT_USER.userId || CURRENT_USER.uid || CURRENT_USER.email || null);
+    if (!CURRENT_USER || !USER_ID) {
+        alert('Please login again. (User missing)');
+        return;
+    }
 
-if (!CURRENT_USER || !USER_ID) {
-    alert('Please login again. (User missing)');
-    return;
-}
-
-
-    // STEP 1 → STEP 2 (UI)
+    // Overlay + steps
+    const overlay = document.getElementById('uploadOverlay');
     const step1 = document.getElementById('uploadStep1');
     const step2 = document.getElementById('uploadStep2');
     const step3 = document.getElementById('uploadStep3');
+    const bar = document.getElementById('uploadProgressBar');
+    const text = document.getElementById('uploadProgressText');
 
+    overlay.classList.remove('hidden');
     step1.classList.add('hidden');
     step2.classList.remove('hidden');
     step3.classList.add('hidden');
-
-    const bar = document.getElementById('uploadProgressBar');
-    const text = document.getElementById('uploadProgressText');
-   
-    let backendMeta = null;   // ⬅️ server se aaya response yahan store hoga
 
     let progress = 0;
     let uploadFinished = false;
     let uploadSuccess = false;
     let uploadError = null;
+    let backendMeta = null;   // ⬅️ yahan server ka JSON store hoga
 
-    // 🔁 REAL BACKEND UPLOAD
+    // REAL UPLOAD – backend ko FormData bhejo
+    const formData = new FormData();
+    formData.append('file', selectedFile);
+    formData.append('projectId', projectId);
+    formData.append('userId', USER_ID);
+    formData.append('fileName', selectedFile.name);
+    formData.append('sizeMB', (selectedFile.size / (1024 * 1024)).toFixed(1));
+    formData.append('kind', 'raw');
+    // thumbnailDataUrl backend ko ab nahi bhej rahe (MulterError avoid)
+
     (async () => {
-        const formData = new FormData();
-        formData.append('file', selectedFile);
-        formData.append('projectId', projectId);
-        formData.append('userId', USER_ID);
-        formData.append('fileName', selectedFile.name);
-        formData.append('sizeMB', (selectedFile.size / (1024 * 1024)).toFixed(1));
-        formData.append('kind', 'raw');
-
         try {
             const res = await fetch(`${API_BASE}/api/footage/upload`, {
                 method: 'POST',
                 body: formData
             });
 
-            let data = null;
-            const contentType = res.headers.get('content-type') || '';
-
-            if (contentType.includes('application/json')) {
-                // ✅ Normal case: server ne JSON bheja
-                data = await res.json();
-            } else {
-                // ❌ Server ne HTML/500 error page bheja
-                const text = await res.text();
-                console.error('Non-JSON response from /api/footage/upload:', text);
-                throw new Error('Server returned an HTML error page (500).');
-            }
-
+            const data = await res.json();
             if (!res.ok || !data.success) {
-                uploadError = (data && data.message) || 'Upload failed';
+                uploadError = data.message || 'Upload failed';
             } else {
                 uploadSuccess = true;
-                 backendMeta = data;
+                backendMeta = data; // { success, footageId, rawDriveLink, ... }
             }
         } catch (err2) {
             console.error('Footage upload error:', err2);
@@ -806,7 +794,6 @@ if (!CURRENT_USER || !USER_ID) {
         }
     })();
 
-
     // 🎭 FAKE PROGRESS + REAL WAIT
     const interval = setInterval(() => {
         progress += 5;
@@ -815,7 +802,7 @@ if (!CURRENT_USER || !USER_ID) {
         else if (progress < 95) text.textContent = 'Locking into project vault.';
         else text.textContent = 'Finalizing metadata.';
 
-        // Backend khatam hone tak 95% par atak ke rakho
+        // Backend khatam hone tak 95% par atka ke rakho
         if (progress >= 95 && !uploadFinished) {
             progress = 95;
         }
@@ -843,28 +830,31 @@ if (!CURRENT_USER || !USER_ID) {
                 step2.classList.add('hidden');
                 step3.classList.remove('hidden');
 
-               const videoSrcFromDrive = backendMeta && backendMeta.rawDriveLink;
-const fallbackBlobUrl   = URL.createObjectURL(selectedFile);
+                // Drive se streaming link
+                const driveSrc =
+                    (backendMeta && (backendMeta.rawDriveLink || backendMeta.driveLink)) || '';
 
-const newClip = {
-    id: backendMeta?.footageId || `clip-${Date.now()}`,
-    title: clipTitle,
-    type: lastVideoHeight > lastVideoWidth ? 'shorts' : 'longs',
-    date: 'today',
-    duration: '0:XX',
-    width: lastVideoWidth || 1080,
-    height: lastVideoHeight || 1920,
-    thumb: thumbnailDataUrl,
+                // Fallback: current file ka blob URL
+                const fallbackSrc = URL.createObjectURL(selectedFile);
 
-    // 🔥 IMPORTANT: actual video ka source
-    src: videoSrcFromDrive || fallbackBlobUrl,
-    rawDriveLink: videoSrcFromDrive || null
-};
+                const newClip = {
+                    id: backendMeta?.footageId || `clip-${Date.now()}`,
+                    title: clipTitle,
+                    type: lastVideoHeight > lastVideoWidth ? 'shorts' : 'longs',
+                    date: 'today',
+                    duration: '0:XX',
+                    width: lastVideoWidth || 1080,
+                    height: lastVideoHeight || 1920,
+                    thumb: thumbnailDataUrl,
 
+                    // 👇 player yahi use karega
+                    src: driveSrc || fallbackSrc,
+                    rawDriveLink: driveSrc || null
+                };
 
                 rawClips.unshift(newClip);
 
-                const pid = new URLSearchParams(window.location.search).get('id');
+                const pid = projectId || new URLSearchParams(window.location.search).get('id');
                 if (pid) {
                     localStorage.setItem(`footage_${pid}`, JSON.stringify(rawClips));
                 }
@@ -885,30 +875,39 @@ const newClip = {
 
 
 
+
         // --- THEATER LOGIC (Preserved) ---
-      function openTheater(clip) {
+function openTheater(clip) {
     const modal = document.getElementById('theaterModal');
-    document.getElementById('playerTitle').textContent = clip.title;
+
+    // Title + meta
+    document.getElementById('playerTitle').textContent = clip.title || clip.fileName || 'Untitled';
     document.getElementById('playerMeta').textContent =
         `${clip.date || 'today'} • ${clip.width || 1080}x${clip.height || 1920}`;
     document.getElementById('playerFormatBadge').textContent =
         clip.type === 'shorts' ? 'SHORT' : 'LONG';
 
     const container = document.getElementById('playerContainer');
-    const src = clip.src || clip.rawDriveLink;   // ⬅️ yahan se link le rahe
+
+    // 🔑 Yahin se actual SRC decide ho raha hai
+    const src =
+        clip.src ||
+        clip.rawDriveLink ||
+        clip.playUrl ||
+        '';
 
     if (src) {
         container.innerHTML = `
             <video id="theaterVideo"
                    class="w-full h-full object-contain bg-black"
                    controls
-                   autoplay>
+                   autoplay
+                   playsinline>
                 <source src="${src}" type="video/mp4" />
                 Your browser does not support HTML5 video.
             </video>
         `;
     } else {
-        // fallback – agar src nahi mila to purana placeholder
         container.innerHTML = `<div class="text-white text-xs">
             Video source missing for: ${clip.title}
         </div>`;
@@ -917,8 +916,10 @@ const newClip = {
     modal.classList.remove('hidden');
     setTimeout(() => (modal.style.opacity = '1'), 10);
 
+    // Keyboard ESC close
     window.addEventListener('keydown', theaterKeyHandler);
 }
+
 
 
         function closeTheater() {
@@ -936,12 +937,13 @@ const newClip = {
         }
 
         // Speed Control
-       document.getElementById('playbackSpeed').addEventListener('change', (e) => {
+document.getElementById('playbackSpeed').addEventListener('change', (e) => {
     const video = document.getElementById('theaterVideo');
     if (video) {
         video.playbackRate = parseFloat(e.target.value || '1');
     }
 });
+
 
 
         // --- NAV ---
