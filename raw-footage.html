@@ -769,7 +769,6 @@ if (!CURRENT_USER || !USER_ID) {
         formData.append('userId', USER_ID);
         formData.append('fileName', selectedFile.name);
         formData.append('sizeMB', (selectedFile.size / (1024 * 1024)).toFixed(1));
-        formData.append('thumbnailDataUrl', thumbnailDataUrl);
         formData.append('kind', 'raw');
 
         try {

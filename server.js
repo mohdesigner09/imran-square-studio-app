@@ -1219,6 +1219,23 @@ app.get('/api/get-announcement', async (req, res) => {
     } catch(e) { return res.json({ success: false }); }
 });
 
+// ============ GLOBAL ERROR HANDLER (MULTER + OTHERS) ============
+app.use((err, req, res, next) => {
+  if (err instanceof multer.MulterError) {
+    console.error('Multer error:', err);
+    return res.status(400).json({
+      success: false,
+      message: err.message || 'Upload error (multer)',
+    });
+  }
+
+  console.error('Unhandled error:', err);
+  return res.status(500).json({
+    success: false,
+    message: 'Internal server error',
+  });
+});
+
 // ==========================================
 const PORT = process.env.PORT || 3000;
 
