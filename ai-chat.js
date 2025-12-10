@@ -11,9 +11,11 @@ let currentChatId = null;
 function getChats() {
   return JSON.parse(localStorage.getItem('chatSessions') || '[]');
 }
+
 function saveChats(chats) {
   localStorage.setItem('chatSessions', JSON.stringify(chats));
 }
+
 function addChatSession(title, messages) {
   const chats = getChats();
   const newChat = {
@@ -39,254 +41,160 @@ function renderChatHistory() {
     return;
   }
 
-  container.innerHTML = chats.map(chat => `
-    <div class="chat-item ${chat.id === currentChatId ? 'active' : ''}" data-chat-id="${chat.id}">
-      <span class="chat-item-title" onclick="loadChat(${chat.id})">${escapeHtml(chat.title)}</span>
-      <button class="chat-item-menu-btn" onclick="toggleChatMenu(event, ${chat.id})">
-        <svg width="16" height="16" viewBox="0 0 16 16" fill="currentColor">
-          <circle cx="8" cy="3" r="1.5"/>
-          <circle cx="8" cy="8" r="1.5"/>
-          <circle cx="8" cy="13" r="1.5"/>
-        </svg>
-      </button>
-    </div>
-  `).join('');
+  container.innerHTML = chats.map(chat => {
+    const isActive = chat.id === currentChatId ? 'active' : '';
+    return `
+      <div class="chat-item ${isActive}" onclick="loadChat(${chat.id})" style="
+        padding: 0.75rem;
+        margin-bottom: 0.5rem;
+        background: ${isActive ? 'rgba(74, 222, 128, 0.15)' : 'rgba(255, 255, 255, 0.03)'};
+        border: 1px solid ${isActive ? 'rgba(74, 222, 128, 0.5)' : 'transparent'};
+        border-radius: 8px;
+        cursor: pointer;
+        transition: all 0.2s;
+        font-size: 0.85rem;
+        color: ${isActive ? '#4ade80' : 'rgba(255, 255, 255, 0.7)'};
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
+      ">
+        ${chat.title}
+      </div>
+    `;
+  }).join('');
 }
 
-
-  // ✅ Event listeners (not inline onclick)
-  container.querySelectorAll('.chat-item-title').forEach(title => {
-    title.addEventListener('click', (e) => {
-      const chatItem = e.target.closest('.chat-item');
-      const chatId = parseInt(chatItem.dataset.chatId);
-      loadChat(chatId);
-    });
-  });
-
-  // ✅ Menu button listeners
-  container.querySelectorAll('.chat-item-menu-btn').forEach(btn => {
-    btn.addEventListener('click', (e) => {
-      e.stopPropagation();
-      const chatId = parseInt(btn.dataset.menuChatId);
-      toggleChatMenu(e, chatId, btn);
-    });
-  });
-
-
-
-// --- Load Chat Session ---
-function loadChatSession(chatId) {
+function loadChat(chatId) {
   const chats = getChats();
   const chat = chats.find(c => c.id === chatId);
   if (!chat) return;
 
   currentChatId = chatId;
+  
   if (wrapper) wrapper.classList.add('mode-active');
-  if (messagesList) messagesList.innerHTML = '';
-
-  (chat.messages || []).forEach(m => {
-    addMessage(m.text, m.isUser ? 'user' : 'ai', false);
-  });
-
-  if (messagesList) messagesList.scrollTop = messagesList.scrollHeight;
-  renderChatHistory();
-}
-
-
-function startNewChat() {
-  const newChat = addChatSession();
-  currentChatId = newChat.id;
-  if (messagesList) messagesList.innerHTML = '';
-  if (wrapper) wrapper.classList.remove('mode-active');
-  renderChatHistory();
-}
-
-// --- UI: messages ------------------------------------------
-function addMessage(text, type = 'ai', persist = true) {
-  if (!text) return;
-
-  if (!wrapper.classList.contains('mode-active')) {
-    wrapper.classList.add('mode-active');
-  }
-
-  const row = document.createElement('div');
-  row.className = `msg-row ${type}`;
-
-  if (type === 'user') {
-    row.innerHTML = `
-      <div class="msg-bubble">
-        ${text.replace(/\n/g, '<br>')}
-      </div>
-    `;
-  } else {
-    row.innerHTML = `
-      <div class="msg-bubble">
-        ${text}
-      </div>
-    `;
-  }
+  const mainContent = document.getElementById('mainContent');
+  if (mainContent) mainContent.classList.add('mode-active');
 
   if (messagesList) {
-    messagesList.appendChild(row);
+    messagesList.innerHTML = '';
+    (chat.messages || []).forEach(m => {
+      addMessage(m.text, m.isUser ? 'user' : 'ai', false);
+    });
     messagesList.scrollTop = messagesList.scrollHeight;
   }
 
-  if (persist && currentChatId) {
+  renderChatHistory();
+}
+
+// --- Send message ------------------------------------------
+async function sendMessage(inputElement) {
+  const userMessage = inputElement.value.trim();
+  if (!userMessage) return;
+
+  console.log('📤 Sending:', userMessage);
+
+  const model = document.getElementById('modelSelect')?.value || 'gemini-2.0-flash-exp';
+
+  addMessage(userMessage, 'user');
+  inputElement.value = '';
+
+  if (!currentChatId) {
+    const newChat = addChatSession(userMessage.slice(0, 50), [{ text: userMessage, isUser: true }]);
+    currentChatId = newChat.id;
+    renderChatHistory();
+  } else {
     const chats = getChats();
     const chat = chats.find(c => c.id === currentChatId);
     if (chat) {
-      chat.messages = chat.messages || [];
-      chat.messages.push({
-        text,
-        isUser: type === 'user',
-        timestamp: Date.now()
-      });
-      chat.lastActive = Date.now();
+      chat.messages.push({ text: userMessage, isUser: true });
       saveChats(chats);
     }
   }
-}
 
-function showTyping() {
-  const id = `typing-${Date.now()}`;
-  const row = document.createElement('div');
-  row.id = id;
-  row.className = 'msg-row ai';
-  row.innerHTML = `
-    <div class="msg-bubble">
-      <span class="text-gray-400 text-sm">Thinking…</span>
-    </div>
-  `;
-  if (messagesList) {
-    messagesList.appendChild(row);
-    messagesList.scrollTop = messagesList.scrollHeight;
-  }
-  return id;
-}
-
-function removeTyping(id) {
-  const el = document.getElementById(id);
-  if (el && el.parentNode) el.parentNode.removeChild(el);
-}
-
-// --- API ----------------------------------------------------
-// ---------- API ----------
-async function sendMessage(userMessage) {
-  if (!userMessage || !userMessage.trim()) return;
-
-  // Activate chat mode
+  if (wrapper) wrapper.classList.add('mode-active');
   const mainContent = document.getElementById('mainContent');
   if (mainContent) mainContent.classList.add('mode-active');
-  if (wrapper) wrapper.classList.add('mode-active');
 
-  if (!currentChatId) {
-    const newChat = addChatSession(userMessage.slice(0, 30), []);
-    currentChatId = newChat.id;
-    renderChatHistory();
-  }
-
-  addMessage(userMessage, 'user', true);
-  const typingId = showTyping();
+  showTyping();
 
   try {
-    const model = document.getElementById('modelSelect')?.value || 'gemini-2.5-flash';
-    
-    console.log('📤 Sending:', userMessage);
-
-    // ✅ TRY SELECTED MODEL FIRST
-    let response = await fetch(`${API_BASE}/api/chat`, {
+    const response = await fetch(`${API_BASE}/api/chat`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ userMessage, model })
     });
 
-    // ✅ IF 429 ERROR, AUTO-FALLBACK TO GROQ
-    if (response.status === 429) {
-      console.log('⚠️ Rate limit hit, trying Groq fallback...');
-      
-      response = await fetch(`${API_BASE}/api/chat`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ 
-          userMessage, 
-          model: 'groq-llama-70b' // Fast & free alternative
-        })
-      });
-    }
+    removeTyping();
 
-    if (!response.ok) {
-      const errorData = await response.json();
-      throw new Error(errorData.message || `Server error: ${response.status}`);
-    }
+    if (!response.ok) throw new Error(`HTTP ${response.status}`);
 
     const data = await response.json();
+    let aiText = '';
 
-    // Parse response based on model
-    let aiText = 
-      data.candidates?.[0]?.content?.parts?.[0]?.text || // Gemini
-      data.choices?.[0]?.message?.content ||             // Groq/Perplexity
-      data.response ||                                    // Generic
-      data.text ||
-      (typeof data === 'string' ? data : '');
-
-    if (!aiText || !aiText.trim()) {
-      throw new Error('Empty response received');
+    if (data.candidates?.[0]?.content?.parts?.[0]?.text) {
+      aiText = data.candidates[0].content.parts[0].text;
+    } else if (data.choices?.[0]?.message?.content) {
+      aiText = data.choices[0].message.content;
+    } else {
+      aiText = 'No response text found.';
     }
 
-    // Simple formatting
-    aiText = aiText
-      .replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>')
-      .replace(/\n/g, '<br>');
+    addMessage(aiText, 'ai');
 
-    removeTyping(typingId);
-    addMessage(aiText, 'ai', true);
+    const chats = getChats();
+    const chat = chats.find(c => c.id === currentChatId);
+    if (chat) {
+      chat.messages.push({ text: aiText, isUser: false });
+      chat.lastActive = Date.now();
+      saveChats(chats);
+    }
 
   } catch (err) {
-    console.error(err);
-    removeTyping(typingId);
-    
-    // ✅ USER-FRIENDLY ERROR MESSAGE
-    let errorMsg = '<strong style="color:#ef4444;">⚠️ Error:</strong> ';
-    
-    if (err.message.includes('429') || err.message.includes('quota')) {
-      errorMsg += 'API limit reached. Please wait 1 minute or try Groq/Perplexity models.';
-    } else if (err.message.includes('Failed to fetch')) {
-      errorMsg += 'Network error. Check your internet connection.';
-    } else {
-      errorMsg += err.message;
-    }
-    
-    addMessage(errorMsg, 'ai', true);
+    removeTyping();
+    console.error('Error:', err);
+    addMessage('⚠️ Error: ' + err.message, 'ai');
   }
 }
 
+// --- UI: messages ------------------------------------------
+function addMessage(text, role, save = true) {
+  if (!messagesList) return;
 
-// --- DOWNLOAD ----------------------------------------------
-function downloadChat() {
-  const chats = getChats();
-  const chat = chats.find(c => c.id === currentChatId);
-  if (!chat || !chat.messages?.length) {
-    alert('No messages to download.');
-    return;
-  }
+  const msgDiv = document.createElement('div');
+  msgDiv.className = role === 'user' ? 'user-message' : 'ai-message';
+  msgDiv.innerHTML = role === 'user' 
+    ? `<div class="message-content">${text}</div>`
+    : `<div class="message-content">${formatMarkdown(text)}</div>`;
 
-  let out = `=== ${chat.title} ===\nDownloaded: ${new Date().toLocaleString()}\n\n`;
-  chat.messages.forEach(m => {
-    out += `[${m.isUser ? 'YOU' : 'AI'}]\n${m.text}\n\n`;
-  });
-
-  const blob = new Blob([out], { type: 'text/plain' });
-  const url = URL.createObjectURL(blob);
-  const a = document.createElement('a');
-  a.href = url;
-  a.download = `${chat.title.replace(/\s+/g, '-')}-${Date.now()}.txt`;
-  a.click();
-  URL.revokeObjectURL(url);
+  messagesList.appendChild(msgDiv);
+  messagesList.scrollTop = messagesList.scrollHeight;
 }
 
-// --- INIT --------------------------------------------------
-window.addEventListener('DOMContentLoaded', () => {
-  // cache elements
+function formatMarkdown(text) {
+  return text
+    .replace(/``````/g, '<pre><code>$2</code></pre>')
+    .replace(/`([^`]+)`/g, '<code>$1</code>')
+    .replace(/\*\*(.+?)\*\*/g, '<strong>$1</strong>')
+    .replace(/\*(.+?)\*/g, '<em>$1</em>')
+    .replace(/\n/g, '<br>');
+}
+
+function showTyping() {
+  if (!messagesList) return;
+  const typing = document.createElement('div');
+  typing.className = 'ai-message typing-indicator';
+  typing.innerHTML = '<div class="message-content"><span class="typing-dot"></span><span class="typing-dot"></span><span class="typing-dot"></span></div>';
+  messagesList.appendChild(typing);
+  messagesList.scrollTop = messagesList.scrollHeight;
+}
+
+function removeTyping() {
+  const typing = messagesList?.querySelector('.typing-indicator');
+  if (typing) typing.remove();
+}
+
+// --- Init --------------------------------------------------
+document.addEventListener('DOMContentLoaded', () => {
   wrapper = document.getElementById('mainWrapper');
   heroInput = document.getElementById('heroInput');
   bottomInput = document.getElementById('bottomInput');
@@ -295,250 +203,49 @@ window.addEventListener('DOMContentLoaded', () => {
   bottomSendBtn = document.getElementById('bottomSendBtn');
   newChatBtn = document.getElementById('newChatBtn');
 
-  // auto-resize textareas
-  [heroInput, bottomInput].forEach(t => {
-    if (!t) return;
-    t.addEventListener('input', function () {
-      this.style.height = '24px';
-      this.style.height = Math.min(this.scrollHeight, 160) + 'px';
+  if (heroSendBtn) heroSendBtn.addEventListener('click', () => sendMessage(heroInput));
+  if (bottomSendBtn) bottomSendBtn.addEventListener('click', () => sendMessage(bottomInput));
+
+  if (heroInput) {
+    heroInput.addEventListener('keydown', (e) => {
+      if (e.key === 'Enter' && !e.shiftKey) {
+        e.preventDefault();
+        sendMessage(heroInput);
+      }
     });
-  });
+  }
 
-  // hero: Enter
-  heroInput?.addEventListener('keydown', e => {
-    if (e.key === 'Enter' && !e.shiftKey) {
-      e.preventDefault();
-      const text = heroInput.value.trim();
-      if (text) {
-        sendMessage(text);
-        heroInput.value = '';
-        heroInput.style.height = '24px';
+  if (bottomInput) {
+    bottomInput.addEventListener('keydown', (e) => {
+      if (e.key === 'Enter' && !e.shiftKey) {
+        e.preventDefault();
+        sendMessage(bottomInput);
       }
-    }
-  });
+    });
+  }
 
-  // hero: button
-  heroSendBtn?.addEventListener('click', () => {
-    const text = heroInput?.value.trim();
-    if (text) {
-      sendMessage(text);
-      heroInput.value = '';
-      heroInput.style.height = '24px';
-    }
-  });
+  if (newChatBtn) {
+    newChatBtn.addEventListener('click', () => {
+      currentChatId = null;
+      if (messagesList) messagesList.innerHTML = '';
+      if (wrapper) wrapper.classList.remove('mode-active');
+      const mainContent = document.getElementById('mainContent');
+      if (mainContent) mainContent.classList.remove('mode-active');
+      if (heroInput) heroInput.value = '';
+      if (bottomInput) bottomInput.value = '';
+      renderChatHistory();
+    });
+  }
 
-  // bottom: Enter
-  bottomInput?.addEventListener('keydown', e => {
-    if (e.key === 'Enter' && !e.shiftKey) {
-      e.preventDefault();
-      const text = bottomInput.value.trim();
-      if (text) {
-        sendMessage(text);
-        bottomInput.value = '';
-        bottomInput.style.height = '24px';
-      }
-    }
-  });
-
-  // bottom: button
-  bottomSendBtn?.addEventListener('click', () => {
-    const text = bottomInput?.value.trim();
-    if (text) {
-      sendMessage(text);
-      bottomInput.value = '';
-      bottomInput.style.height = '24px';
-    }
-  });
-
-  // new chat
-  newChatBtn?.addEventListener('click', startNewChat);
-
-  // download
-  document.getElementById('downloadChatBtn')
-    ?.addEventListener('click', downloadChat);
-
-  // initial sidebar
   renderChatHistory();
 
-  console.log('✅ Neural Core ready');
+  document.querySelectorAll('.prompt-pill').forEach(pill => {
+    pill.addEventListener('click', () => {
+      const text = pill.textContent.trim();
+      if (heroInput) {
+        heroInput.value = text;
+        sendMessage(heroInput);
+      }
+    });
+  });
 });
-
-// expose for pills
-window.activateChat = prompt => {
-  if (!heroInput) return;
-  heroInput.value = prompt;
-  heroInput.focus();
-};
-
-// ========== CHAT MENU SYSTEM ==========
-
-// Make functions globally accessible
-window.escapeHtml = escapeHtml;
-window.toggleChatMenu = toggleChatMenu;
-window.closeMenuOnOutsideClick = closeMenuOnOutsideClick;
-window.renameChat = renameChat;
-window.confirmRename = confirmRename;
-window.deleteChat = deleteChat;
-window.confirmDelete = confirmDelete;
-window.closeModal = closeModal;
-
-function escapeHtml(text) {
-  const div = document.createElement('div');
-  div.textContent = text;
-  return div.innerHTML;
-}
-
-let currentMenuChatId = null;
-
-function toggleChatMenu(event, chatId) {
-  event.stopPropagation();
-  
-  const existingMenu = document.querySelector('.chat-dropdown-menu');
-  if (existingMenu) existingMenu.remove();
-
-  if (currentMenuChatId === chatId) {
-    currentMenuChatId = null;
-    document.removeEventListener('click', closeMenuOnOutsideClick);
-    return;
-  }
-
-  currentMenuChatId = chatId;
-
-  const menu = document.createElement('div');
-  menu.className = 'chat-dropdown-menu show';
-  menu.innerHTML = `
-    <div class="chat-menu-item" onclick="renameChat(${chatId})">
-      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-        <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"></path>
-        <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"></path>
-      </svg>
-      Rename
-    </div>
-    <div class="chat-menu-item danger" onclick="deleteChat(${chatId})">
-      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-        <polyline points="3 6 5 6 21 6"></polyline>
-        <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path>
-      </svg>
-      Delete
-    </div>
-  `;
-
-  const chatItem = document.querySelector(`[data-chat-id="${chatId}"]`);
-  if (chatItem) {
-    chatItem.style.position = 'relative';
-    chatItem.appendChild(menu);
-  }
-
-  setTimeout(() => document.addEventListener('click', closeMenuOnOutsideClick), 100);
-}
-
-function closeMenuOnOutsideClick(e) {
-  if (!e.target.closest('.chat-dropdown-menu') && !e.target.closest('.chat-item-menu-btn')) {
-    const menu = document.querySelector('.chat-dropdown-menu');
-    if (menu) menu.remove();
-    currentMenuChatId = null;
-    document.removeEventListener('click', closeMenuOnOutsideClick);
-  }
-}
-
-function renameChat(chatId) {
-  const chats = getChats();
-  const chat = chats.find(c => c.id === chatId);
-  if (!chat) return;
-
-  document.querySelector('.chat-dropdown-menu')?.remove();
-  currentMenuChatId = null;
-  document.removeEventListener('click', closeMenuOnOutsideClick);
-
-  const modal = document.createElement('div');
-  modal.className = 'modal-overlay show';
-  modal.innerHTML = `
-    <div class="modal-box">
-      <div class="modal-title">Rename Chat</div>
-      <input type="text" class="modal-input" value="${escapeHtml(chat.title)}" id="renameChatInput" maxlength="50">
-      <div class="modal-buttons">
-        <button class="modal-btn modal-btn-cancel" onclick="closeModal()">Cancel</button>
-        <button class="modal-btn modal-btn-confirm" onclick="confirmRename(${chatId})">Save</button>
-      </div>
-    </div>
-  `;
-  document.body.appendChild(modal);
-
-  setTimeout(() => {
-    const input = document.getElementById('renameChatInput');
-    input.focus();
-    input.select();
-    input.addEventListener('keydown', (e) => {
-      if (e.key === 'Enter') confirmRename(chatId);
-      if (e.key === 'Escape') closeModal();
-    });
-  }, 100);
-}
-
-function confirmRename(chatId) {
-  const input = document.getElementById('renameChatInput');
-  const newTitle = input.value.trim();
-  if (!newTitle) {
-    input.style.borderColor = '#ef4444';
-    return;
-  }
-  const chats = getChats();
-  const chat = chats.find(c => c.id === chatId);
-  if (chat) {
-    chat.title = newTitle;
-    saveChats(chats);
-    renderChatHistory();
-  }
-  closeModal();
-}
-
-function deleteChat(chatId) {
-  const chats = getChats();
-  const chat = chats.find(c => c.id === chatId);
-  if (!chat) return;
-
-  document.querySelector('.chat-dropdown-menu')?.remove();
-  currentMenuChatId = null;
-  document.removeEventListener('click', closeMenuOnOutsideClick);
-
-  const modal = document.createElement('div');
-  modal.className = 'modal-overlay show';
-  modal.innerHTML = `
-    <div class="modal-box">
-      <div class="modal-title">Delete Chat?</div>
-      <p style="color: rgba(255,255,255,0.7); font-size: 0.9rem; margin-bottom: 1.5rem;">
-        Are you sure you want to delete "<strong>${escapeHtml(chat.title)}</strong>"? This cannot be undone.
-      </p>
-      <div class="modal-buttons">
-        <button class="modal-btn modal-btn-cancel" onclick="closeModal()">Cancel</button>
-        <button class="modal-btn modal-btn-danger" onclick="confirmDelete(${chatId})">Delete</button>
-      </div>
-    </div>
-  `;
-  document.body.appendChild(modal);
-}
-
-function confirmDelete(chatId) {
-  let chats = getChats();
-  chats = chats.filter(c => c.id !== chatId);
-  saveChats(chats);
-
-  if (currentChatId === chatId) {
-    currentChatId = null;
-    if (messagesList) messagesList.innerHTML = '';
-    if (wrapper) wrapper.classList.remove('mode-active');
-    const mainContent = document.getElementById('mainContent');
-    if (mainContent) mainContent.classList.remove('mode-active');
-  }
-
-  renderChatHistory();
-  closeModal();
-}
-
-function closeModal() {
-  const modal = document.querySelector('.modal-overlay');
-  if (modal) {
-    modal.classList.remove('show');
-    setTimeout(() => modal.remove(), 200);
-  }
-}
