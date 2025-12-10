@@ -6,6 +6,8 @@ const API_BASE = window.location.hostname === 'localhost'
 // --- STATE --------------------------------------------------
 let wrapper, heroInput, bottomInput, messagesList, heroSendBtn, bottomSendBtn, newChatBtn;
 let currentChatId = null;
+let streamController = null; // For aborting stream
+let isStreaming = false;
 
 // --- STORAGE -----------------------------------------------
 function getChats() {
@@ -86,10 +88,10 @@ function loadChat(chatId) {
   renderChatHistory();
 }
 
-// --- Send message ------------------------------------------
+// --- Send message with streaming ---------------------------
 async function sendMessage(inputElement) {
   const userMessage = inputElement.value.trim();
-  if (!userMessage) return;
+  if (!userMessage || isStreaming) return;
 
   console.log('📤 Sending:', userMessage);
 
@@ -115,46 +117,145 @@ async function sendMessage(inputElement) {
   const mainContent = document.getElementById('mainContent');
   if (mainContent) mainContent.classList.add('mode-active');
 
-  showTyping();
+  // Start streaming
+  await streamResponse(userMessage, model);
+}
+
+
+// --- Streaming response ------------------------------------
+async function streamResponse(userMessage, model) {
+  isStreaming = true;
+  streamController = new AbortController();
+
+  // Create streaming message container
+  const streamMsgDiv = document.createElement('div');
+  streamMsgDiv.className = 'ai-message streaming-message';
+  streamMsgDiv.dataset.messageId = Date.now();
+  
+  const contentDiv = document.createElement('div');
+  contentDiv.className = 'message-content';
+  contentDiv.innerHTML = '<span class="cursor-blink">▊</span>';
+  
+  const actionsDiv = document.createElement('div');
+  actionsDiv.className = 'message-actions';
+  actionsDiv.innerHTML = `
+    <button class="action-btn stop-stream-btn" data-tooltip="Stop">
+      <svg fill="none" stroke="currentColor" viewBox="0 0 24 24">
+        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/>
+      </svg>
+    </button>
+  `;
+  
+  streamMsgDiv.appendChild(contentDiv);
+  streamMsgDiv.appendChild(actionsDiv);
+  messagesList.appendChild(streamMsgDiv);
+  messagesList.scrollTop = messagesList.scrollHeight;
+
+  // Stop button listener
+  const stopBtn = actionsDiv.querySelector('.stop-stream-btn');
+  stopBtn.addEventListener('click', () => {
+    streamController.abort();
+    isStreaming = false;
+    stopBtn.remove();
+    contentDiv.querySelector('.cursor-blink')?.remove();
+    addStreamActions(streamMsgDiv, contentDiv.textContent);
+  });
+
+  let fullText = '';
 
   try {
-    const response = await fetch(`${API_BASE}/api/chat`, {
+    const response = await fetch(`${API_BASE}/api/chat/stream`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ userMessage, model })
+      body: JSON.stringify({ userMessage, model }),
+      signal: streamController.signal
     });
-
-    removeTyping();
 
     if (!response.ok) throw new Error(`HTTP ${response.status}`);
 
-    const data = await response.json();
-    let aiText = '';
+    const reader = response.body.getReader();
+    const decoder = new TextDecoder();
 
-    if (data.candidates?.[0]?.content?.parts?.[0]?.text) {
-      aiText = data.candidates[0].content.parts[0].text;
-    } else if (data.choices?.[0]?.message?.content) {
-      aiText = data.choices[0].message.content;
-    } else {
-      aiText = 'No response text found.';
-    }
+    while (true) {
+      const { done, value } = await reader.read();
+      if (done) break;
 
-    addMessage(aiText, 'ai');
+      const chunk = decoder.decode(value);
+      const lines = chunk.split('\n');
 
-    const chats = getChats();
-    const chat = chats.find(c => c.id === currentChatId);
-    if (chat) {
-      chat.messages.push({ text: aiText, isUser: false });
-      chat.lastActive = Date.now();
-      saveChats(chats);
+      for (const line of lines) {
+        if (line.startsWith('data: ')) {
+          const data = line.slice(6);
+          
+          if (data === '[DONE]') {
+            isStreaming = false;
+            stopBtn.remove();
+            contentDiv.querySelector('.cursor-blink')?.remove();
+            addStreamActions(streamMsgDiv, fullText);
+            
+            // Save to chat history
+            const chats = getChats();
+            const chat = chats.find(c => c.id === currentChatId);
+            if (chat) {
+              chat.messages.push({ text: fullText, isUser: false });
+              chat.lastActive = Date.now();
+              saveChats(chats);
+            }
+            return;
+          }
+
+          try {
+            const parsed = JSON.parse(data);
+            if (parsed.text) {
+              fullText += parsed.text;
+              contentDiv.innerHTML = formatMarkdown(fullText) + '<span class="cursor-blink">▊</span>';
+              messagesList.scrollTop = messagesList.scrollHeight;
+            }
+          } catch (e) {
+            // Skip invalid JSON
+          }
+        }
+      }
     }
 
   } catch (err) {
-    removeTyping();
-    console.error('Error:', err);
-    addMessage('⚠️ Error: ' + err.message, 'ai');
+    if (err.name === 'AbortError') {
+      console.log('Stream aborted by user');
+    } else {
+      console.error('Stream error:', err);
+      contentDiv.innerHTML = '⚠️ Error: ' + err.message;
+    }
+    isStreaming = false;
+    stopBtn.remove();
+    contentDiv.querySelector('.cursor-blink')?.remove();
   }
 }
+
+// Add actions after streaming completes
+function addStreamActions(msgDiv, finalText) {
+  msgDiv.classList.remove('streaming-message');
+  msgDiv.dataset.originalText = finalText;
+  
+  const actionsDiv = msgDiv.querySelector('.message-actions');
+  actionsDiv.innerHTML = `
+    <button class="action-btn copy-msg-btn" data-tooltip="Copy">
+      <svg class="copy-icon" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z"/>
+      </svg>
+      <svg class="check-icon" style="display:none;" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"/>
+      </svg>
+    </button>
+    <button class="action-btn regen-msg-btn" data-tooltip="Regenerate">
+      <svg fill="none" stroke="currentColor" viewBox="0 0 24 24">
+        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"/>
+      </svg>
+    </button>
+  `;
+  
+  attachMessageActions(msgDiv, finalText, 'ai');
+}
+
 
 // --- UI: messages ------------------------------------------
 function addMessage(text, role, save = true) {

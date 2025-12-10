@@ -966,6 +966,7 @@ if (model?.startsWith('gemini-')) {
 }
 
 
+
     
     // ============= PERPLEXITY =============
     else if (model === 'perplexity-online') {
@@ -1103,6 +1104,61 @@ if (model?.startsWith('gemini-')) {
   }
 });
 
+// Streaming chat endpoint
+app.post('/api/chat/stream', async (req, res) => {
+  const { userMessage, model = 'gemini-2.0-flash-exp' } = req.body;
+
+  if (!userMessage) {
+    return res.status(400).json({ error: 'userMessage is required' });
+  }
+
+  // Set headers for Server-Sent Events (SSE)
+  res.setHeader('Content-Type', 'text/event-stream');
+  res.setHeader('Cache-Control', 'no-cache');
+  res.setHeader('Connection', 'keep-alive');
+
+  try {
+    if (model.startsWith('gemini')) {
+      // Gemini Streaming
+      const genModel = genAI.getGenerativeModel({ model });
+      const result = await genModel.generateContentStream(userMessage);
+
+      for await (const chunk of result.stream) {
+        const text = chunk.text();
+        res.write(`data: ${JSON.stringify({ text })}\n\n`);
+      }
+      
+      res.write('data: [DONE]\n\n');
+      res.end();
+
+    } else if (model.startsWith('llama') || model.startsWith('mixtral')) {
+      // Groq Streaming
+      const completion = await groq.chat.completions.create({
+        messages: [{ role: 'user', content: userMessage }],
+        model: model,
+        stream: true,
+      });
+
+      for await (const chunk of completion) {
+        const text = chunk.choices[0]?.delta?.content || '';
+        if (text) {
+          res.write(`data: ${JSON.stringify({ text })}\n\n`);
+        }
+      }
+
+      res.write('data: [DONE]\n\n');
+      res.end();
+
+    } else {
+      res.status(400).json({ error: 'Unsupported model for streaming' });
+    }
+
+  } catch (error) {
+    console.error('Streaming error:', error);
+    res.write(`data: ${JSON.stringify({ error: error.message })}\n\n`);
+    res.end();
+  }
+});
 
 
 
