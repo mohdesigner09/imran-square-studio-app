@@ -97,14 +97,14 @@ try {
 const db = admin.firestore();
 
 // ============ MULTER + GOOGLE DRIVE SETUP ============
-// ============ MULTER + GOOGLE DRIVE SETUP ============
 const upload = multer({
   storage: multer.memoryStorage(),
   limits: {
-    fileSize: 500 * 1024 * 1024,   // max 500MB per video file
-    fieldSize: 50 * 1024 * 1024,   // text fields (thumbnailDataUrl) ke liye 10MB
+    // sirf file size limit rakhenge, fields par koi limit nahi
+    fileSize: 800 * 1024 * 1024, // 800 MB tak allowed
   },
 });
+
 
 
 // (optional) scope reference – docs ke liye

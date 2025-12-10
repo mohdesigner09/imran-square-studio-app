@@ -157,14 +157,8 @@ async function sendMessage(inputElement) {
 }
 
 // --- UI: messages ------------------------------------------
-// --- UI: messages ------------------------------------------
 function addMessage(text, role, save = true) {
   if (!messagesList) return;
-
-  const timestamp = new Date().toLocaleTimeString('en-US', { 
-    hour: '2-digit', 
-    minute: '2-digit' 
-  });
 
   const msgDiv = document.createElement('div');
   msgDiv.className = role === 'user' ? 'user-message' : 'ai-message';
@@ -198,8 +192,11 @@ function addMessage(text, role, save = true) {
     // AI message: Copy, Regenerate (bottom, always visible)
     actionsDiv.innerHTML = `
       <button class="action-btn copy-msg-btn" data-tooltip="Copy">
-        <svg fill="none" stroke="currentColor" viewBox="0 0 24 24">
+        <svg class="copy-icon" fill="none" stroke="currentColor" viewBox="0 0 24 24">
           <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z"/>
+        </svg>
+        <svg class="check-icon" style="display:none;" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"/>
         </svg>
       </button>
       <button class="action-btn regen-msg-btn" data-tooltip="Regenerate">
@@ -210,15 +207,9 @@ function addMessage(text, role, save = true) {
     `;
   }
 
-  // Timestamp
-  const timestampSpan = document.createElement('span');
-  timestampSpan.className = 'message-timestamp';
-  timestampSpan.textContent = timestamp;
-
-  // Append elements
+  // Append elements (NO TIMESTAMP!)
   msgDiv.appendChild(contentDiv);
   msgDiv.appendChild(actionsDiv);
-  msgDiv.appendChild(timestampSpan);
 
   messagesList.appendChild(msgDiv);
   messagesList.scrollTop = messagesList.scrollHeight;
@@ -226,6 +217,7 @@ function addMessage(text, role, save = true) {
   // Attach event listeners
   attachMessageActions(msgDiv, text, role);
 }
+
 
 // --- MESSAGE ACTIONS ---------------------------------------
 function attachMessageActions(msgDiv, originalText, role) {
@@ -251,28 +243,28 @@ function attachMessageActions(msgDiv, originalText, role) {
 // Copy message to clipboard
 async function copyMessage(msgDiv, text) {
   const copyBtn = msgDiv.querySelector('.copy-msg-btn');
+  const copyIcon = copyBtn.querySelector('.copy-icon');
+  const checkIcon = copyBtn.querySelector('.check-icon');
+  
   try {
     await navigator.clipboard.writeText(text);
+    
+    // Show green checkmark
+    copyIcon.style.display = 'none';
+    checkIcon.style.display = 'block';
     copyBtn.classList.add('copied');
-    copyBtn.innerHTML = `
-      <svg fill="none" stroke="currentColor" viewBox="0 0 24 24">
-        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"/>
-      </svg>
-      Copied!
-    `;
+    
+    // Revert back after 1.5 seconds
     setTimeout(() => {
+      copyIcon.style.display = 'block';
+      checkIcon.style.display = 'none';
       copyBtn.classList.remove('copied');
-      copyBtn.innerHTML = `
-        <svg fill="none" stroke="currentColor" viewBox="0 0 24 24">
-          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z"/>
-        </svg>
-        Copy
-      `;
-    }, 2000);
+    }, 1500);
   } catch (err) {
     console.error('Copy failed:', err);
   }
 }
+
 
 // Edit user message
 function editMessage(msgDiv, originalText) {
