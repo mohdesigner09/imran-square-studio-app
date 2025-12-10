@@ -712,7 +712,6 @@ async function sendToStudio() {
         return;
     }
 
-    // Title / thumb elements
     const titleInput = document.getElementById('previewTitleInput');
     const fileNameEl = document.getElementById('previewFileName');
     const thumbEl = document.getElementById('previewThumbnail');
@@ -733,7 +732,7 @@ async function sendToStudio() {
         return;
     }
 
-    // ✅ USER_ID ko flexibly pick karo
+    // USER_ID flexibly
     const USER_ID =
         CURRENT_USER &&
         (CURRENT_USER.userId || CURRENT_USER.uid || CURRENT_USER.email || null);
@@ -743,52 +742,62 @@ async function sendToStudio() {
         return;
     }
 
-    // Overlay + steps
-    const overlay = document.getElementById('uploadOverlay');
+    // UI elements (null guard)
     const step1 = document.getElementById('uploadStep1');
     const step2 = document.getElementById('uploadStep2');
     const step3 = document.getElementById('uploadStep3');
-    const bar = document.getElementById('uploadProgressBar');
-    const text = document.getElementById('uploadProgressText');
+    const bar   = document.getElementById('uploadProgressBar');
+    const text  = document.getElementById('uploadProgressText');
 
-    overlay.classList.remove('hidden');
-    step1.classList.add('hidden');
-    step2.classList.remove('hidden');
-    step3.classList.add('hidden');
+    if (step1 && step2 && step3) {
+        step1.classList.add('hidden');
+        step2.classList.remove('hidden');
+        step3.classList.add('hidden');
+    }
 
     let progress = 0;
     let uploadFinished = false;
     let uploadSuccess = false;
     let uploadError = null;
-    let backendMeta = null;   // ⬅️ yahan server ka JSON store hoga
+    let backendMeta = null;   // 👈 yahan server ka response store karenge
 
-    // REAL UPLOAD – backend ko FormData bhejo
-    const formData = new FormData();
-    formData.append('file', selectedFile);
-    formData.append('projectId', projectId);
-    formData.append('userId', USER_ID);
-    formData.append('fileName', selectedFile.name);
-    formData.append('sizeMB', (selectedFile.size / (1024 * 1024)).toFixed(1));
-    formData.append('kind', 'raw');
-    // thumbnailDataUrl backend ko ab nahi bhej rahe (MulterError avoid)
-
+    // 🔁 REAL BACKEND UPLOAD
     (async () => {
         try {
+            const formData = new FormData();
+            formData.append('file', selectedFile);
+            formData.append('projectId', projectId);
+            formData.append('userId', USER_ID);
+            formData.append('fileName', selectedFile.name);
+            formData.append('sizeMB', (selectedFile.size / (1024 * 1024)).toFixed(1));
+            formData.append('thumbnailDataUrl', thumbnailDataUrl);
+            formData.append('kind', 'raw');
+
             const res = await fetch(`${API_BASE}/api/footage/upload`, {
                 method: 'POST',
                 body: formData
             });
 
-            const data = await res.json();
+            const contentType = res.headers.get('content-type') || '';
+            let data = null;
+
+            if (contentType.includes('application/json')) {
+                data = await res.json();
+            } else {
+                const txt = await res.text();
+                console.error('Non-JSON response from /api/footage/upload:', txt);
+                throw new Error('Server returned an HTML error page (500).');
+            }
+
             if (!res.ok || !data.success) {
-                uploadError = data.message || 'Upload failed';
+                uploadError = (data && data.message) || 'Upload failed';
             } else {
                 uploadSuccess = true;
-                backendMeta = data; // { success, footageId, rawDriveLink, ... }
+                backendMeta = data;  // ✅ id + rawDriveLink yahan se milega
             }
-        } catch (err2) {
-            console.error('Footage upload error:', err2);
-            uploadError = err2.message || 'Network error';
+        } catch (err) {
+            console.error('Footage upload error:', err);
+            uploadError = err.message || 'Network error';
         } finally {
             uploadFinished = true;
         }
@@ -797,12 +806,15 @@ async function sendToStudio() {
     // 🎭 FAKE PROGRESS + REAL WAIT
     const interval = setInterval(() => {
         progress += 5;
-        if (progress < 30) text.textContent = 'Encrypting footage.';
-        else if (progress < 70) text.textContent = 'Syncing to studio vault.';
-        else if (progress < 95) text.textContent = 'Locking into project vault.';
-        else text.textContent = 'Finalizing metadata.';
 
-        // Backend khatam hone tak 95% par atka ke rakho
+        if (text) {
+            if (progress < 30) text.textContent = 'Encrypting footage.';
+            else if (progress < 70) text.textContent = 'Syncing to studio vault.';
+            else if (progress < 95) text.textContent = 'Locking into project vault.';
+            else text.textContent = 'Finalizing metadata.';
+        }
+
+        // Backend khatam hone tak 95% par atak ke rakho
         if (progress >= 95 && !uploadFinished) {
             progress = 95;
         }
@@ -811,34 +823,41 @@ async function sendToStudio() {
             progress = 100;
         }
 
-        bar.style.width = progress + '%';
+        if (bar) bar.style.width = progress + '%';
 
         if (progress >= 100 && uploadFinished) {
             clearInterval(interval);
 
             if (!uploadSuccess) {
                 alert(uploadError || 'Upload failed. Please try again.');
-                // UI ko wapas step-1 par le aa
-                step2.classList.add('hidden');
-                step1.classList.remove('hidden');
-                step3.classList.add('hidden');
+                // UI ko wapas step-1 par le aa – guard ke sath
+                if (step1 && step2 && step3) {
+                    step2.classList.add('hidden');
+                    step1.classList.remove('hidden');
+                    step3.classList.add('hidden');
+                }
                 return;
             }
 
             // ✅ SUCCESS UI + LOCAL LIST UPDATE
             setTimeout(() => {
-                step2.classList.add('hidden');
-                step3.classList.remove('hidden');
+                if (step2 && step3) {
+                    step2.classList.add('hidden');
+                    step3.classList.remove('hidden');
+                }
 
-                // Drive se streaming link
+                // 🔥 yahan se REAL video src bana rahe
                 const driveSrc =
-                    (backendMeta && (backendMeta.rawDriveLink || backendMeta.driveLink)) || '';
+                    backendMeta &&
+                    (backendMeta.rawDriveLink ||
+                     (backendMeta.fileId
+                         ? `https://drive.google.com/uc?id=${backendMeta.fileId}&export=download`
+                         : null));
 
-                // Fallback: current file ka blob URL
-                const fallbackSrc = URL.createObjectURL(selectedFile);
+                const videoSrc = driveSrc || URL.createObjectURL(selectedFile);
 
                 const newClip = {
-                    id: backendMeta?.footageId || `clip-${Date.now()}`,
+                    id: (backendMeta && backendMeta.footageId) || `clip-${Date.now()}`,
                     title: clipTitle,
                     type: lastVideoHeight > lastVideoWidth ? 'shorts' : 'longs',
                     date: 'today',
@@ -847,14 +866,14 @@ async function sendToStudio() {
                     height: lastVideoHeight || 1920,
                     thumb: thumbnailDataUrl,
 
-                    // 👇 player yahi use karega
-                    src: driveSrc || fallbackSrc,
+                    // player ke liye important fields:
+                    src: videoSrc,
                     rawDriveLink: driveSrc || null
                 };
 
                 rawClips.unshift(newClip);
 
-                const pid = projectId || new URLSearchParams(window.location.search).get('id');
+                const pid = projectId;
                 if (pid) {
                     localStorage.setItem(`footage_${pid}`, JSON.stringify(rawClips));
                 }
@@ -876,49 +895,52 @@ async function sendToStudio() {
 
 
 
-        // --- THEATER LOGIC (Preserved) ---
+
+// --- THEATER LOGIC ---
 function openTheater(clip) {
     const modal = document.getElementById('theaterModal');
-
-    // Title + meta
-    document.getElementById('playerTitle').textContent = clip.title || clip.fileName || 'Untitled';
-    document.getElementById('playerMeta').textContent =
-        `${clip.date || 'today'} • ${clip.width || 1080}x${clip.height || 1920}`;
-    document.getElementById('playerFormatBadge').textContent =
-        clip.type === 'shorts' ? 'SHORT' : 'LONG';
-
+    const titleEl = document.getElementById('playerTitle');
+    const metaEl = document.getElementById('playerMeta');
+    const badgeEl = document.getElementById('playerFormatBadge');
     const container = document.getElementById('playerContainer');
 
-    // 🔑 Yahin se actual SRC decide ho raha hai
-    const src =
-        clip.src ||
-        clip.rawDriveLink ||
-        clip.playUrl ||
-        '';
+    if (titleEl) titleEl.textContent = clip.title || 'Untitled';
+    if (metaEl) {
+        const metaParts = [];
+        if (clip.date) metaParts.push(clip.date);
+        if (clip.width && clip.height) metaParts.push(`${clip.width}x${clip.height}`);
+        metaEl.textContent = metaParts.join(' • ');
+    }
+    if (badgeEl) badgeEl.textContent = clip.type === 'shorts' ? 'SHORT' : 'LONG';
 
-    if (src) {
+    const videoSrc = clip.src || clip.rawDriveLink || '';
+
+    if (!videoSrc) {
+        container.innerHTML =
+            `<div class="text-white text-xs">Video source missing for: ${clip.title || 'Unknown clip'}</div>`;
+    } else {
         container.innerHTML = `
-            <video id="theaterVideo"
+            <video id="vaultPlayer"
                    class="w-full h-full object-contain bg-black"
                    controls
-                   autoplay
                    playsinline>
-                <source src="${src}" type="video/mp4" />
-                Your browser does not support HTML5 video.
+                <source src="${videoSrc}" type="video/mp4">
+                Your browser does not support the video tag.
             </video>
         `;
-    } else {
-        container.innerHTML = `<div class="text-white text-xs">
-            Video source missing for: ${clip.title}
-        </div>`;
+
+        const video = container.querySelector('#vaultPlayer');
+        if (video) {
+            video.playbackRate = currentPlaybackRate || 1;
+        }
     }
 
     modal.classList.remove('hidden');
-    setTimeout(() => (modal.style.opacity = '1'), 10);
+    setTimeout(() => { modal.style.opacity = '1'; }, 10);
 
-    // Keyboard ESC close
     window.addEventListener('keydown', theaterKeyHandler);
 }
+
 
 
 
@@ -937,12 +959,18 @@ function openTheater(clip) {
         }
 
         // Speed Control
-document.getElementById('playbackSpeed').addEventListener('change', (e) => {
-    const video = document.getElementById('theaterVideo');
-    if (video) {
-        video.playbackRate = parseFloat(e.target.value || '1');
-    }
-});
+// Speed Control
+const speedSelect = document.getElementById('playbackSpeed');
+if (speedSelect) {
+    speedSelect.addEventListener('change', (e) => {
+        currentPlaybackRate = parseFloat(e.target.value) || 1;
+        const video = document.querySelector('#playerContainer video');
+        if (video) {
+            video.playbackRate = currentPlaybackRate;
+        }
+    });
+}
+
 
 
 
