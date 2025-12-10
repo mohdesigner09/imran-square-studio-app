@@ -639,7 +639,8 @@
   to { opacity: 1; }
 }
 
-/* ========== MESSAGE BUBBLES ========== */
+
+/* ========== MESSAGE BUBBLES (FIXED) ========== */
 #messagesList {
   display: flex;
   flex-direction: column;
@@ -647,14 +648,18 @@
   padding: 1.5rem;
 }
 
+/* User Messages */
 .user-message {
   display: flex;
   justify-content: flex-end;
   width: 100%;
+  position: relative;
+  flex-direction: column;
+  align-items: flex-end;
 }
 
 .user-message .message-content {
-  background: rgba(30, 30, 35, 0.9);
+  background: rgba(255, 255, 255, 0.12);
   backdrop-filter: blur(12px);
   color: #ffffff;
   padding: 0.875rem 1.25rem;
@@ -663,50 +668,105 @@
   word-wrap: break-word;
   font-size: 0.95rem;
   line-height: 1.5;
-  border: 1px solid rgba(74, 222, 128, 0.3);
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.4), 
-              0 0 20px rgba(74, 222, 128, 0.1);
+  border-left: 3px solid #4ade80;
+  border-top: 1px solid rgba(255, 255, 255, 0.2);
+  border-right: 1px solid rgba(255, 255, 255, 0.2);
+  border-bottom: 1px solid rgba(255, 255, 255, 0.2);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
   font-weight: 500;
 }
 
-
-
-
-/* ========== MESSAGE ACTION BUTTONS (PERPLEXITY STYLE) ========== */
-
-/* AI Message Actions - Always visible at bottom */
-.ai-message {
-  position: relative;
+/* User Message Actions - Below message, hover only */
+.user-message .message-actions {
+  display: flex;
+  gap: 0.25rem;
+  margin-top: 0.5rem;
+  opacity: 0;
+  transition: opacity 0.2s ease;
+  justify-content: flex-end;
 }
 
+.user-message:hover .message-actions {
+  opacity: 1;
+}
+
+.ai-message {
+  display: flex;
+  justify-content: flex-start;
+  width: 100%;
+  position: relative;
+  flex-direction: column;
+}
+
+.ai-message .message-content {
+  background: rgba(255, 255, 255, 0.08);
+  backdrop-filter: blur(10px);
+  color: rgba(255, 255, 255, 0.95);
+  padding: 0.875rem 1.25rem;
+  border-radius: 18px 18px 18px 4px;
+  max-width: 75%;
+  word-wrap: break-word;
+  font-size: 0.95rem;
+  line-height: 1.6;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.ai-message .message-content code {
+  background: rgba(0, 0, 0, 0.3);
+  padding: 0.2rem 0.4rem;
+  border-radius: 4px;
+  font-size: 0.85rem;
+  font-family: 'Courier New', monospace;
+}
+
+.ai-message .message-content pre {
+  background: rgba(0, 0, 0, 0.4);
+  padding: 1rem;
+  border-radius: 8px;
+  overflow-x: auto;
+  margin: 0.5rem 0;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.ai-message .message-content pre code {
+  background: none;
+  padding: 0;
+}
+
+.ai-message .message-content strong {
+  color: #4ade80;
+  font-weight: 600;
+}
+
+.ai-message .message-content em {
+  color: rgba(255, 255, 255, 0.8);
+  font-style: italic;
+}
+
+/* AI Message Actions - Always visible at bottom */
 .ai-message .message-actions {
   display: flex;
   gap: 0.25rem;
   margin-top: 0.5rem;
-  opacity: 1; /* Always visible for AI */
+  opacity: 1;
   transition: opacity 0.2s ease;
 }
 
 /* User Message Actions - Left side on hover */
-.user-message {
-  position: relative;
-}
-
 .user-message .message-actions {
-  position: absolute;
-  left: -60px; /* Message bubble ke left side me */
-  top: 0;
   display: flex;
   gap: 0.25rem;
+  margin-top: 0.5rem;
   opacity: 0;
   transition: opacity 0.2s ease;
-  flex-direction: row;
+  justify-content: flex-end; /* Right align for user messages */
 }
 
 
 .user-message:hover .message-actions {
   opacity: 1;
 }
+
 /* Small Icon Buttons */
 .action-btn {
   background: rgba(255, 255, 255, 0.06);

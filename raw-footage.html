@@ -849,12 +849,11 @@ async function sendToStudio() {
                 }
 
                 // 🔥 yahan se REAL video src bana rahe
-                const driveSrc =
-                    backendMeta &&
-                    (backendMeta.rawDriveLink ||
-                     (backendMeta.fileId
-                         ? `https://drive.google.com/uc?id=${backendMeta.fileId}&export=download`
-                         : null));
+              const driveSrc =
+    backendMeta &&
+    (backendMeta.fileId
+        ? `https://drive.google.com/file/d/${backendMeta.fileId}/preview`
+        : null);
 
                 const videoSrc = driveSrc || URL.createObjectURL(selectedFile);
 
