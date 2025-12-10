@@ -96,52 +96,59 @@ try {
 
 const db = admin.firestore();
 
-// ... ISKE NEECHE AAPKE BAAKI API ROUTES (Login, OTP, Drive, etc.) WAISE HI RAHENGE ...
 // ============ MULTER + GOOGLE DRIVE SETUP ============
 const upload = multer({ storage: multer.memoryStorage() });
 
-const SCOPES = ['https://www.googleapis.com/auth/drive.file'];
+// (optional) scope reference – docs ke liye
+const DRIVE_SCOPES = ['https://www.googleapis.com/auth/drive.file'];
 
-// Credentials ab Environment Variables se aayenge (Render ke liye safe)
-const credentials = {
-  type: 'service_account',
-  project_id: process.env.GOOGLE_PROJECT_ID,
-  private_key_id: process.env.GOOGLE_PRIVATE_KEY_ID,
-  private_key: process.env.GOOGLE_PRIVATE_KEY ? process.env.GOOGLE_PRIVATE_KEY.replace(/\\n/g, '\n') : undefined,
-  client_email: process.env.GOOGLE_CLIENT_EMAIL,
-  client_id: process.env.GOOGLE_CLIENT_ID,
-};
+/**
+ * GOOGLE DRIVE SETUP - OAuth2 (tumhara personal Google account)
+ *
+ * Required env vars:
+ *  - GOOGLE_OAUTH_CLIENT_ID
+ *  - GOOGLE_OAUTH_CLIENT_SECRET
+ *  - GOOGLE_OAUTH_REDIRECT_URI   (usually https://developers.google.com/oauthplayground)
+ *  - GOOGLE_DRIVE_REFRESH_TOKEN  (Playground se liya hua)
+ */
 
-// Credentials aur Auth ke neeche dhoondo
-const auth = new google.auth.GoogleAuth({
-  credentials,
-  scopes: SCOPES,
+// OAuth2 client banate hain
+const oAuth2Client = new google.auth.OAuth2(
+  process.env.GOOGLE_OAUTH_CLIENT_ID,
+  process.env.GOOGLE_OAUTH_CLIENT_SECRET,
+  process.env.GOOGLE_OAUTH_REDIRECT_URI || 'https://developers.google.com/oauthplayground'
+);
+
+// Refresh token set karo taaki server tumhare naam se upload kar sake
+oAuth2Client.setCredentials({
+  refresh_token: process.env.GOOGLE_DRIVE_REFRESH_TOKEN,
 });
 
-// Google Drive client
-// Google Drive client
-const drive = google.drive({ version: 'v3', auth });
+// Google Drive client – ab OAuth2 use karega (service account nahi)
+const drive = google.drive({
+  version: 'v3',
+  auth: oAuth2Client,
+});
 
 // ✅ Root folder ID – multiple env names support
 const DRIVE_ROOT_FOLDER_ID =
   process.env.FOOTAGE_FOLDER_ID ||        // clear naam
-  process.env.DRIVE_FOOTAGE_FOLDER_ID ||  // jo .env me hai
+  process.env.DRIVE_FOOTAGE_FOLDER_ID ||  // agar ye use kiya ho
   process.env.DRIVE_FOLDER_ID ||          // backup
-  process.env.GOOGLE_DRIVE_FOLDER_ID;     // ya ye (agar sirf ye diya ho)
+  process.env.GOOGLE_DRIVE_FOLDER_ID;     // ya purana naam
 
 if (!DRIVE_ROOT_FOLDER_ID) {
   console.warn(
-    '⚠️ DRIVE_ROOT_FOLDER_ID missing. Set GOOGLE_DRIVE_FOLDER_ID / DRIVE_FOLDER_ID / FOOTAGE_FOLDER_ID in env.'
+    '⚠️ DRIVE_ROOT_FOLDER_ID missing. Set DRIVE_FOLDER_ID / FOOTAGE_FOLDER_ID in env.'
   );
 }
 
-// Folder IDs (Avatar + Footage)
+// Folder IDs (Avatar + Footage) – sab ko same vault par point kara sakte ho
 const AVATAR_FOLDER_ID =
   process.env.DRIVE_FOLDER_ID ||
   process.env.GOOGLE_DRIVE_FOLDER_ID ||
   DRIVE_ROOT_FOLDER_ID;
 
-// Footage ke liye direct root ko use karo
 const FOOTAGE_FOLDER_ID =
   process.env.FOOTAGE_FOLDER_ID ||
   process.env.DRIVE_FOOTAGE_FOLDER_ID ||
@@ -149,7 +156,6 @@ const FOOTAGE_FOLDER_ID =
   process.env.DRIVE_FOLDER_ID ||
   DRIVE_ROOT_FOLDER_ID;
 
-// ✅ Ab YAHAN logging karo (const ke baad)
 console.log('📁 DRIVE_ROOT_FOLDER_ID:', DRIVE_ROOT_FOLDER_ID ? 'SET' : 'MISSING');
 console.log('📁 AVATAR_FOLDER_ID:', AVATAR_FOLDER_ID ? 'SET' : 'MISSING');
 console.log('📁 FOOTAGE_FOLDER_ID:', FOOTAGE_FOLDER_ID ? 'SET' : 'MISSING');
@@ -161,6 +167,7 @@ function bufferToStream(buffer) {
   stream.push(null);
   return stream;
 }
+
 
 
 
