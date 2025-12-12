@@ -53,31 +53,19 @@ app.use(express.json({ limit: '10mb' }));
 // ... baaki code ...
 
 
+// ===== STATIC FILES & ROUTES =====
 
-// ===== ROUTES =====
+// Sab static files (CSS, JS, images, HTML pages) serve kar
+app.use(express.static(__dirname));
 
-// Root pe landing page
+// Root pe landing page (static se automatically handle ho jayega)
 app.get('/', (req, res) => {
   res.sendFile(path.join(__dirname, 'landing.html'));
 });
 
-// Specific pages (optional – wildcard se bhi chal jayegi, lekin safe hai rakhna)
-app.get('/login.html', (req, res) => {
-  res.sendFile(path.join(__dirname, 'login.html'));
-});
-
-app.get('/index.html', (req, res) => {
-  res.sendFile(path.join(__dirname, 'index.html'));
-});
-
-// SABSE LAST MEIN – Wildcard fallback (sab kuch handle karega)
-app.get('/*splat', (req, res) => {
-  const requestedPath = req.params.splat || 'landing.html';
-  res.sendFile(path.join(__dirname, requestedPath), (err) => {
-    if (err) {
-      res.status(404).send('Not Found');
-    }
-  });
+// Agar koi page nahi mila toh landing page dikhao (SPA fallback)
+app.get('*', (req, res) => {
+  res.sendFile(path.join(__dirname, 'landing.html'));
 });
 
 // ===== 7. FIREBASE ADMIN INIT (SUPER SAFE – NO JSON FILE) =====
