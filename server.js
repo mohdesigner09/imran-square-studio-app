@@ -53,21 +53,31 @@ app.use(express.json({ limit: '10mb' }));
 // ... baaki code ...
 
 
-// ===== STATIC FILES & ROUTES =====
+// ===== ROUTES =====
 
-// Sab static files (CSS, JS, images, HTML pages) serve kar
+// Static files serve kar (CSS, JS, images, HTML sab)
 app.use(express.static(__dirname));
 
-// Root pe landing page (static se automatically handle ho jayega)
+// Root pe landing page
 app.get('/', (req, res) => {
   res.sendFile(path.join(__dirname, 'landing.html'));
 });
 
-// Agar koi page nahi mila toh landing page dikhao (SPA fallback)
-app.get('*', (req, res) => {
+// Specific pages (duplicate avoid karne ke liye)
+app.get('/login.html', (req, res) => {
+  res.sendFile(path.join(__dirname, 'login.html'));
+});
+
+app.get('/index.html', (req, res) => {
+  res.sendFile(path.join(__dirname, 'index.html'));
+});
+
+// Wildcard fallback – sab other paths ke liye (no '*' error)
+app.get('/:*?', (req, res) => {
   res.sendFile(path.join(__dirname, 'landing.html'));
 });
 
+// Baaki API routes jaise send-otp, verify-otp waisa hi rehne de
 // ===== 7. FIREBASE ADMIN INIT (SUPER SAFE – NO JSON FILE) =====
 const serviceAccount = {
   type: "service_account",
