@@ -895,14 +895,12 @@ console.log('✅ User routes configured');
 
 // Main chat endpoint
 app.post('/api/chat', async (req, res) => {
-  // history bhi extract kar rahe hain ab
   const { userMessage, model, history } = req.body;
   
   console.log('\n🟢 === NEW REQUEST ===');
-  console.log('📝 Message:', userMessage);
   console.log('🤖 Model:', model);
-  console.log('📚 History Length:', history?.length || 0); // Check history length
-  
+  // console.log('📝 User Msg:', userMessage); // Privacy: Log only length if needed
+
   if (!userMessage) {
     return res.status(400).json({ error: 'Message is required' });
   }
@@ -910,70 +908,71 @@ app.post('/api/chat', async (req, res) => {
   try {
     let response;
     
-    // ============= GEMINI MODELS (WITH KEY ROTATION) =============
+    // ============= GEMINI MODELS (ROBUST) =============
     if (model?.startsWith('gemini-')) {
       console.log('🔷 Using Gemini API...');
       
-      // ✅ KEY ROTATION
+      // 1. Keys Collect Karo (Single + Multi support)
       const keys = [
+        process.env.GEMINI_API_KEY,
         process.env.GEMINI_API_KEY_1,
         process.env.GEMINI_API_KEY_2,
         process.env.GEMINI_API_KEY_3,
         process.env.GEMINI_API_KEY_4
-      ].filter(k => k); 
+      ].filter(k => k && k.trim() !== '');
 
-      if (keys.length === 0) {
-        throw new Error('No Gemini API keys found');
-      }
+      if (keys.length === 0) throw new Error('No Gemini API keys found in .env');
 
+      // 2. Random Key Pick
       const randomKey = keys[Math.floor(Math.random() * keys.length)];
-      const geminiUrl = `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${randomKey}`;
-
-      // 🔥 HISTORY LOGIC: Construct contents array
-      let contents = [];
       
+      // 3. History Format (Strict: User/Model roles only)
+      let contents = [];
       if (history && Array.isArray(history)) {
-         // Map stored history to Gemini format
-         contents = history.map(msg => ({
-           role: msg.role === 'user' ? 'user' : 'model', // Gemini expects 'user' or 'model'
-           parts: msg.parts
-         }));
+        contents = history
+          .filter(msg => msg.parts && msg.parts[0]?.text) // Empty messages hatao
+          .map(msg => ({
+            role: msg.role === 'user' ? 'user' : 'model',
+            parts: [{ text: msg.parts[0].text }]
+          }));
       }
       
-      // Add current message at the end
+      // Add Current Message
       contents.push({
         role: 'user',
         parts: [{ text: userMessage }]
       });
 
-      try {
-        response = await axios.post(geminiUrl, {
-          contents: contents // Send full conversation
-        });
+      const geminiUrl = `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${randomKey}`;
 
-        console.log('✅ Gemini Response received');
+      try {
+        response = await axios.post(geminiUrl, { contents });
         return res.json(response.data);
-        
-      } catch (error) {
-        // ... (Retry logic for 429 remains same as before) ...
-        if (error.response?.status === 429 && keys.length > 1) {
-           // ... Retry code here ...
-           // For brevity, assuming simple retry or throw
-           throw error; 
+      } catch (err) {
+        console.error("Gemini Error Detail:", err.response?.data?.error?.message || err.message);
+        // Agar 404 hai (Model nahi mila), to Fallback Model try karo
+        if (err.response?.status === 404) {
+            console.log("⚠️ Model not found, retrying with 'gemini-1.5-flash'...");
+            const fallbackUrl = `https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${randomKey}`;
+            response = await axios.post(fallbackUrl, { contents });
+            return res.json(response.data);
         }
-        throw error;
+        throw err;
       }
     }
 
-    // ============= PERPLEXITY (NO HISTORY SUPPORT YET) =============
+    // ============= PERPLEXITY (ROBUST) =============
     else if (model === 'perplexity-online') {
       console.log('🟣 Using Perplexity API...');
       const PERPLEXITY_API_KEY = process.env.PERPLEXITY_API_KEY;
-      
-      // Construct messages array with history if needed (Perplexity supports it)
+      if (!PERPLEXITY_API_KEY) throw new Error('Missing PERPLEXITY_API_KEY');
+
+      // Perplexity History Format (Strict: user/assistant)
       let messages = [];
       if (history && Array.isArray(history)) {
-          messages = history.map(msg => ({
+          messages = history
+            .filter(msg => msg.parts && msg.parts[0]?.text)
+            .map(msg => ({
               role: msg.role === 'model' ? 'assistant' : 'user',
               content: msg.parts[0].text
           }));
@@ -982,25 +981,34 @@ app.post('/api/chat', async (req, res) => {
 
       response = await axios.post(
         'https://api.perplexity.ai/chat/completions',
-        { model: 'sonar', messages: messages },
+        { 
+            model: 'sonar', // Or 'sonar-medium-online' if 'sonar' fails
+            messages: messages 
+        },
         { headers: { 'Authorization': `Bearer ${PERPLEXITY_API_KEY}`, 'Content-Type': 'application/json' } }
       );
       return res.json(response.data);
     }
 
-    // ============= GROQ MODELS (HISTORY SUPPORT ADDED) =============
+    // ============= GROQ MODELS (ROBUST) =============
     else if (model?.startsWith('groq-')) {
       console.log('⚡ Using Groq API...');
       const GROQ_API_KEY = process.env.GROQ_API_KEY;
+      if (!GROQ_API_KEY) throw new Error('Missing GROQ_API_KEY');
+
       const groqModel = model === 'groq-llama-8b' ? 'llama-3.1-8b-instant' : 'llama-3.1-70b-versatile';
 
-      // Prepare messages with history
       let messages = [];
+      // System Prompt (Optional but good for Groq)
+      messages.push({ role: "system", content: "You are a helpful AI assistant." });
+
       if (history && Array.isArray(history)) {
-          messages = history.map(msg => ({
-              role: msg.role === 'model' ? 'assistant' : 'user', // Map roles correctly
+          messages = messages.concat(history
+            .filter(msg => msg.parts && msg.parts[0]?.text)
+            .map(msg => ({
+              role: msg.role === 'model' ? 'assistant' : 'user',
               content: msg.parts[0].text
-          }));
+          })));
       }
       messages.push({ role: 'user', content: userMessage });
 
@@ -1008,7 +1016,7 @@ app.post('/api/chat', async (req, res) => {
         'https://api.groq.com/openai/v1/chat/completions',
         {
           model: groqModel,
-          messages: messages, // Send full history
+          messages: messages,
           temperature: 0.7,
           max_tokens: 1024
         },
@@ -1017,39 +1025,40 @@ app.post('/api/chat', async (req, res) => {
       return res.json(response.data);
     }
 
-    // ============= SERPER SEARCH (Context-less) =============
+    // ============= SERPER SEARCH =============
     else if (model === 'serper-search') {
-      // Serper is a search engine, history is less relevant but could be appended to query
+      console.log('🔍 Serper Search...');
       const SERPER_API_KEY = process.env.SERPER_API_KEY;
-      response = await axios.post(
-        'https://google.serper.dev/search',
+      if (!SERPER_API_KEY) throw new Error('Missing SERPER_API_KEY');
+
+      response = await axios.post('https://google.serper.dev/search', 
         { q: userMessage, num: 5 },
         { headers: { 'X-API-KEY': SERPER_API_KEY, 'Content-Type': 'application/json' } }
       );
       
       const results = response.data.organic || [];
       const formattedResults = results.map((r, i) => 
-        `${i+1}. **${r.title}**\n${r.snippet}\n[${r.link}](${r.link})`
+        `${i+1}. **${r.title}**\n${r.snippet}\n[Link](${r.link})`
       ).join('\n\n');
 
       return res.json({
-        candidates: [{ content: { parts: [{ text: `🔍 **Google Search Results:**\n\n${formattedResults}` }] } }]
+        candidates: [{ content: { parts: [{ text: `🔍 **Search Results:**\n\n${formattedResults}` }] } }]
       });
     }
     
     // ============= FALLBACK =============
     else {
-        // Fallback logic
-        return res.status(400).json({ error: 'Model not supported' });
+      throw new Error(`Model '${model}' not supported`);
     }
 
   } catch (error) {
-    console.error('\n❌ === ERROR ===');
-    console.error('Message:', error.message);
+    console.error('\n❌ API ERROR:', error.message);
+    if(error.response) console.error('Data:', JSON.stringify(error.response.data).slice(0, 200));
+    
+    // Frontend ko readable error bhejo
     res.status(500).json({
-      error: 'API Error',
-      message: error.message,
-      details: error.response?.data
+      error: 'API Failed',
+      message: error.response?.data?.error?.message || error.message || "Unknown Server Error"
     });
   }
 });
