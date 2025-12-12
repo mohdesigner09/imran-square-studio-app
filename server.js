@@ -59,14 +59,14 @@ app.use(express.static(__dirname));
 
 // ===== ROUTES =====
 
-// 1. New Landing Page (Resend Style)
-// 1. Root Route -> Naya Resend Landing Page
+
+// Root pe landing page dikhao (sabse pehla route)
 app.get('/', (req, res) => {
   res.sendFile(path.join(__dirname, 'landing.html'));
 });
 
-// 2. Login Route -> Purana App Logic
-app.get('/login', (req, res) => {
+// Login page ke liye alag route
+app.get('/login.html', (req, res) => {
   res.sendFile(path.join(__dirname, 'login.html'));
 });
 
