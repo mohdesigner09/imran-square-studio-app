@@ -1220,18 +1220,17 @@ app.get('/api/get-announcement', async (req, res) => {
 });
 
 // ===== DRIVE RESUMABLE UPLOAD ENDPOINTS =====
-// Insert this block near your other /api routes (before the global error handler)
 
-// Helper: get OAuth token
-import { google } from 'googleapis';
-import axios from 'axios';
 
 function getOAuth2Client() {
   const oauth2Client = new google.auth.OAuth2(
-    process.env.DRIVE_CLIENT_ID,
-    process.env.DRIVE_CLIENT_SECRET
+    process.env.GOOGLE_OAUTH_CLIENT_ID,     // ✅ Correct Name
+    process.env.GOOGLE_OAUTH_CLIENT_SECRET  // ✅ Correct Name
   );
-  oauth2Client.setCredentials({ refresh_token: process.env.DRIVE_REFRESH_TOKEN });
+  // Refresh token set karein
+  oauth2Client.setCredentials({ 
+    refresh_token: process.env.GOOGLE_DRIVE_REFRESH_TOKEN // ✅ Correct Name
+  });
   return oauth2Client;
 }
 
