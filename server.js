@@ -62,8 +62,17 @@ app.use(express.static(__dirname));
 
 
 // Root pe landing page dikhao (sabse pehla route)
+// Sabse pehla route – ROOT pe landing page
 app.get('/', (req, res) => {
   res.sendFile(path.join(__dirname, 'landing.html'));
+});
+
+// Static files serve kar (CSS, JS, images etc.)
+app.use(express.static(__dirname));
+
+// Baaki sab pages ke liye fallback
+app.get('*', (req, res) => {
+  res.sendFile(path.join(__dirname, req.path));
 });
 
 // Login page ke liye alag route
