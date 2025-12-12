@@ -940,23 +940,21 @@ app.post('/api/chat', async (req, res) => {
   try {
     let response;
     
-    // ============= GEMINI MODELS (UPDATED FIX) =============
+    // ============= GEMINI MODELS (ULTIMATE FIX) =============
     if (model?.startsWith('gemini-')) {
       console.log('🔷 Using Gemini API...');
       
-      // 1. Collect All Keys
+      // 1. Get Keys
       const keys = [
         process.env.GEMINI_API_KEY,
-        process.env.GEMINI_API_KEY_1,
-        process.env.GEMINI_API_KEY_2,
-        process.env.GEMINI_API_KEY_3,
-        process.env.GEMINI_API_KEY_4
-      ].filter(k => k && k.trim().length > 10); // Valid keys only
+        process.env.GEMINI_API_KEY_1, process.env.GEMINI_API_KEY_2, 
+        process.env.GEMINI_API_KEY_3, process.env.GEMINI_API_KEY_4
+      ].filter(k => k && k.trim().length > 5);
 
       if (keys.length === 0) throw new Error('No Gemini API keys found');
 
-      // 2. Random Key for Load Balancing
-      const randomKey = keys[Math.floor(Math.random() * keys.length)];
+      // 2. Pick Random Key
+      let currentKey = keys[Math.floor(Math.random() * keys.length)];
 
       // 3. Prepare History
       let contents = [];
@@ -970,45 +968,53 @@ app.post('/api/chat', async (req, res) => {
       }
       contents.push({ role: 'user', parts: [{ text: userMessage }] });
 
-      // 4. API URL Construction
-      const geminiUrl = `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${randomKey}`;
+      // 4. Helper Function to Call Gemini
+      const callGemini = async (modelName, key) => {
+        const url = `https://generativelanguage.googleapis.com/v1beta/models/${modelName}:generateContent?key=${key}`;
+        return axios.post(url, { contents });
+      };
 
       try {
-        response = await axios.post(geminiUrl, { contents });
+        response = await callGemini(model, currentKey);
         return res.json(response.data);
       } catch (err) {
-        // ERROR HANDLING LOGIC
-        
-        // CASE 1: 404 (Model Not Found) -> Try Stable Version 002
-        if (err.response?.status === 404) {
-            console.log("⚠️ 404 Error, retrying with 'gemini-1.5-flash-002' (Stable)...");
-            const fallbackUrl = `https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash-002:generateContent?key=${randomKey}`;
+        console.log(`⚠️ Primary attempt failed (${err.response?.status}). Starting recovery mode...`);
+
+        // === STRATEGY 1: IF 429 (BUSY/QUOTA) -> TRY DIFFERENT KEY & LOWER MODEL ===
+        if (err.response?.status === 429) {
+            console.log("🔄 429 Quota Exceeded. Switching Key & Downgrading Model...");
+            
+            // Try next available key
+            const nextKey = keys[(keys.indexOf(currentKey) + 1) % keys.length];
+            
+            // Agar High-End model fail hua, to Lighter model try karo (Flash)
+            const fallbackModel = 'gemini-1.5-flash-8b'; 
+            
             try {
-                response = await axios.post(fallbackUrl, { contents });
+                response = await callGemini(fallbackModel, nextKey);
+                console.log(`✅ Recovered using ${fallbackModel} on backup key`);
                 return res.json(response.data);
-            } catch (fallbackErr) {
-                // Agar wo bhi fail ho, to 'gemini-1.5-pro' try karo
-                console.log("⚠️ Flash-002 failed, trying 'gemini-1.5-pro'...");
-                const fallbackUrl2 = `https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-pro:generateContent?key=${randomKey}`;
-                response = await axios.post(fallbackUrl2, { contents });
+            } catch (retryErr) {
+                console.log("❌ Backup key also failed.");
+                throw retryErr;
+            }
+        }
+
+        // === STRATEGY 2: IF 404 (MODEL NOT FOUND) -> TRY STABLE MODELS ===
+        if (err.response?.status === 404) {
+            console.log("⚠️ Model not found. Trying 'gemini-1.5-flash-latest'...");
+            try {
+                response = await callGemini('gemini-1.5-flash-latest', currentKey);
+                return res.json(response.data);
+            } catch (e2) {
+                console.log("⚠️ Still 404. Trying Ultimate Fallback 'gemini-pro'...");
+                // 'gemini-pro' (1.0) sabse purana aur reliable hai
+                response = await callGemini('gemini-pro', currentKey);
                 return res.json(response.data);
             }
         }
 
-        // CASE 2: 429 (Quota Exceeded) -> Try Next Key
-        if (err.response?.status === 429) {
-             console.log("⚠️ Quota Exceeded. You need more API keys in .env!");
-             // Simple Retry with different key if available
-             if (keys.length > 1) {
-                 const nextKey = keys[(keys.indexOf(randomKey) + 1) % keys.length];
-                 console.log("🔄 Retrying with backup key...");
-                 const retryUrl = `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${nextKey}`;
-                 response = await axios.post(retryUrl, { contents });
-                 return res.json(response.data);
-             }
-        }
-        
-        throw err;
+        throw err; // Koi aur error hai to phenk do
       }
     }
 
@@ -1022,8 +1028,7 @@ app.post('/api/chat', async (req, res) => {
         'groq-llama-8b': 'llama-3.1-8b-instant'
       };
       const actualModel = groqModelMap[model] || 'llama-3.1-8b-instant';
-
-      const messages = sanitizeMessages(history, userMessage); // Ensure sanitizeMessages exists above
+      const messages = sanitizeMessages(history, userMessage);
 
       response = await axios.post(
         'https://api.groq.com/openai/v1/chat/completions',
@@ -1037,9 +1042,7 @@ app.post('/api/chat', async (req, res) => {
     else if (model === 'perplexity-online') {
       console.log('🟣 Using Perplexity API...');
       if (!process.env.PERPLEXITY_API_KEY) throw new Error('Missing PERPLEXITY_API_KEY');
-
-      const messages = sanitizeMessages(history, userMessage); // Use Sanitizer
-
+      const messages = sanitizeMessages(history, userMessage);
       response = await axios.post(
         'https://api.perplexity.ai/chat/completions',
         { model: 'sonar', messages },
@@ -1052,20 +1055,15 @@ app.post('/api/chat', async (req, res) => {
     else if (model === 'serper-search') {
       console.log('🔍 Serper Search...');
       if (!process.env.SERPER_API_KEY) throw new Error('Missing SERPER_API_KEY');
-
       response = await axios.post('https://google.serper.dev/search', 
         { q: userMessage, num: 5 },
         { headers: { 'X-API-KEY': process.env.SERPER_API_KEY, 'Content-Type': 'application/json' } }
       );
-      
-      const results = response.data.organic || [];
-      const formatted = results.map((r, i) => `${i+1}. **${r.title}**\n${r.snippet}\n[Link](${r.link})`).join('\n\n');
+      const formatted = (response.data.organic || []).map((r, i) => `${i+1}. **${r.title}**\n${r.snippet}\n[Link](${r.link})`).join('\n\n');
       return res.json({ candidates: [{ content: { parts: [{ text: `🔍 **Results:**\n\n${formatted}` }] } }] });
     }
 
-    else {
-      throw new Error(`Model '${model}' not supported`);
-    }
+    else { throw new Error(`Model '${model}' not supported`); }
 
   } catch (error) {
     console.error('❌ API ERROR:', error.response?.data || error.message);
