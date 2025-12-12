@@ -1,3 +1,4 @@
+
 // ===== 1. IMPORTS =====
 import express from 'express';
 import cors from 'cors';
@@ -6,12 +7,12 @@ import multer from 'multer';
 import nodemailer from 'nodemailer';
 import axios from 'axios';
 import admin from 'firebase-admin';
-import { google } from 'googleapis';
+import { google } from 'googleapis';   // ← YEHI EK BAAR HONA CHAHIYE
 import path from 'path';
 import { fileURLToPath } from 'url';
-import { readFileSync } from 'fs';
-import bcrypt from 'bcryptjs'; // ✅ Fixed: Bcryptjs used
+import bcrypt from 'bcryptjs';
 import { Readable } from 'stream';
+
 
 // ===== 2. CONFIGURATION =====
 dotenv.config();
@@ -25,7 +26,6 @@ const app = express();
 
 const ADMIN_EMAIL = 'mohdesigner09@gmail.com';
 
-// ✅ GLOBAL SECURITY UNLOCK (Ye code sabse upar hona chahiye)
 // ✅ SECURITY UNLOCK (Paste this right after 'const app = express();')
 app.use((req, res, next) => {
   // Purane rules hatao
@@ -1231,8 +1231,7 @@ app.get('/api/get-announcement', async (req, res) => {
 // Insert this block near your other /api routes (before the global error handler)
 
 // Helper: get OAuth token
-import { google } from 'googleapis';
-import axios from 'axios';
+
 
 function getOAuth2Client() {
   const oauth2Client = new google.auth.OAuth2(
