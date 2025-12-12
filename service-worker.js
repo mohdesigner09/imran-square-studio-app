@@ -1,43 +1,51 @@
-const CACHE_NAME = 'imran-square-v109';
-
+// Sirf ye line change karo:
+const CACHE_NAME = 'imran-square-resend-v100'; // Version naam badal diya
+// ... baaki code same rahega ...
 const urlsToCache = [
   '/',
   '/index.html',
   '/landing.html',
-  '/login.html',
   '/manifest.json',
+  '/resources/icon-32.png',
   '/resources/icon-192.png',
-  '/resources/icon-512.png',
   '/main.js',
   '/dashboard-advanced.js'
 ];
 
-self.addEventListener('install', event => {
+// 1. Install (Sirf apni files save karo)
+self.addEventListener('install', (event) => {
   self.skipWaiting();
   event.waitUntil(
-    caches.open(CACHE_NAME).then(cache => cache.addAll(urlsToCache))
+    caches.open(CACHE_NAME).then((cache) => {
+      return cache.addAll(urlsToCache);
+    })
   );
 });
 
-self.addEventListener('fetch', event => {
-  // Sirf apne domain ke requests cache karo → Tailwind, Google fonts errors band
+// 2. Fetch (EXTERNAL FILES KO IGNORE KARO - Ye Red Errors band karega)
+self.addEventListener('fetch', (event) => {
+  // Agar link apni website ka nahi hai (jaise tailwind, google), to cache mat karo
   if (!event.request.url.startsWith(self.location.origin)) {
-    return fetch(event.request);
+    return;
   }
 
   event.respondWith(
-    caches.match(event.request).then(response => {
+    caches.match(event.request).then((response) => {
       return response || fetch(event.request);
     })
   );
 });
 
-self.addEventListener('activate', event => {
+// 3. Activate (Purana cache saaf karo)
+self.addEventListener('activate', (event) => {
   event.waitUntil(
-    caches.keys().then(cacheNames => {
+    caches.keys().then((cacheNames) => {
       return Promise.all(
-        cacheNames.filter(name => name !== CACHE_NAME)
-          .map(name => caches.delete(name))
+        cacheNames.map((cacheName) => {
+          if (cacheName !== CACHE_NAME) {
+            return caches.delete(cacheName);
+          }
+        })
       );
     })
   );

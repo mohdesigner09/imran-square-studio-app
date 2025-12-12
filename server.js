@@ -1,4 +1,3 @@
-
 // ===== 1. IMPORTS =====
 import express from 'express';
 import cors from 'cors';
@@ -7,26 +6,26 @@ import multer from 'multer';
 import nodemailer from 'nodemailer';
 import axios from 'axios';
 import admin from 'firebase-admin';
-import { google } from 'googleapis';   // ← YEHI EK BAAR HONA CHAHIYE
+import { google } from 'googleapis';
 import path from 'path';
 import { fileURLToPath } from 'url';
-import bcrypt from 'bcryptjs';
+import { readFileSync } from 'fs';
+import bcrypt from 'bcryptjs'; // ✅ Fixed: Bcryptjs used
 import { Readable } from 'stream';
-
-// __dirname setup for ES Modules
-const __filename = fileURLToPath(import.meta.url);
-const __dirname = path.dirname(__filename);
 
 // ===== 2. CONFIGURATION =====
 dotenv.config();
 
-
+// __dirname setup for ES Modules
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
 
 // ===== 3. APP INITIALIZATION =====
 const app = express();
 
 const ADMIN_EMAIL = 'mohdesigner09@gmail.com';
 
+// ✅ GLOBAL SECURITY UNLOCK (Ye code sabse upar hona chahiye)
 // ✅ SECURITY UNLOCK (Paste this right after 'const app = express();')
 app.use((req, res, next) => {
   // Purane rules hatao
@@ -52,43 +51,47 @@ app.use(cors());
 app.use(express.json({ limit: '10mb' }));
 // ... baaki code ...
 
-
-// ===== STATIC FILES & ROUTES =====
-
-// Sab static files automatically serve karega (CSS, JS, images, HTML pages)
+// Static Files
 app.use(express.static(__dirname));
 
-// Root pe landing page
+// ... ISKE NEECHE JO CODE HAI USE MAT CHEDHNA ...
+// ... (Routes, Firebase Init, etc. waisa hi rahega) ...
+
+// ===== ROUTES =====
+
+// 1. New Landing Page (Resend Style)
+// 1. Root Route -> Naya Resend Landing Page
 app.get('/', (req, res) => {
   res.sendFile(path.join(__dirname, 'landing.html'));
 });
 
-// Named wildcard fallback – sab unknown routes ke liye landing dikhao (no error)
-app.get('/*splat', (req, res) => {
-  res.sendFile(path.join(__dirname, 'landing.html'));
+// 2. Login Route -> Purana App Logic
+app.get('/login', (req, res) => {
+  res.sendFile(path.join(__dirname, 'login.html'));
 });
-// Baaki API routes jaise send-otp, verify-otp waisa hi rehne de
-// ===== 7. FIREBASE ADMIN INIT (SUPER SAFE – NO JSON FILE) =====
-const serviceAccount = {
-  type: "service_account",
-  project_id: process.env.FIREBASE_PROJECT_ID,
-  private_key_id: process.env.FIREBASE_PRIVATE_KEY_ID,
-  private_key: process.env.FIREBASE_PRIVATE_KEY?.replace(/\\n/g, '\n'),
-  client_email: process.env.FIREBASE_CLIENT_EMAIL,
-  client_id: process.env.FIREBASE_CLIENT_ID,
-  auth_uri: "https://accounts.google.com/o/oauth2/auth",
-  token_uri: "https://oauth2.googleapis.com/token",
-  auth_provider_x509_cert_url: "https://www.googleapis.com/oauth2/v1/certs",
-  client_x509_cert_url: process.env.FIREBASE_CLIENT_X509_CERT_URL,
-  universe_domain: "googleapis.com"
-};
 
-if (!admin.apps.length) {
-  admin.initializeApp({
-    credential: admin.credential.cert(serviceAccount),
-    storageBucket: 'iimransquare.firebasestorage.app'
-  });
-  console.log('Firebase Admin initialized from environment variables');
+// 3. Fallback
+app.get('/login.html', (req, res) => {
+  res.sendFile(path.join(__dirname, 'login.html'));
+});
+
+app.get('/index.html', (req, res) => {
+  res.sendFile(path.join(__dirname, 'index.html'));
+});
+
+// ===== 7. FIREBASE INITIALIZATION =====
+try {
+  const serviceAccount = JSON.parse(process.env.FIREBASE_SERVICE_ACCOUNT_JSON);
+  
+  if (!admin.apps.length) { // Check taaki duplicate init na ho
+    admin.initializeApp({
+      credential: admin.credential.cert(serviceAccount),
+      storageBucket: 'iimransquare.firebasestorage.app' // Bucket name check kar lena
+    });
+    console.log('✅ Firebase Admin initialized successfully');
+  }
+} catch (error) {
+  console.error('❌ Firebase Init Error:', error.message);
 }
 
 const db = admin.firestore();
@@ -243,62 +246,95 @@ app.post('/api/send-otp', async (req, res) => {
 });
 
 // VERIFY OTP + Create/Update User in Firestore
-// ===== VERIFY OTP =====
 app.post('/api/verify-otp', async (req, res) => {
   try {
-    const { email, otp } = req.body;
+    const { email, code } = req.body;
 
-    if (!email || !otp) {
-      return res.status(400).json({ success: false, message: 'Missing email or OTP' });
+    if (!email || !code) {
+      return res.status(400).json({ success: false, message: 'Email and code required' });
     }
 
-    // Check if user exists
-    const userQuery = db.collection('users').where('email', '==', email).get();
-    const querySnapshot = await userQuery;
-    let userDoc;
+    const record = otpStore[email];
+    if (!record) {
+      return res.status(400).json({ success: false, message: 'No OTP generated for this email' });
+    }
 
-    if (querySnapshot.empty) {
-      // New user - create one
-      const newUserRef = db.collection('users').doc();
-      const newUser = {
-        email,
-        uid: newUserRef.id,
-        displayName: email.split('@')[0],
-        photoURL: '',
-        role: 'user',
+    if (Date.now() > record.expiresAt) {
+      delete otpStore[email];
+      return res.status(400).json({ success: false, message: 'OTP expired' });
+    }
+
+    if (record.code !== code) {
+      return res.status(400).json({ success: false, message: 'Invalid OTP' });
+    }
+
+// OTP correct, clear it
+    delete otpStore[email];
+
+    // 👇 YAHAN SE UPDATE KARO 👇
+    // 🔥 GOD MODE: Force Admin Role
+    let role = 'user'; // Default
+    if (email === ADMIN_EMAIL) {
+        role = 'admin';
+        console.log("⚡ GOD MODE DETECTED: Admin Role Assigned");
+    }
+
+    // Check if user exists in Firestore
+    const usersRef = db.collection('users');
+    const snapshot = await usersRef.where('email', '==', email).get();
+
+    let userData;
+    let isNew = false;
+
+    if (snapshot.empty) {
+      // New user - create document
+      const newUserRef = usersRef.doc();
+      userData = {
+        userId: newUserRef.id,
+        email: email,
+        role: role, // ✅ Updated Role used here
+        subscription: 'free',
         createdAt: admin.firestore.FieldValue.serverTimestamp(),
-        lastLogin: admin.firestore.FieldValue.serverTimestamp(),
+        lastLogin: admin.firestore.FieldValue.serverTimestamp()
       };
-      await newUserRef.set(newUser);
-      userDoc = newUser;
-      console.log('✅ New user created:', newUser.uid);
+      await newUserRef.set(userData);
+      isNew = true;
     } else {
-      userDoc = querySnapshot.docs[0].data();
-    }
-
-    // Now verify OTP (assume OTP is stored in user doc or temp collection - adjust as per your code)
-    if (userDoc.otp !== otp || Date.now() > userDoc.otpExpiry) {
-      return res.status(400).json({ success: false, message: 'Invalid or expired OTP' });
-    }
-
-    // OTP valid - clear OTP and update last login
-    await db.collection('users').doc(userDoc.uid).update({
-      otp: admin.firestore.FieldValue.delete(),
-      otpExpiry: admin.firestore.FieldValue.delete(),
-      lastLogin: admin.firestore.FieldValue.serverTimestamp(),
-    });
-
-    // Return success with user data
-    return res.json({
-      success: true,
-      user: {
-        uid: userDoc.uid,
-        email: userDoc.email,
-        displayName: userDoc.displayName,
-        photoURL: userDoc.photoURL,
-        role: userDoc.role,
+      // Existing user - update last login AND ensure Role is correct
+      const userDoc = snapshot.docs[0];
+      
+      // Agar Boss login kar raha hai, to DB mein bhi role update kar do (Safety)
+      if (email === ADMIN_EMAIL) {
+         await usersRef.doc(userDoc.id).update({ 
+             lastLogin: admin.firestore.FieldValue.serverTimestamp(),
+             role: 'admin' 
+         });
+         userData = { userId: userDoc.id, ...userDoc.data(), role: 'admin' };
+      } else {
+         await usersRef.doc(userDoc.id).update({ 
+             lastLogin: admin.firestore.FieldValue.serverTimestamp()
+         });
+         userData = { userId: userDoc.id, ...userDoc.data() };
       }
-    });
+      isNew = false;
+    }
+    // 👆 YAHAN TAK UPDATE KARO 👆
+
+return res.json({
+  success: true,
+  message: 'OTP verified',
+  isNew,
+  user: {
+    userId: userData.userId,
+    email: userData.email,
+    firstName: userData.firstName || '',
+    lastName: userData.lastName || '',
+    username: userData.username || '',
+    role: userData.role || 'user',
+    subscription: userData.subscription || 'free'
+  }
+});
+
   } catch (err) {
     console.error('❌ Verify OTP error:', err);
     return res.status(500).json({ success: false, message: 'Server error' });
@@ -1187,7 +1223,8 @@ app.get('/api/get-announcement', async (req, res) => {
 // Insert this block near your other /api routes (before the global error handler)
 
 // Helper: get OAuth token
-
+import { google } from 'googleapis';
+import axios from 'axios';
 
 function getOAuth2Client() {
   const oauth2Client = new google.auth.OAuth2(
