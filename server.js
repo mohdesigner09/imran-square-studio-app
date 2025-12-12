@@ -264,95 +264,62 @@ app.post('/api/send-otp', async (req, res) => {
 });
 
 // VERIFY OTP + Create/Update User in Firestore
+// ===== VERIFY OTP =====
 app.post('/api/verify-otp', async (req, res) => {
   try {
-    const { email, code } = req.body;
+    const { email, otp } = req.body;
 
-    if (!email || !code) {
-      return res.status(400).json({ success: false, message: 'Email and code required' });
+    if (!email || !otp) {
+      return res.status(400).json({ success: false, message: 'Missing email or OTP' });
     }
 
-    const record = otpStore[email];
-    if (!record) {
-      return res.status(400).json({ success: false, message: 'No OTP generated for this email' });
-    }
+    // Check if user exists
+    const userQuery = db.collection('users').where('email', '==', email).get();
+    const querySnapshot = await userQuery;
+    let userDoc;
 
-    if (Date.now() > record.expiresAt) {
-      delete otpStore[email];
-      return res.status(400).json({ success: false, message: 'OTP expired' });
-    }
-
-    if (record.code !== code) {
-      return res.status(400).json({ success: false, message: 'Invalid OTP' });
-    }
-
-// OTP correct, clear it
-    delete otpStore[email];
-
-    // 👇 YAHAN SE UPDATE KARO 👇
-    // 🔥 GOD MODE: Force Admin Role
-    let role = 'user'; // Default
-    if (email === ADMIN_EMAIL) {
-        role = 'admin';
-        console.log("⚡ GOD MODE DETECTED: Admin Role Assigned");
-    }
-
-    // Check if user exists in Firestore
-    const usersRef = db.collection('users');
-    const snapshot = await usersRef.where('email', '==', email).get();
-
-    let userData;
-    let isNew = false;
-
-    if (snapshot.empty) {
-      // New user - create document
-      const newUserRef = usersRef.doc();
-      userData = {
-        userId: newUserRef.id,
-        email: email,
-        role: role, // ✅ Updated Role used here
-        subscription: 'free',
+    if (querySnapshot.empty) {
+      // New user - create one
+      const newUserRef = db.collection('users').doc();
+      const newUser = {
+        email,
+        uid: newUserRef.id,
+        displayName: email.split('@')[0],
+        photoURL: '',
+        role: 'user',
         createdAt: admin.firestore.FieldValue.serverTimestamp(),
-        lastLogin: admin.firestore.FieldValue.serverTimestamp()
+        lastLogin: admin.firestore.FieldValue.serverTimestamp(),
       };
-      await newUserRef.set(userData);
-      isNew = true;
+      await newUserRef.set(newUser);
+      userDoc = newUser;
+      console.log('✅ New user created:', newUser.uid);
     } else {
-      // Existing user - update last login AND ensure Role is correct
-      const userDoc = snapshot.docs[0];
-      
-      // Agar Boss login kar raha hai, to DB mein bhi role update kar do (Safety)
-      if (email === ADMIN_EMAIL) {
-         await usersRef.doc(userDoc.id).update({ 
-             lastLogin: admin.firestore.FieldValue.serverTimestamp(),
-             role: 'admin' 
-         });
-         userData = { userId: userDoc.id, ...userDoc.data(), role: 'admin' };
-      } else {
-         await usersRef.doc(userDoc.id).update({ 
-             lastLogin: admin.firestore.FieldValue.serverTimestamp()
-         });
-         userData = { userId: userDoc.id, ...userDoc.data() };
-      }
-      isNew = false;
+      userDoc = querySnapshot.docs[0].data();
     }
-    // 👆 YAHAN TAK UPDATE KARO 👆
 
-return res.json({
-  success: true,
-  message: 'OTP verified',
-  isNew,
-  user: {
-    userId: userData.userId,
-    email: userData.email,
-    firstName: userData.firstName || '',
-    lastName: userData.lastName || '',
-    username: userData.username || '',
-    role: userData.role || 'user',
-    subscription: userData.subscription || 'free'
-  }
-});
+    // Now verify OTP (assume OTP is stored in user doc or temp collection - adjust as per your code)
+    if (userDoc.otp !== otp || Date.now() > userDoc.otpExpiry) {
+      return res.status(400).json({ success: false, message: 'Invalid or expired OTP' });
+    }
 
+    // OTP valid - clear OTP and update last login
+    await db.collection('users').doc(userDoc.uid).update({
+      otp: admin.firestore.FieldValue.delete(),
+      otpExpiry: admin.firestore.FieldValue.delete(),
+      lastLogin: admin.firestore.FieldValue.serverTimestamp(),
+    });
+
+    // Return success with user data
+    return res.json({
+      success: true,
+      user: {
+        uid: userDoc.uid,
+        email: userDoc.email,
+        displayName: userDoc.displayName,
+        photoURL: userDoc.photoURL,
+        role: userDoc.role,
+      }
+    });
   } catch (err) {
     console.error('❌ Verify OTP error:', err);
     return res.status(500).json({ success: false, message: 'Server error' });
