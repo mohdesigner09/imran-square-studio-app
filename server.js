@@ -13,13 +13,14 @@ import { fileURLToPath } from 'url';
 import bcrypt from 'bcryptjs';
 import { Readable } from 'stream';
 
+// __dirname setup for ES Modules
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
 
 // ===== 2. CONFIGURATION =====
 dotenv.config();
 
-// __dirname setup for ES Modules
-const __filename = fileURLToPath(import.meta.url);
-const __dirname = path.dirname(__filename);
+
 
 // ===== 3. APP INITIALIZATION =====
 const app = express();
