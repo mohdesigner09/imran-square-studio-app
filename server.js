@@ -52,45 +52,32 @@ app.use(cors());
 app.use(express.json({ limit: '10mb' }));
 // ... baaki code ...
 
-// Static Files
-app.use(express.static(__dirname));
 
-// ... ISKE NEECHE JO CODE HAI USE MAT CHEDHNA ...
-// ... (Routes, Firebase Init, etc. waisa hi rahega) ...
 
 // ===== ROUTES =====
 
-
-// Root pe landing page dikhao (sabse pehla route)
 // Root pe landing page
 app.get('/', (req, res) => {
   res.sendFile(path.join(__dirname, 'landing.html'));
 });
 
-// Baaki sab ke liye wildcard
-app.get('/*splat', (req, res) => {
-  res.sendFile(path.join(__dirname, req.params.splat));
-});
-
-
-
-// Baaki sab pages ke liye fallback
-app.get('*', (req, res) => {
-  res.sendFile(path.join(__dirname, req.path));
-});
-
-// Login page ke liye alag route
-app.get('/login.html', (req, res) => {
-  res.sendFile(path.join(__dirname, 'login.html'));
-});
-
-// 3. Fallback
+// Specific pages (optional – wildcard se bhi chal jayegi, lekin safe hai rakhna)
 app.get('/login.html', (req, res) => {
   res.sendFile(path.join(__dirname, 'login.html'));
 });
 
 app.get('/index.html', (req, res) => {
   res.sendFile(path.join(__dirname, 'index.html'));
+});
+
+// SABSE LAST MEIN – Wildcard fallback (sab kuch handle karega)
+app.get('/*splat', (req, res) => {
+  const requestedPath = req.params.splat || 'landing.html';
+  res.sendFile(path.join(__dirname, requestedPath), (err) => {
+    if (err) {
+      res.status(404).send('Not Found');
+    }
+  });
 });
 
 // ===== 7. FIREBASE ADMIN INIT (SUPER SAFE – NO JSON FILE) =====
