@@ -1,6 +1,11 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
+  <script>
+  if (!localStorage.getItem('imranUser')) {
+    window.location.href = 'login.html';
+  }
+</script>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Footage - IMRAN SQUARE</title>
@@ -58,7 +63,8 @@
     .nav-item.active { color: var(--accent-orange); }
   </style>
 </head>
-<body>
+<body class="min-h-screen bg-black text-white">
+  <div class="px-4 sm:px-6 md:px-8 max-w-7xl mx-auto">
   <div class="hero-bg"></div>
   <canvas class="film-grain" id="filmGrain"></canvas>
 

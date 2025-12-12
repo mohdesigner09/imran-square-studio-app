@@ -79,19 +79,27 @@ app.get('/index.html', (req, res) => {
   res.sendFile(path.join(__dirname, 'index.html'));
 });
 
-// ===== 7. FIREBASE INITIALIZATION =====
-try {
-  const serviceAccount = JSON.parse(process.env.FIREBASE_SERVICE_ACCOUNT_JSON);
-  
-  if (!admin.apps.length) { // Check taaki duplicate init na ho
-    admin.initializeApp({
-      credential: admin.credential.cert(serviceAccount),
-      storageBucket: 'iimransquare.firebasestorage.app' // Bucket name check kar lena
-    });
-    console.log('✅ Firebase Admin initialized successfully');
-  }
-} catch (error) {
-  console.error('❌ Firebase Init Error:', error.message);
+// ===== 7. FIREBASE ADMIN INIT (SUPER SAFE – NO JSON FILE) =====
+const serviceAccount = {
+  type: "service_account",
+  project_id: process.env.FIREBASE_PROJECT_ID,
+  private_key_id: process.env.FIREBASE_PRIVATE_KEY_ID,
+  private_key: process.env.FIREBASE_PRIVATE_KEY?.replace(/\\n/g, '\n'),
+  client_email: process.env.FIREBASE_CLIENT_EMAIL,
+  client_id: process.env.FIREBASE_CLIENT_ID,
+  auth_uri: "https://accounts.google.com/o/oauth2/auth",
+  token_uri: "https://oauth2.googleapis.com/token",
+  auth_provider_x509_cert_url: "https://www.googleapis.com/oauth2/v1/certs",
+  client_x509_cert_url: process.env.FIREBASE_CLIENT_X509_CERT_URL,
+  universe_domain: "googleapis.com"
+};
+
+if (!admin.apps.length) {
+  admin.initializeApp({
+    credential: admin.credential.cert(serviceAccount),
+    storageBucket: 'iimransquare.firebasestorage.app'
+  });
+  console.log('Firebase Admin initialized from environment variables');
 }
 
 const db = admin.firestore();
@@ -1219,6 +1227,139 @@ app.get('/api/get-announcement', async (req, res) => {
     } catch(e) { return res.json({ success: false }); }
 });
 
+// ===== DRIVE RESUMABLE UPLOAD ENDPOINTS =====
+// Insert this block near your other /api routes (before the global error handler)
+
+// Helper: get OAuth token
+import { google } from 'googleapis';
+import axios from 'axios';
+
+function getOAuth2Client() {
+  const oauth2Client = new google.auth.OAuth2(
+    process.env.DRIVE_CLIENT_ID,
+    process.env.DRIVE_CLIENT_SECRET
+  );
+  oauth2Client.setCredentials({ refresh_token: process.env.DRIVE_REFRESH_TOKEN });
+  return oauth2Client;
+}
+
+async function getAccessToken() {
+  const oauth2Client = getOAuth2Client();
+  const { token } = await oauth2Client.getAccessToken();
+  if (!token) throw new Error('Failed to get Google access token');
+  return token;
+}
+
+// POST /api/footage/init-upload
+app.post('/api/footage/init-upload', async (req, res) => {
+  try {
+    const { filename, mimeType, fileSize, projectId, userId } = req.body;
+    if (!filename || !mimeType || !userId) {
+      return res.status(400).json({ success: false, message: 'Missing required fields' });
+    }
+
+    const token = await getAccessToken();
+
+    const metadata = {
+      name: `${Date.now()}_${filename}`,
+      parents: [process.env.DRIVE_FOLDER_ID],
+      mimeType
+    };
+
+    const url = 'https://www.googleapis.com/upload/drive/v3/files?uploadType=resumable&fields=id,name';
+    const r = await axios.post(url, metadata, {
+      headers: {
+        Authorization: `Bearer ${token}`,
+        'Content-Type': 'application/json; charset=UTF-8',
+        'X-Upload-Content-Type': mimeType,
+        ...(fileSize ? { 'X-Upload-Content-Length': fileSize } : {})
+      },
+      validateStatus: s => s >= 200 && s < 400
+    });
+
+    const sessionUri = r.headers.location;
+    if (!sessionUri) throw new Error('No session URI from Drive');
+
+    // create Firestore pending doc
+    const docRef = db.collection('footage').doc();
+    const footageData = {
+      id: docRef.id,
+      filename: metadata.name,
+      originalName: filename,
+      mimeType,
+      fileSize: fileSize || null,
+      createdAt: admin.firestore.FieldValue.serverTimestamp(),
+      status: 'uploading',
+      projectId: projectId || null,
+      userId: userId || null
+    };
+    await docRef.set(footageData);
+
+    res.json({ success: true, sessionUri, footageId: docRef.id });
+  } catch (err) {
+    console.error('init-upload error:', err?.response?.data || err.message || err);
+    res.status(500).json({ success: false, message: 'Failed to initialize upload' });
+  }
+});
+
+// POST /api/footage/finalize-upload
+app.post('/api/footage/finalize-upload', async (req, res) => {
+  try {
+    const { footageId, driveFileId } = req.body;
+    if (!footageId) return res.status(400).json({ success: false, message: 'Missing footageId' });
+
+    // If client provided driveFileId, use it. Otherwise try to find by filename stored earlier.
+    const oauth2Client = getOAuth2Client();
+    const driveApi = google.drive({ version: 'v3', auth: oauth2Client });
+
+    let fileId = driveFileId || null;
+
+    if (!fileId) {
+      // get doc to find filename inserted earlier
+      const doc = await db.collection('footage').doc(footageId).get();
+      if (!doc.exists) return res.status(404).json({ success: false, message: 'Footage doc not found' });
+      const d = doc.data();
+      // Try to search recent file by name in Drive folder (best-effort)
+      const q = `name='${d.filename}' and '${process.env.DRIVE_FOLDER_ID}' in parents`;
+      const listRes = await driveApi.files.list({ q, fields: 'files(id,name)', pageSize: 5 });
+      if (listRes.data.files && listRes.data.files.length > 0) {
+        fileId = listRes.data.files[0].id;
+      }
+    }
+
+    if (!fileId) {
+      // cannot finalize but mark as pending finalize
+      await db.collection('footage').doc(footageId).update({ status: 'uploaded_needs_finalize', updatedAt: admin.firestore.FieldValue.serverTimestamp() });
+      return res.status(200).json({ success: true, note: 'Upload present but drive file id unknown; admin check needed' });
+    }
+
+    // Set public read permission (anyone with link)
+    try {
+      await driveApi.permissions.create({ fileId, requestBody: { role: 'reader', type: 'anyone' } });
+    } catch (permErr) {
+      console.warn('permission create issue (ignored):', permErr?.message || permErr);
+    }
+
+    // fetch metadata
+    const meta = await driveApi.files.get({ fileId, fields: 'id,name,size,mimeType,webViewLink' });
+
+    // update firestore
+    await db.collection('footage').doc(footageId).update({
+      status: 'received',
+      driveFileId: meta.data.id,
+      driveWebViewLink: meta.data.webViewLink || null,
+      streamLink: `https://drive.google.com/file/d/${meta.data.id}/preview`,
+      size: Number(meta.data.size || 0),
+      receivedAt: admin.firestore.FieldValue.serverTimestamp()
+    });
+
+    res.json({ success: true, fileId: meta.data.id });
+  } catch (err) {
+    console.error('finalize-upload error:', err?.response?.data || err.message || err);
+    res.status(500).json({ success: false, message: 'Failed to finalize upload' });
+  }
+});
+
 // ============ GLOBAL ERROR HANDLER (MULTER + OTHERS) ============
 app.use((err, req, res, next) => {
   if (err instanceof multer.MulterError) {
@@ -1235,6 +1376,10 @@ app.use((err, req, res, next) => {
     message: 'Internal server error',
   });
 });
+
+
+
+
 
 // ==========================================
 const PORT = process.env.PORT || 3000;
