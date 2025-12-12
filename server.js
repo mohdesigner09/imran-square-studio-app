@@ -940,19 +940,25 @@ app.post('/api/chat', async (req, res) => {
   try {
     let response;
     
-    // ============= GEMINI MODELS =============
+    // ============= GEMINI MODELS (UPDATED FIX) =============
     if (model?.startsWith('gemini-')) {
       console.log('🔷 Using Gemini API...');
       
+      // 1. Collect All Keys
       const keys = [
         process.env.GEMINI_API_KEY,
-        process.env.GEMINI_API_KEY_1, process.env.GEMINI_API_KEY_2, process.env.GEMINI_API_KEY_3
-      ].filter(k => k);
+        process.env.GEMINI_API_KEY_1,
+        process.env.GEMINI_API_KEY_2,
+        process.env.GEMINI_API_KEY_3,
+        process.env.GEMINI_API_KEY_4
+      ].filter(k => k && k.trim().length > 10); // Valid keys only
 
       if (keys.length === 0) throw new Error('No Gemini API keys found');
+
+      // 2. Random Key for Load Balancing
       const randomKey = keys[Math.floor(Math.random() * keys.length)];
 
-      // Construct History
+      // 3. Prepare History
       let contents = [];
       if (history && Array.isArray(history)) {
         contents = history
@@ -964,70 +970,85 @@ app.post('/api/chat', async (req, res) => {
       }
       contents.push({ role: 'user', parts: [{ text: userMessage }] });
 
+      // 4. API URL Construction
       const geminiUrl = `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${randomKey}`;
 
       try {
         response = await axios.post(geminiUrl, { contents });
         return res.json(response.data);
       } catch (err) {
-        // Fallback for 404 (Model Not Found) -> Try Flash-8b (Newer/Cheaper)
+        // ERROR HANDLING LOGIC
+        
+        // CASE 1: 404 (Model Not Found) -> Try Stable Version 002
         if (err.response?.status === 404) {
-            console.log("⚠️ 404 Error, retrying with 'gemini-1.5-flash-8b'...");
-            const fallbackUrl = `https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash-8b:generateContent?key=${randomKey}`;
-            response = await axios.post(fallbackUrl, { contents });
-            return res.json(response.data);
+            console.log("⚠️ 404 Error, retrying with 'gemini-1.5-flash-002' (Stable)...");
+            const fallbackUrl = `https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash-002:generateContent?key=${randomKey}`;
+            try {
+                response = await axios.post(fallbackUrl, { contents });
+                return res.json(response.data);
+            } catch (fallbackErr) {
+                // Agar wo bhi fail ho, to 'gemini-1.5-pro' try karo
+                console.log("⚠️ Flash-002 failed, trying 'gemini-1.5-pro'...");
+                const fallbackUrl2 = `https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-pro:generateContent?key=${randomKey}`;
+                response = await axios.post(fallbackUrl2, { contents });
+                return res.json(response.data);
+            }
         }
+
+        // CASE 2: 429 (Quota Exceeded) -> Try Next Key
+        if (err.response?.status === 429) {
+             console.log("⚠️ Quota Exceeded. You need more API keys in .env!");
+             // Simple Retry with different key if available
+             if (keys.length > 1) {
+                 const nextKey = keys[(keys.indexOf(randomKey) + 1) % keys.length];
+                 console.log("🔄 Retrying with backup key...");
+                 const retryUrl = `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${nextKey}`;
+                 response = await axios.post(retryUrl, { contents });
+                 return res.json(response.data);
+             }
+        }
+        
         throw err;
       }
     }
 
-    // ============= GROQ MODELS (UPDATED) =============
+    // ============= GROQ MODELS =============
     else if (model?.startsWith('groq-')) {
       console.log('⚡ Using Groq API...');
       if (!process.env.GROQ_API_KEY) throw new Error('Missing GROQ_API_KEY');
 
-      // Map old model names to new working ones
       const groqModelMap = {
-        'groq-llama-70b': 'llama-3.3-70b-versatile', // UPDATED (3.1 is deprecated)
+        'groq-llama-70b': 'llama-3.3-70b-versatile',
         'groq-llama-8b': 'llama-3.1-8b-instant'
       };
-      const actualModel = groqModelMap[model] || 'llama-3.3-70b-versatile';
+      const actualModel = groqModelMap[model] || 'llama-3.1-8b-instant';
 
-      const messages = sanitizeMessages(history, userMessage);
+      const messages = sanitizeMessages(history, userMessage); // Ensure sanitizeMessages exists above
 
       response = await axios.post(
         'https://api.groq.com/openai/v1/chat/completions',
-        {
-          model: actualModel,
-          messages: messages,
-          temperature: 0.7,
-          max_tokens: 1024
-        },
+        { model: actualModel, messages, temperature: 0.7, max_tokens: 1024 },
         { headers: { 'Authorization': `Bearer ${process.env.GROQ_API_KEY}`, 'Content-Type': 'application/json' } }
       );
       return res.json(response.data);
     }
 
-    // ============= PERPLEXITY (FIXED HISTORY) =============
+    // ============= PERPLEXITY =============
     else if (model === 'perplexity-online') {
       console.log('🟣 Using Perplexity API...');
       if (!process.env.PERPLEXITY_API_KEY) throw new Error('Missing PERPLEXITY_API_KEY');
 
-      // Use generic 'sonar' model which is safest
-      const messages = sanitizeMessages(history, userMessage);
+      const messages = sanitizeMessages(history, userMessage); // Use Sanitizer
 
       response = await axios.post(
         'https://api.perplexity.ai/chat/completions',
-        { 
-            model: 'sonar', 
-            messages: messages 
-        },
+        { model: 'sonar', messages },
         { headers: { 'Authorization': `Bearer ${process.env.PERPLEXITY_API_KEY}`, 'Content-Type': 'application/json' } }
       );
       return res.json(response.data);
     }
 
-    // ============= SERPER SEARCH =============
+    // ============= SERPER =============
     else if (model === 'serper-search') {
       console.log('🔍 Serper Search...');
       if (!process.env.SERPER_API_KEY) throw new Error('Missing SERPER_API_KEY');
@@ -1048,17 +1069,7 @@ app.post('/api/chat', async (req, res) => {
 
   } catch (error) {
     console.error('❌ API ERROR:', error.response?.data || error.message);
-    const status = error.response?.status || 500;
-    
-    // Friendly error for Rate Limit
-    if (status === 429) {
-        return res.status(429).json({ 
-            error: 'Quota Exceeded', 
-            message: "⚠️ Server busy (Rate Limit). Please wait 30s or switch model." 
-        });
-    }
-
-    res.status(status).json({
+    res.status(error.response?.status || 500).json({
       error: 'API Failed',
       message: error.response?.data?.error?.message || error.message
     });
