@@ -8,21 +8,22 @@
   />
   <title>Neural Core - IMRAN SQUARE</title>
 
-  <!-- PWA Meta Tags -->
   <meta name="theme-color" content="#030303" />
   <meta name="mobile-web-app-capable" content="yes" />
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
   <link rel="manifest" href="/manifest.json" />
 
-  <!-- Icons -->
   <link rel="apple-touch-icon" href="/resources/icon-152.png" />
   <link rel="icon" type="image/png" sizes="32x32" href="/resources/icon-32.png" />
   <link rel="shortcut icon" href="/resources/favicon.ico" />
 
-  <!-- Libs -->
   <script src="https://cdn.tailwindcss.com"></script>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/animejs/3.2.1/anime.min.js"></script>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+
+  <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.7.0/styles/github-dark.min.css">
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.7.0/highlight.min.js"></script>
 
   <link
     href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600&family=Playfair+Display:wght@700;900&family=JetBrains+Mono:wght@400;500&display=swap"
@@ -955,6 +956,24 @@
 #messagesList::-webkit-scrollbar-thumb:hover {
   background: rgba(74, 222, 128, 0.5);
 }
+
+/* AI Generated Content Styling */
+.prose {
+  color: #e5e5e5;
+  font-size: 0.95rem;
+  line-height: 1.6;
+}
+.prose h1, .prose h2, .prose h3 { margin-top: 1rem; margin-bottom: 0.5rem; font-weight: 600; color: #fff; }
+.prose p { margin-bottom: 0.75rem; }
+.prose ul { list-style-type: disc; padding-left: 1.5rem; margin-bottom: 0.75rem; }
+.prose ol { list-style-type: decimal; padding-left: 1.5rem; margin-bottom: 0.75rem; }
+.prose strong { color: #4ade80; font-weight: 600; }
+.prose code { background: rgba(0,0,0,0.3); padding: 2px 5px; border-radius: 4px; color: #fca5a5; font-family: 'JetBrains Mono', monospace; font-size: 0.85em; }
+.prose pre { background: #0d0d0d !important; padding: 1rem; border-radius: 8px; overflow-x: auto; border: 1px solid rgba(255,255,255,0.1); margin: 1rem 0; }
+.prose pre code { background: transparent; padding: 0; color: inherit; font-size: 0.85em; }
+.prose table { width: 100%; border-collapse: collapse; margin: 1rem 0; font-size: 0.9em; }
+.prose th, .prose td { padding: 0.75rem; border: 1px solid rgba(255,255,255,0.1); text-align: left; }
+.prose th { background: rgba(255,255,255,0.05); color: #4ade80; }
 
   </style>
 </head>
