@@ -2,10 +2,17 @@
 <html lang="en">
 <head>
     <script>
-  if (!localStorage.getItem('imranUser')) {
+  // Agar login page pe hai toh redirect mat karo
+  if (window.location.pathname.includes('login.html') || 
+      window.location.pathname.includes('landing.html') || 
+      window.location.pathname === '/') {
+    // kuch mat karo
+  } else if (!localStorage.getItem('imranUser')) {
     window.location.href = 'login.html';
   }
 </script>
+
+
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Sign in - Imran Square Studio</title>
