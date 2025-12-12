@@ -232,16 +232,24 @@ function addMessage(text, role, animate = true) {
     contentDiv.textContent = text;
   } else {
     // AI text is rendered Markdown
-    if (typeof marked !== 'undefined') {
-      try {
+   if (typeof marked !== 'undefined') {
         contentDiv.innerHTML = marked.parse(text);
-      } catch (e) {
-        contentDiv.textContent = text; // Fallback
-      }
+        
+        // Pollinations Image Handling
+        const imgRegex = /!\[image\]\((https:\/\/image\.pollinations\.ai\/prompt\/[^)]+)\)/g;
+        if (imgRegex.test(text)) {
+            // Already handled by marked.js img tag, but we can style it
+            const images = contentDiv.querySelectorAll('img');
+            images.forEach(img => {
+                img.style.borderRadius = "12px";
+                img.style.boxShadow = "0 4px 15px rgba(0,0,0,0.5)";
+                img.style.marginTop = "10px";
+            });
+        }
     } else {
-      contentDiv.innerText = text;
+        contentDiv.innerText = text;
     }
-  }
+}
 
   // Action Buttons (Copy, Edit, etc.)
   const actionsDiv = document.createElement('div');
