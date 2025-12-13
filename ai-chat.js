@@ -169,10 +169,17 @@ async function sendMessage(inputElement) {
     if (userMessage.toLowerCase().startsWith('/image')) {
       
       const prompt = userMessage.replace(/^\/image\s*/i, '').trim();
-      if (!prompt) throw new Error("Please describe the image!");
+   // 1. Prompt nikaalo & ENHANCE karo (Magic Trick) 🪄
+      let rawPrompt = userMessage.replace(/^\/image\s*/i, '').trim();
+      if (!rawPrompt) throw new Error("Please describe the image!");
 
+      // Hum automatic kuch 'Pro Keywords' jod denge taaki quality hamesha best aaye
+      const enhancedPrompt = `${rawPrompt}, cinematic lighting, 8k resolution, photorealistic, highly detailed, sharp focus, masterpiece, trending on artstation`;
+
+      // 2. Pollinations URL (With FLUX Model) 🚀
+      // &model=flux lagane se quality 10x badh jayegi
       const seed = Math.floor(Math.random() * 100000);
-      const imageUrl = `https://image.pollinations.ai/prompt/${encodeURIComponent(prompt)}?width=1024&height=1024&seed=${seed}&nologo=true`;
+      const imageUrl = `https://image.pollinations.ai/prompt/${encodeURIComponent(enhancedPrompt)}?width=1024&height=1024&seed=${seed}&model=flux&nologo=true`;
 
       removeTyping();
 
