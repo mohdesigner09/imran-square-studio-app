@@ -122,6 +122,7 @@ window.loadChat = function(chatId) {
 };
 
 // --- CORE LOGIC: SEND MESSAGE ---
+// --- CORE LOGIC: SEND MESSAGE ---
 async function sendMessage(inputElement) {
   const userMessage = inputElement.value.trim();
   if (!userMessage) return;
@@ -160,10 +161,63 @@ async function sendMessage(inputElement) {
   // Ensure UI is visible
   if (wrapper) wrapper.classList.add('mode-active');
 
-  // 3. API Request
   showTyping();
+  isGenerating = true;
   
   try {
+    // 🔥 PHASE 3: IMAGE GENERATION CHECK
+    // Agar message "/image" se shuru hota hai
+    if (userMessage.toLowerCase().startsWith('/image')) {
+      
+      // 1. Prompt nikaalo (e.g., "/image cat" -> "cat")
+      const prompt = userMessage.replace(/^\/image\s*/i, '').trim();
+      
+      if (!prompt) throw new Error("Please describe the image! (e.g., /image a red car)");
+
+      // 2. Pollinations URL banao
+      const seed = Math.floor(Math.random() * 100000);
+      const imageUrl = `https://image.pollinations.ai/prompt/${encodeURIComponent(prompt)}?width=1024&height=1024&seed=${seed}&nologo=true`;
+
+      removeTyping();
+
+      // 3. Image ko Chat mein dikhao
+      const aiMsgDiv = document.createElement('div');
+      aiMsgDiv.className = 'msg-row ai';
+      
+      aiMsgDiv.innerHTML = `
+        <div class="msg-bubble" style="padding: 0; overflow: hidden; background: transparent; border: none;">
+          <img src="${imageUrl}" alt="Generating..." 
+               style="max-width: 100%; border-radius: 12px; border: 1px solid rgba(255,255,255,0.2); min-height: 200px; display: block;" 
+               onload="this.scrollIntoView({behavior:'smooth'})"
+          >
+          <div style="margin-top: 8px; display: flex; gap: 10px;">
+            <a href="${imageUrl}" download="ai-image.jpg" target="_blank" 
+               style="background: #4ade80; color: #000; padding: 6px 12px; border-radius: 6px; text-decoration: none; font-size: 0.8rem; font-weight: bold;">
+               📥 Download
+            </a>
+          </div>
+        </div>
+      `;
+      
+      messagesList.appendChild(aiMsgDiv);
+      scrollToBottom();
+
+      // 4. Save to History
+      const chats = getChats();
+      const chat = chats.find(c => c.id === currentChatId);
+      if (chat) {
+        chat.messages.push({ text: `[Generated Image: ${prompt}]`, isUser: false });
+        saveChats(chats);
+      }
+      
+      // Image ban gayi, yahan se return ho jao
+      return; 
+    }
+  
+    // ==========================================
+    // 👇 TEXT GENERATION LOGIC (Agar image nahi hai)
+    // ==========================================
+
     const model = document.getElementById('modelSelect')?.value || 'gemini-1.5-flash';
     
     const response = await fetch(`${API_BASE}/api/chat`, {
@@ -172,7 +226,7 @@ async function sendMessage(inputElement) {
       body: JSON.stringify({ 
         userMessage, 
         model,
-        history: chatHistory // ✅ Sending History
+        history: chatHistory
       })
     });
 
@@ -185,7 +239,6 @@ async function sendMessage(inputElement) {
     const data = await response.json();
     let aiText = '';
 
-    // Robust Response Parsing (Supports Gemini, OpenAI, Groq formats)
     if (data.candidates?.[0]?.content?.parts?.[0]?.text) {
       aiText = data.candidates[0].content.parts[0].text; 
     } else if (data.choices?.[0]?.message?.content) {
@@ -194,13 +247,10 @@ async function sendMessage(inputElement) {
       aiText = '⚠️ Empty response from AI.';
     }
 
-    
-   // 4. Show AI Response WITH TYPEWRITER
-    isGenerating = true; // Flag on
+    // Show AI Response WITH TYPEWRITER
     await typeWriterEffect(aiText);
-    isGenerating = false; // Flag off
 
-    // 5. Save AI Response
+    // Save AI Response
     const chats = getChats();
     const chat = chats.find(c => c.id === currentChatId);
     if (chat) {
@@ -213,6 +263,9 @@ async function sendMessage(inputElement) {
     removeTyping();
     console.error('Chat Error:', err);
     addMessage(`⚠️ Error: ${err.message || 'Connection failed'}`, 'ai');
+  } finally {
+    // Chahe image ho ya text, generating flag band karo
+    isGenerating = false;
   }
 }
 
