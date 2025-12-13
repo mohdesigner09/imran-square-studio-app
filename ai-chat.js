@@ -333,22 +333,44 @@ async function typeWriterEffect(fullText) {
   });
 }
 
-// --- EVENT LISTENERS FOR MESSAGE BUTTONS ---
+// --- HELPER: Create Action Buttons (Copy, Edit, etc.) ---
+function createActionButtons(role) {
+  const actionsDiv = document.createElement('div');
+  actionsDiv.className = 'message-actions';
+  
+  if (role === 'user') {
+    actionsDiv.innerHTML = `
+      <button class="action-btn edit-msg-btn" title="Edit">✏️</button>
+      <button class="action-btn delete-msg-btn" title="Delete">🗑️</button>
+    `;
+  } else {
+    actionsDiv.innerHTML = `
+      <button class="action-btn copy-msg-btn" title="Copy">📋</button>
+      <button class="action-btn regen-msg-btn" title="Regenerate">🔄</button>
+    `;
+  }
+  return actionsDiv;
+}
+
+// --- HELPER: Attach Click Events to Buttons ---
 function attachMessageActions(msgDiv, originalText, role) {
   if (role === 'user') {
     const editBtn = msgDiv.querySelector('.edit-msg-btn');
     const delBtn = msgDiv.querySelector('.delete-msg-btn');
     
+    // Safety check: ? check karta hai ki button exist karta hai ya nahi
     if(editBtn) editBtn.onclick = () => editMessage(msgDiv, originalText);
     if(delBtn) delBtn.onclick = () => deleteMessage(msgDiv);
   } else {
     const copyBtn = msgDiv.querySelector('.copy-msg-btn');
     const regenBtn = msgDiv.querySelector('.regen-msg-btn');
-
+    
     if(copyBtn) copyBtn.onclick = () => copyMessage(copyBtn, originalText);
     if(regenBtn) regenBtn.onclick = () => regenerateMessage(msgDiv);
   }
 }
+
+
 
 // --- ACTIONS IMPLEMENTATION ---
 async function copyMessage(btn, text) {
