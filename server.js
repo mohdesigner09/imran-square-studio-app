@@ -932,8 +932,43 @@ function sanitizeMessages(history, currentUserMsg) {
 app.post('/api/chat', async (req, res) => {
   const { userMessage, model, history } = req.body;
   
+  // 🔥 HELPER: History Cleaner (Perplexity ke liye zaroori)
+  const sanitizeMessages = (hist, currentMsg) => {
+    let clean = [];
+    
+    // 1. System Prompt (Zaroori hai)
+    clean.push({ role: "system", content: "You are a helpful AI assistant." });
+
+    // 2. History Process Karo
+    if (hist && Array.isArray(hist)) {
+      hist.forEach(msg => {
+        if (!msg.parts || !msg.parts[0]?.text) return;
+        
+        const role = msg.role === 'model' ? 'assistant' : 'user';
+        const content = msg.parts[0].text;
+
+        // Logic: Agar pichla message same role ka tha, to merge karo
+        if (clean.length > 0 && clean[clean.length - 1].role === role) {
+          clean[clean.length - 1].content += "\n\n" + content;
+        } else {
+          clean.push({ role, content });
+        }
+      });
+    }
+
+    // 3. Current Message Add Karo (Safety Check)
+    if (clean.length > 0 && clean[clean.length - 1].role === 'user') {
+      clean[clean.length - 1].content += "\n\n" + currentMsg;
+    } else {
+      clean.push({ role: 'user', content: currentMsg });
+    }
+
+    return clean;
+  };
+
   console.log('\n🟢 === NEW REQUEST ===');
   console.log('🤖 Requested Model:', model);
+  
 
   if (!userMessage) return res.status(400).json({ error: 'Message is required' });
 
@@ -1040,24 +1075,20 @@ app.post('/api/chat', async (req, res) => {
     }
 
     // ============= PERPLEXITY =============
+// ============= PERPLEXITY (FIXED) =============
     else if (model === 'perplexity-online') {
       console.log('🟣 Using Perplexity API...');
       if (!process.env.PERPLEXITY_API_KEY) throw new Error('Missing PERPLEXITY_API_KEY');
       
-      let messages = [];
-      if (history && Array.isArray(history)) {
-          history.forEach(msg => {
-             if(msg.parts?.[0]?.text) messages.push({
-                 role: msg.role === 'model' ? 'assistant' : 'user',
-                 content: msg.parts[0].text
-             });
-          });
-      }
-      messages.push({ role: 'user', content: userMessage });
+      // 🔥 Yahan Sanitizer Use Kiya Hai (Jo upar define kiya)
+      const messages = sanitizeMessages(history, userMessage);
 
       response = await axios.post(
         'https://api.perplexity.ai/chat/completions',
-        { model: 'sonar', messages },
+        { 
+            model: 'sonar', // Generic alias (Best for compatibility)
+            messages: messages 
+        },
         { headers: { 'Authorization': `Bearer ${process.env.PERPLEXITY_API_KEY}`, 'Content-Type': 'application/json' } }
       );
       return res.json(response.data);
