@@ -1174,23 +1174,43 @@ body::before {
 }
 
 /* Dropdown Menu (Hidden by default) */
+/* --- GLOBAL FLOATING MENU --- */
 .chat-options-dropdown {
-  position: absolute;
-  right: 10px;
-  top: 30px; /* Chat item ke neeche */
+  position: fixed; /* Absolute nahi, Fixed chahiye */
+  z-index: 9999; /* Sabse upar dikhe */
   background: #1a1a1a;
-  border: 1px solid rgba(255, 255, 255, 0.1);
+  border: 1px solid rgba(255, 255, 255, 0.15);
   border-radius: 8px;
-  padding: 5px;
-  min-width: 120px;
-  z-index: 1001;
-  box-shadow: 0 4px 15px rgba(0,0,0,0.5);
-  display: none; /* JS isey 'block' karega */
+  padding: 6px;
+  min-width: 140px;
+  box-shadow: 0 4px 20px rgba(0,0,0,0.6);
+  display: none; /* Default hidden */
+  backdrop-filter: blur(10px);
 }
 
 .chat-options-dropdown.show {
   display: block;
-  animation: fadeIn 0.2s ease;
+  animation: fadeIn 0.1s ease-out;
+}
+
+/* Three dots button style fix */
+.chat-menu-btn {
+  /* Button ko thoda prominent banate hain */
+  width: 24px;
+  height: 24px;
+  border-radius: 4px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  color: rgba(255,255,255,0.5);
+  transition: all 0.2s;
+  z-index: 2; /* Text ke upar */
+}
+
+.chat-menu-btn:hover {
+  background: rgba(255,255,255,0.1);
+  color: white;
 }
 
 /* Menu Items (Rename/Delete) */
@@ -1438,8 +1458,6 @@ body::before {
     </main>
   </div>
 
-  <script src="ai-chat.js"></script>
-
   <script>
     if ("serviceWorker" in navigator) {
       window.addEventListener("load", () => {
@@ -1454,5 +1472,16 @@ body::before {
       });
     }
   </script>
+
+  <div id="globalChatMenu" class="chat-options-dropdown">
+  <div class="dropdown-item" id="globalRenameBtn">
+    ✏️ Rename
+  </div>
+  <div class="dropdown-item delete" id="globalDeleteBtn">
+    🗑️ Delete
+  </div>
+</div>
+
+<script src="ai-chat.js"></script> </body> 
 </body>
 </html>

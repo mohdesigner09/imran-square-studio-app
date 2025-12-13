@@ -55,6 +55,10 @@ function addChatSession(title, messages) {
 
 // --- IMPROVED HISTORY MANAGEMENT ---
 
+// --- GLOBAL VARIABLE ---
+let activeMenuChatId = null; // Track karega ki abhi kiska menu khula hai
+
+// 1. UPDATED RENDER FUNCTION (Menu HTML hata diya)
 function renderChatHistory() {
   const container = document.getElementById('chatHistoryContainer');
   if (!container) return;
@@ -66,35 +70,106 @@ function renderChatHistory() {
     return;
   }
 
-  // HTML Generate karte hain
   container.innerHTML = chats.map(chat => {
     const isActive = chat.id === currentChatId ? 'active' : '';
-    // Title ko safe banate hain
     const safeTitle = chat.title.replace(/</g, "&lt;").replace(/>/g, "&gt;");
     
     return `
       <div class="chat-item ${isActive}" onclick="loadChat(${chat.id})">
         <span class="chat-title-text">${safeTitle}</span>
         
-        <button class="chat-menu-btn" onclick="toggleChatMenu(event, ${chat.id})">
+        <div class="chat-menu-btn" onclick="openGlobalMenu(event, ${chat.id})">
           ⋮
-        </button>
-
-        <div id="menu-${chat.id}" class="chat-options-dropdown">
-          
-          <div class="dropdown-item" onclick="renameChatSession(event, ${chat.id})">
-            ✏️ Rename
-          </div>
-          
-          <div class="dropdown-item delete" onclick="deleteChatSession(event, ${chat.id})">
-            🗑️ Delete
-          </div>
-
         </div>
       </div>
     `;
   }).join('');
 }
+
+// 2. NEW: OPEN MENU LOGIC (Positioning Magic)
+window.openGlobalMenu = function(e, chatId) {
+  e.stopPropagation(); // Chat load hone se roko
+  
+  const menu = document.getElementById('globalChatMenu');
+  const btn = e.currentTarget; // Jo button dabaya gaya
+  
+  // 1. Button ki position pata karo screen par kahan hai
+  const rect = btn.getBoundingClientRect();
+  
+  // 2. Active Chat ID set karo
+  activeMenuChatId = chatId;
+  
+  // 3. Position Calculation (Sidebar ke bahar, button se chipka hua)
+  // Top: Button ke barabar
+  // Left: Button ke right side + 5px ka gap
+  menu.style.top = `${rect.top}px`;
+  menu.style.left = `${rect.right + 5}px`; 
+  
+  // Mobile Safety: Agar screen ke bahar ja raha ho, to thoda andar khisko
+  if (window.innerWidth < 768) {
+     menu.style.left = `${rect.right - 100}px`; // Mobile par left side khulega
+  }
+
+  // 4. Show Menu
+  menu.classList.add('show');
+  
+  // 5. Actions attach karo
+  document.getElementById('globalRenameBtn').onclick = () => handleRename();
+  document.getElementById('globalDeleteBtn').onclick = () => handleDelete();
+};
+
+// 3. ACTION HANDLERS
+function handleRename() {
+  if (!activeMenuChatId) return;
+  closeGlobalMenu();
+  
+  const chats = getChats();
+  const chat = chats.find(c => c.id === activeMenuChatId);
+  
+  if (chat) {
+    const newTitle = prompt("Rename Chat:", chat.title);
+    if (newTitle && newTitle.trim()) {
+      chat.title = newTitle.trim();
+      saveChats(chats);
+      renderChatHistory();
+    }
+  }
+}
+
+function handleDelete() {
+  if (!activeMenuChatId) return;
+  closeGlobalMenu();
+  
+  if (confirm("Delete this chat permanently?")) {
+    let chats = getChats();
+    chats = chats.filter(c => c.id !== activeMenuChatId);
+    saveChats(chats);
+    
+    if (currentChatId === activeMenuChatId) {
+      // Current chat uda di, to reset karo
+      currentChatId = null;
+      if (typeof messagesList !== 'undefined') messagesList.innerHTML = '';
+      if (typeof wrapper !== 'undefined') wrapper.classList.remove('mode-active');
+      document.getElementById('mainContent')?.classList.remove('mode-active');
+    }
+    renderChatHistory();
+  }
+}
+
+// 4. CLOSE MENU HELPER
+function closeGlobalMenu() {
+  const menu = document.getElementById('globalChatMenu');
+  if (menu) menu.classList.remove('show');
+  activeMenuChatId = null;
+}
+
+// 5. CLICK OUTSIDE TO CLOSE
+document.addEventListener('click', (e) => {
+  // Agar click menu ke andar nahi hai aur button par nahi hai
+  if (!e.target.closest('#globalChatMenu') && !e.target.closest('.chat-menu-btn')) {
+    closeGlobalMenu();
+  }
+});
 
 // 1. Menu Open/Close Logic
 window.toggleChatMenu = function(e, chatId) {
