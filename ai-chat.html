@@ -1239,6 +1239,155 @@ body::before {
   background: rgba(239, 68, 68, 0.15);
 }
 
+/* --- SIDEBAR FOOTER --- */
+.sidebar-footer {
+  margin-top: auto; /* Footer ko bottom mein push karta hai */
+  padding-top: 15px;
+  border-top: 1px solid rgba(255, 255, 255, 0.1);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.user-profile {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.user-avatar {
+  width: 36px;
+  height: 36px;
+  background: linear-gradient(135deg, #4ade80, #22c55e);
+  color: #000;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-weight: bold;
+  font-size: 0.9rem;
+}
+
+.user-info {
+  display: flex;
+  flex-direction: column;
+}
+
+.user-name {
+  font-size: 0.9rem;
+  font-weight: 600;
+  color: white;
+}
+
+.user-role {
+  font-size: 0.75rem;
+  color: rgba(255, 255, 255, 0.5);
+}
+
+.settings-icon-btn {
+  background: transparent;
+  border: none;
+  font-size: 1.2rem;
+  cursor: pointer;
+  opacity: 0.6;
+  transition: transform 0.3s, opacity 0.2s;
+  padding: 5px;
+}
+
+.settings-icon-btn:hover {
+  opacity: 1;
+  transform: rotate(90deg); /* Mast animation */
+}
+
+/* --- SETTINGS MODAL --- */
+.modal-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background: rgba(0, 0, 0, 0.8); /* Dark Overlay */
+  backdrop-filter: blur(5px);
+  z-index: 2000;
+  display: none; /* Hidden by default */
+  align-items: center;
+  justify-content: center;
+}
+
+.modal-overlay.show {
+  display: flex;
+  animation: fadeIn 0.3s ease;
+}
+
+.modal-box {
+  background: #151515;
+  border: 1px solid rgba(255, 255, 255, 0.15);
+  border-radius: 16px;
+  width: 90%;
+  max-width: 500px;
+  padding: 20px;
+  box-shadow: 0 10px 40px rgba(0,0,0,0.7);
+}
+
+.modal-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 20px;
+}
+
+.modal-header h3 {
+  margin: 0;
+  color: white;
+  font-size: 1.2rem;
+}
+
+.close-modal-btn {
+  background: transparent;
+  border: none;
+  color: rgba(255, 255, 255, 0.5);
+  font-size: 1.5rem;
+  cursor: pointer;
+}
+
+.setting-item {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 15px;
+}
+
+.setting-info {
+  display: flex;
+  flex-direction: column;
+}
+
+.setting-title {
+  color: white;
+  font-size: 0.95rem;
+  font-weight: 500;
+}
+
+.setting-desc {
+  color: rgba(255, 255, 255, 0.5);
+  font-size: 0.8rem;
+}
+
+.action-btn.danger {
+  background: rgba(239, 68, 68, 0.1);
+  color: #ef4444;
+  border: 1px solid rgba(239, 68, 68, 0.3);
+}
+
+.action-btn.danger:hover {
+  background: #ef4444;
+  color: white;
+}
+
+.action-btn.secondary {
+  background: rgba(255, 255, 255, 0.1);
+  color: white;
+}
   </style>
 </head>
 <body>
@@ -1274,7 +1423,21 @@ body::before {
           Recent
         </div>
       </div>
-      <div class="border-t border-white/10 pt-4">
+      <div class="sidebar-footer">
+      
+      <div class="user-profile">
+        <div class="user-avatar">I²</div>
+        <div class="user-info">
+          <span class="user-name">Imran Square</span>
+          <span class="user-role">Pro Member</span>
+        </div>
+      </div>
+
+      <button id="settingsBtn" class="settings-icon-btn" title="Settings">
+        ⚙️
+      </button>
+
+    </div>
         <a
           href="ai-tools.html"
           class="flex items-center gap-3 p-2 rounded-lg hover:bg-white/5 transition cursor-pointer group"
@@ -1479,6 +1642,45 @@ body::before {
   </div>
   <div class="dropdown-item delete" id="globalDeleteBtn">
     🗑️ Delete
+  </div>
+</div>
+
+<div id="settingsModal" class="modal-overlay">
+  <div class="modal-box">
+    
+    <div class="modal-header">
+      <h3>Settings & Preferences</h3>
+      <button id="closeSettingsBtn" class="close-modal-btn">✖</button>
+    </div>
+
+    <div class="modal-body">
+      
+      <div class="setting-item">
+        <div class="setting-info">
+          <span class="setting-title">📥 Export Data</span>
+          <span class="setting-desc">Download all your chats as a file.</span>
+        </div>
+        <button onclick="exportAllChats()" class="action-btn secondary">Export JSON</button>
+      </div>
+
+      <hr style="border-color: rgba(255,255,255,0.1); margin: 15px 0;">
+
+      <div class="setting-item">
+        <div class="setting-info">
+          <span class="setting-title" style="color: #ef4444;">🗑️ Clear All History</span>
+          <span class="setting-desc">Delete all chats permanently.</span>
+        </div>
+        <button onclick="clearAllChats()" class="action-btn danger">Delete All</button>
+      </div>
+
+    </div>
+    
+    <div class="modal-footer">
+      <div style="font-size: 0.8rem; color: rgba(255,255,255,0.3);">
+        Version 2.0 • Powered by Imran Square
+      </div>
+    </div>
+
   </div>
 </div>
 

@@ -784,3 +784,63 @@ document.addEventListener('DOMContentLoaded', () => {
   
 });
 
+// --- SETTINGS MODAL LOGIC ---
+
+const settingsModal = document.getElementById('settingsModal');
+const settingsBtn = document.getElementById('settingsBtn');
+const closeSettingsBtn = document.getElementById('closeSettingsBtn');
+
+// 1. Open Modal
+if(settingsBtn) {
+  settingsBtn.addEventListener('click', () => {
+    settingsModal.classList.add('show');
+  });
+}
+
+// 2. Close Modal
+if(closeSettingsBtn) {
+  closeSettingsBtn.addEventListener('click', () => {
+    settingsModal.classList.remove('show');
+  });
+}
+
+// Close on outside click
+if(settingsModal) {
+  settingsModal.addEventListener('click', (e) => {
+    if(e.target === settingsModal) {
+      settingsModal.classList.remove('show');
+    }
+  });
+}
+
+// --- FEATURES ---
+
+// A. CLEAR ALL CHATS
+window.clearAllChats = function() {
+  if(confirm("⚠️ WARNING: This will delete ALL your chat history permanently!\nAre you sure?")) {
+    localStorage.removeItem('chatSessions'); // Delete Data
+    location.reload(); // Refresh Page
+  }
+};
+
+// B. EXPORT CHATS (Backup)
+window.exportAllChats = function() {
+  const chats = localStorage.getItem('chatSessions');
+  if(!chats) {
+    alert("No chats to export!");
+    return;
+  }
+  
+  // File banate hain
+  const blob = new Blob([chats], { type: "application/json" });
+  const url = URL.createObjectURL(blob);
+  
+  // Download Link trigger karte hain
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = `imran-ai-backup-${new Date().toISOString().slice(0,10)}.json`;
+  document.body.appendChild(a);
+  a.click();
+  document.body.removeChild(a);
+  URL.revokeObjectURL(url);
+};
