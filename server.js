@@ -940,20 +940,19 @@ app.post('/api/chat', async (req, res) => {
   try {
     let response;
     
-    // ============= GEMINI MODELS (SUPER ROBUST FALLBACK) =============
+    // ============= GEMINI MODELS (2.5 UPDATE) =============
     if (model?.startsWith('gemini-')) {
       console.log('🔷 Using Gemini API...');
       
-      // 1. Get Keys
       const keys = [
         process.env.GEMINI_API_KEY,
         process.env.GEMINI_API_KEY_1, process.env.GEMINI_API_KEY_2, 
         process.env.GEMINI_API_KEY_3, process.env.GEMINI_API_KEY_4
       ].filter(k => k && k.trim().length > 10);
 
-      if (keys.length === 0) throw new Error('No Gemini API keys found');
+      if (keys.length === 0) throw new Error('No Gemini API keys found in .env');
 
-      // 2. Prepare History
+      // Prepare History
       let contents = [];
       if (history && Array.isArray(history)) {
         contents = history
@@ -965,57 +964,51 @@ app.post('/api/chat', async (req, res) => {
       }
       contents.push({ role: 'user', parts: [{ text: userMessage }] });
 
-      // 3. Helper: Try a specific model with a specific key
-      const tryGemini = async (modelName, keyAttempt) => {
-        const url = `https://generativelanguage.googleapis.com/v1beta/models/${modelName}:generateContent?key=${keyAttempt}`;
+      // Helper: Call Gemini
+      const tryGemini = async (targetModel, keyAttempt) => {
+        // v1beta is standard for new models
+        const url = `https://generativelanguage.googleapis.com/v1beta/models/${targetModel}:generateContent?key=${keyAttempt}`;
+        console.log(`Trying: ${targetModel}...`);
         return await axios.post(url, { contents });
       };
 
-      // 4. THE FALLBACK CHAIN (Ye zaroor chalega)
-      // List of models to try in order if one fails
+      // 🔥 UPDATED FALLBACK CHAIN (2.5 Included)
       const fallbackList = [
-        model,                      // 1. User ka select kiya hua
-        'gemini-1.5-flash',         // 2. Standard Flash
-        'gemini-1.5-flash-001',     // 3. Specific Version 001
-        'gemini-1.5-flash-002',     // 4. Specific Version 002
-        'gemini-1.5-pro',           // 5. Standard Pro
-        'gemini-pro'                // 6. Oldest Stable (Last Resort)
+        model,                      // 1. User selection
+        'gemini-2.5-flash',         // 2. Latest Fast Model (Most likely to work)
+        'gemini-2.5-pro',           // 3. Latest Smart Model
+        'gemini-2.0-flash',         // 4. Previous Stable
+        'gemini-1.5-flash',         // 5. Legacy
+        'gemini-1.5-flash-002',     // 6. Specific Legacy Version
+        'gemini-pro'                // 7. Oldest Reliable
       ];
 
-      // Remove duplicates from list
-      const uniqueModels = [...new Set(fallbackList)];
+      // Remove duplicates & filter empty
+      const uniqueModels = [...new Set(fallbackList)].filter(m => m);
       
       let lastError = null;
-      let success = false;
-
-      // Loop through models until one works
-      for (const targetModel of uniqueModels) {
-        if (success) break;
-        
-        // Pick a random key for load balancing
+      
+      // Loop through models
+      for (const currentModel of uniqueModels) {
+        // Pick random key
         const currentKey = keys[Math.floor(Math.random() * keys.length)];
         
         try {
-          console.log(`🔄 Trying model: ${targetModel}...`);
-          response = await tryGemini(targetModel, currentKey);
-          success = true;
-          console.log(`✅ Success with ${targetModel}`);
+          response = await tryGemini(currentModel, currentKey);
+          console.log(`✅ Success with ${currentModel}`);
           return res.json(response.data);
         } catch (err) {
-          console.log(`❌ Failed ${targetModel}: ${err.response?.status || err.message}`);
+          console.log(`❌ Failed ${currentModel}: ${err.response?.status || err.message}`);
           lastError = err;
-          
-          // Agar Quota Khatam (429) hai to agli key try karo agli iteration me
-          if (err.response?.status === 429) {
-             console.log("⚠️ Quota hit, rotating key...");
-          }
+          // Agar 429 hai to thoda wait karke agli key try karne ka logic bhi automatic loop me cover ho jayega
+          // agar hum agli iteration me key change karein.
         }
       }
 
-      // Agar sab fail ho gaye
       throw lastError;
     }
 
+    // ... (GROQ, PERPLEXITY, SERPER logic same as before - no changes needed there) ...
     // ============= GROQ MODELS =============
     else if (model?.startsWith('groq-')) {
       console.log('⚡ Using Groq API...');
@@ -1027,7 +1020,6 @@ app.post('/api/chat', async (req, res) => {
       };
       const actualModel = groqModelMap[model] || 'llama-3.1-8b-instant';
       
-      // Sanitizer logic included inline for safety
       let messages = [{ role: "system", content: "You are a helpful AI assistant." }];
       if (history && Array.isArray(history)) {
           history.forEach(msg => {
@@ -1087,9 +1079,9 @@ app.post('/api/chat', async (req, res) => {
 
   } catch (error) {
     console.error('❌ FINAL API ERROR:', error.response?.data || error.message);
-    res.status(error.response?.status || 500).json({
+    res.status(500).json({
       error: 'API Failed',
-      message: "Server busy or model unavailable. Please try Groq Llama for now."
+      message: "All models failed. Please try again later."
     });
   }
 });
