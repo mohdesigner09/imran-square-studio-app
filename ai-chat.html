@@ -1120,6 +1120,105 @@ body::before {
   animation: pulse 1.5s infinite;
 }
 
+/* --- CHAT HISTORY MENU STYLES --- */
+
+/* Chat Item Layout */
+.chat-item {
+  display: flex;
+  align-items: center;
+  justify-content: space-between; /* Title left, dots right */
+  padding-right: 5px; /* Thodi jagah right mein */
+  position: relative; /* Dropdown positioning ke liye zaroori */
+}
+
+/* Title ko limit karo taaki wo dots ke upar na chade */
+.chat-title-text {
+  flex: 1;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  margin-right: 8px;
+}
+
+/* Three Dots Button (⋮) */
+.chat-menu-btn {
+  background: transparent;
+  border: none;
+  color: rgba(255, 255, 255, 0.4);
+  padding: 4px;
+  border-radius: 4px;
+  cursor: pointer;
+  font-size: 16px;
+  line-height: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.2s;
+  opacity: 0.7; /* Mobile par hamesha dikhe */
+}
+
+.chat-menu-btn:hover {
+  background: rgba(255, 255, 255, 0.1);
+  color: white;
+  opacity: 1;
+}
+
+/* Desktop: Hover karne par hi dots dikhao (Clean look) */
+@media (min-width: 769px) {
+  .chat-menu-btn {
+    opacity: 0; 
+  }
+  .chat-item:hover .chat-menu-btn {
+    opacity: 1;
+  }
+}
+
+/* Dropdown Menu (Hidden by default) */
+.chat-options-dropdown {
+  position: absolute;
+  right: 10px;
+  top: 30px; /* Chat item ke neeche */
+  background: #1a1a1a;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 8px;
+  padding: 5px;
+  min-width: 120px;
+  z-index: 1001;
+  box-shadow: 0 4px 15px rgba(0,0,0,0.5);
+  display: none; /* JS isey 'block' karega */
+}
+
+.chat-options-dropdown.show {
+  display: block;
+  animation: fadeIn 0.2s ease;
+}
+
+/* Menu Items (Rename/Delete) */
+.dropdown-item {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 12px;
+  color: #ccc;
+  font-size: 0.85rem;
+  cursor: pointer;
+  border-radius: 4px;
+  transition: background 0.2s;
+}
+
+.dropdown-item:hover {
+  background: rgba(255, 255, 255, 0.1);
+  color: white;
+}
+
+.dropdown-item.delete {
+  color: #ef4444; /* Red color for delete */
+}
+
+.dropdown-item.delete:hover {
+  background: rgba(239, 68, 68, 0.15);
+}
+
   </style>
 </head>
 <body>

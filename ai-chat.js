@@ -53,7 +53,8 @@ function addChatSession(title, messages) {
   return newChat;
 }
 
-// --- UI: HISTORY SIDEBAR ---
+// --- IMPROVED HISTORY MANAGEMENT ---
+
 function renderChatHistory() {
   const container = document.getElementById('chatHistoryContainer');
   if (!container) return;
@@ -65,31 +66,101 @@ function renderChatHistory() {
     return;
   }
 
+  // HTML Generate karte hain
   container.innerHTML = chats.map(chat => {
     const isActive = chat.id === currentChatId ? 'active' : '';
-    // Escape HTML to prevent XSS in titles
+    // Title ko safe banate hain
     const safeTitle = chat.title.replace(/</g, "&lt;").replace(/>/g, "&gt;");
     
     return `
-      <div class="chat-item ${isActive}" onclick="loadChat(${chat.id})" style="
-        padding: 0.75rem;
-        margin-bottom: 0.5rem;
-        background: ${isActive ? 'rgba(74, 222, 128, 0.15)' : 'rgba(255, 255, 255, 0.03)'};
-        border: 1px solid ${isActive ? 'rgba(74, 222, 128, 0.5)' : 'transparent'};
-        border-radius: 8px;
-        cursor: pointer;
-        transition: all 0.2s;
-        font-size: 0.85rem;
-        color: ${isActive ? '#4ade80' : 'rgba(255, 255, 255, 0.7)'};
-        white-space: nowrap;
-        overflow: hidden;
-        text-overflow: ellipsis;
-      ">
-        ${safeTitle}
+      <div class="chat-item ${isActive}" onclick="loadChat(${chat.id})">
+        <span class="chat-title-text">${safeTitle}</span>
+        
+        <button class="chat-menu-btn" onclick="toggleChatMenu(event, ${chat.id})">
+          ⋮
+        </button>
+
+        <div id="menu-${chat.id}" class="chat-options-dropdown">
+          
+          <div class="dropdown-item" onclick="renameChatSession(event, ${chat.id})">
+            ✏️ Rename
+          </div>
+          
+          <div class="dropdown-item delete" onclick="deleteChatSession(event, ${chat.id})">
+            🗑️ Delete
+          </div>
+
+        </div>
       </div>
     `;
   }).join('');
 }
+
+// 1. Menu Open/Close Logic
+window.toggleChatMenu = function(e, chatId) {
+  e.stopPropagation(); // Parent click roko
+  
+  // Pehle baaki sab menus band karo
+  document.querySelectorAll('.chat-options-dropdown').forEach(el => {
+    if (el.id !== `menu-${chatId}`) el.classList.remove('show');
+  });
+
+  // Current menu ko toggle karo
+  const menu = document.getElementById(`menu-${chatId}`);
+  if (menu) menu.classList.toggle('show');
+};
+
+// 2. Delete Logic
+window.deleteChatSession = function(e, chatId) {
+  e.stopPropagation();
+  
+  if (confirm("Are you sure you want to delete this chat?")) {
+    let chats = getChats();
+    chats = chats.filter(c => c.id !== chatId); // Remove chat
+    saveChats(chats);
+    
+    // Agar current chat delete ki, to screen clear karo
+    if (currentChatId === chatId) {
+      currentChatId = null;
+      if (messagesList) messagesList.innerHTML = '';
+      if (wrapper) wrapper.classList.remove('mode-active');
+      const mainContent = document.getElementById('mainContent');
+      if (mainContent) mainContent.classList.remove('mode-active');
+      if (heroInput) heroInput.value = '';
+    }
+    
+    renderChatHistory(); // List refresh
+  }
+};
+
+// 3. Rename Logic
+window.renameChatSession = function(e, chatId) {
+  e.stopPropagation();
+  
+  // Menu band karo
+  document.querySelectorAll('.chat-options-dropdown').forEach(el => el.classList.remove('show'));
+
+  const chats = getChats();
+  const chat = chats.find(c => c.id === chatId);
+  
+  if (chat) {
+    const newTitle = prompt("Enter new chat name:", chat.title);
+    if (newTitle && newTitle.trim() !== "") {
+      chat.title = newTitle.trim();
+      saveChats(chats);
+      renderChatHistory();
+    }
+  }
+};
+
+// 4. Click Outside to Close Menu (Global Listener)
+document.addEventListener('click', (e) => {
+  if (!e.target.closest('.chat-menu-btn')) {
+    document.querySelectorAll('.chat-options-dropdown').forEach(el => {
+      el.classList.remove('show');
+    });
+  }
+});
 
 // Global scope for HTML onclick access
 window.loadChat = function(chatId) {
