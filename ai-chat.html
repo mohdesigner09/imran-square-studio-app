@@ -285,13 +285,19 @@ body::before {
     .messages-area {
       flex: 1;
       overflow-y: auto;
-      padding: 20px;
+      
+      /* यह ऊपर और साइड के लिए है */
+      padding: 20px; 
+      
       width: 100%;
       max-width: 850px;
       margin: 0 auto;
-      padding-bottom: 140px;
-    }
 
+      /* 🔥 CHANGE HERE: इसे 140px से बढ़ाकर 180px कर दें */
+      padding-bottom: 180px !important; 
+      
+      scroll-behavior: smooth;
+    }
     .msg-row {
       display: flex;
       margin-bottom: 24px;
@@ -339,8 +345,7 @@ body::before {
       max-width: 800px;
       z-index: 50;
     }
-
-    @media (max-width: 768px) {
+@media (max-width: 768px) {
       .bottom-input-container {
         width: 95%;
         bottom: 10px;
@@ -349,7 +354,9 @@ body::before {
         margin-top: -20px;
       }
       .messages-area {
-        padding-bottom: 160px;
+        /* 🔥 CHANGE HERE FOR MOBILE: मोबाइल पर कीबोर्ड खुलता है, इसे और ज्यादा रखें (200px) */
+        padding-bottom: 200px !important;
+        
         padding-left: 16px;
         padding-right: 16px;
       }
