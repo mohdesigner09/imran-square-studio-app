@@ -933,14 +933,14 @@ app.post('/api/chat', async (req, res) => {
   const { userMessage, model, history } = req.body;
   
   console.log('\n🟢 === NEW REQUEST ===');
-  console.log('🤖 Model:', model);
+  console.log('🤖 Requested Model:', model);
 
   if (!userMessage) return res.status(400).json({ error: 'Message is required' });
 
   try {
     let response;
     
-    // ============= GEMINI MODELS (ULTIMATE FIX) =============
+    // ============= GEMINI MODELS (SUPER ROBUST FALLBACK) =============
     if (model?.startsWith('gemini-')) {
       console.log('🔷 Using Gemini API...');
       
@@ -949,14 +949,11 @@ app.post('/api/chat', async (req, res) => {
         process.env.GEMINI_API_KEY,
         process.env.GEMINI_API_KEY_1, process.env.GEMINI_API_KEY_2, 
         process.env.GEMINI_API_KEY_3, process.env.GEMINI_API_KEY_4
-      ].filter(k => k && k.trim().length > 5);
+      ].filter(k => k && k.trim().length > 10);
 
       if (keys.length === 0) throw new Error('No Gemini API keys found');
 
-      // 2. Pick Random Key
-      let currentKey = keys[Math.floor(Math.random() * keys.length)];
-
-      // 3. Prepare History
+      // 2. Prepare History
       let contents = [];
       if (history && Array.isArray(history)) {
         contents = history
@@ -968,54 +965,55 @@ app.post('/api/chat', async (req, res) => {
       }
       contents.push({ role: 'user', parts: [{ text: userMessage }] });
 
-      // 4. Helper Function to Call Gemini
-      const callGemini = async (modelName, key) => {
-        const url = `https://generativelanguage.googleapis.com/v1beta/models/${modelName}:generateContent?key=${key}`;
-        return axios.post(url, { contents });
+      // 3. Helper: Try a specific model with a specific key
+      const tryGemini = async (modelName, keyAttempt) => {
+        const url = `https://generativelanguage.googleapis.com/v1beta/models/${modelName}:generateContent?key=${keyAttempt}`;
+        return await axios.post(url, { contents });
       };
 
-      try {
-        response = await callGemini(model, currentKey);
-        return res.json(response.data);
-      } catch (err) {
-        console.log(`⚠️ Primary attempt failed (${err.response?.status}). Starting recovery mode...`);
+      // 4. THE FALLBACK CHAIN (Ye zaroor chalega)
+      // List of models to try in order if one fails
+      const fallbackList = [
+        model,                      // 1. User ka select kiya hua
+        'gemini-1.5-flash',         // 2. Standard Flash
+        'gemini-1.5-flash-001',     // 3. Specific Version 001
+        'gemini-1.5-flash-002',     // 4. Specific Version 002
+        'gemini-1.5-pro',           // 5. Standard Pro
+        'gemini-pro'                // 6. Oldest Stable (Last Resort)
+      ];
 
-        // === STRATEGY 1: IF 429 (BUSY/QUOTA) -> TRY DIFFERENT KEY & LOWER MODEL ===
-        if (err.response?.status === 429) {
-            console.log("🔄 429 Quota Exceeded. Switching Key & Downgrading Model...");
-            
-            // Try next available key
-            const nextKey = keys[(keys.indexOf(currentKey) + 1) % keys.length];
-            
-            // Agar High-End model fail hua, to Lighter model try karo (Flash)
-            const fallbackModel = 'gemini-1.5-flash-8b'; 
-            
-            try {
-                response = await callGemini(fallbackModel, nextKey);
-                console.log(`✅ Recovered using ${fallbackModel} on backup key`);
-                return res.json(response.data);
-            } catch (retryErr) {
-                console.log("❌ Backup key also failed.");
-                throw retryErr;
-            }
+      // Remove duplicates from list
+      const uniqueModels = [...new Set(fallbackList)];
+      
+      let lastError = null;
+      let success = false;
+
+      // Loop through models until one works
+      for (const targetModel of uniqueModels) {
+        if (success) break;
+        
+        // Pick a random key for load balancing
+        const currentKey = keys[Math.floor(Math.random() * keys.length)];
+        
+        try {
+          console.log(`🔄 Trying model: ${targetModel}...`);
+          response = await tryGemini(targetModel, currentKey);
+          success = true;
+          console.log(`✅ Success with ${targetModel}`);
+          return res.json(response.data);
+        } catch (err) {
+          console.log(`❌ Failed ${targetModel}: ${err.response?.status || err.message}`);
+          lastError = err;
+          
+          // Agar Quota Khatam (429) hai to agli key try karo agli iteration me
+          if (err.response?.status === 429) {
+             console.log("⚠️ Quota hit, rotating key...");
+          }
         }
-
-        // === STRATEGY 2: IF 404 (MODEL NOT FOUND) -> TRY STABLE MODELS ===
-        if (err.response?.status === 404) {
-            console.log("⚠️ Model not found. Trying 'gemini-1.5-flash-latest'...");
-            try {
-                response = await callGemini('gemini-1.5-flash-latest', currentKey);
-                return res.json(response.data);
-            } catch (e2) {
-                console.log("⚠️ Still 404. Trying Ultimate Fallback 'gemini-pro'...");
-                // 'gemini-pro' (1.0) sabse purana aur reliable hai
-                response = await callGemini('gemini-pro', currentKey);
-                return res.json(response.data);
-            }
-        }
-
-        throw err; // Koi aur error hai to phenk do
       }
+
+      // Agar sab fail ho gaye
+      throw lastError;
     }
 
     // ============= GROQ MODELS =============
@@ -1028,7 +1026,18 @@ app.post('/api/chat', async (req, res) => {
         'groq-llama-8b': 'llama-3.1-8b-instant'
       };
       const actualModel = groqModelMap[model] || 'llama-3.1-8b-instant';
-      const messages = sanitizeMessages(history, userMessage);
+      
+      // Sanitizer logic included inline for safety
+      let messages = [{ role: "system", content: "You are a helpful AI assistant." }];
+      if (history && Array.isArray(history)) {
+          history.forEach(msg => {
+             if(msg.parts?.[0]?.text) messages.push({
+                 role: msg.role === 'model' ? 'assistant' : 'user',
+                 content: msg.parts[0].text
+             });
+          });
+      }
+      messages.push({ role: 'user', content: userMessage });
 
       response = await axios.post(
         'https://api.groq.com/openai/v1/chat/completions',
@@ -1042,7 +1051,18 @@ app.post('/api/chat', async (req, res) => {
     else if (model === 'perplexity-online') {
       console.log('🟣 Using Perplexity API...');
       if (!process.env.PERPLEXITY_API_KEY) throw new Error('Missing PERPLEXITY_API_KEY');
-      const messages = sanitizeMessages(history, userMessage);
+      
+      let messages = [];
+      if (history && Array.isArray(history)) {
+          history.forEach(msg => {
+             if(msg.parts?.[0]?.text) messages.push({
+                 role: msg.role === 'model' ? 'assistant' : 'user',
+                 content: msg.parts[0].text
+             });
+          });
+      }
+      messages.push({ role: 'user', content: userMessage });
+
       response = await axios.post(
         'https://api.perplexity.ai/chat/completions',
         { model: 'sonar', messages },
@@ -1066,10 +1086,10 @@ app.post('/api/chat', async (req, res) => {
     else { throw new Error(`Model '${model}' not supported`); }
 
   } catch (error) {
-    console.error('❌ API ERROR:', error.response?.data || error.message);
+    console.error('❌ FINAL API ERROR:', error.response?.data || error.message);
     res.status(error.response?.status || 500).json({
       error: 'API Failed',
-      message: error.response?.data?.error?.message || error.message
+      message: "Server busy or model unavailable. Please try Groq Llama for now."
     });
   }
 });
