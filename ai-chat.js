@@ -591,4 +591,50 @@ document.addEventListener('DOMContentLoaded', () => {
 
   // Initial Render
   renderChatHistory();
+
+  // --- MOBILE MENU LOGIC (Paste at bottom of ai-chat.js) ---
+  
+  const mobileMenuBtn = document.getElementById('mobileMenuBtn');
+  const mobileOverlay = document.getElementById('mobileOverlay');
+  
+  // Sidebar ko dhoondo (Class check karein: .sidebar hi honi chahiye)
+  const sidebar = document.querySelector('.sidebar'); 
+
+  function toggleMenu() {
+    if (!sidebar) return;
+    sidebar.classList.toggle('active'); // Slide In/Out
+    mobileOverlay.classList.toggle('active'); // Dark Background
+  }
+
+  function closeMenu() {
+    if (!sidebar) return;
+    sidebar.classList.remove('active');
+    mobileOverlay.classList.remove('active');
+  }
+
+  // 1. Button click par open/close
+  if (mobileMenuBtn) mobileMenuBtn.addEventListener('click', toggleMenu);
+  
+  // 2. Bahar click karne par close
+  if (mobileOverlay) mobileOverlay.addEventListener('click', closeMenu);
+
+  // 3. Jab Chat History item par click ho, tab bhi close karo
+  const historyContainer = document.getElementById('chatHistoryContainer');
+  if (historyContainer) {
+    historyContainer.addEventListener('click', (e) => {
+        // Agar mobile screen hai tabhi close karo
+        if (window.innerWidth <= 768) {
+            closeMenu();
+        }
+    });
+  }
+  
+  // 4. New Chat button par bhi close ho
+  if (newChatBtn) {
+      newChatBtn.addEventListener('click', () => {
+          if (window.innerWidth <= 768) closeMenu();
+      });
+  }
+  
 });
+

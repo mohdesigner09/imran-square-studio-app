@@ -936,13 +936,88 @@ body::before {
 }
 
 /* Responsive - hide left-side buttons on mobile */
+/* --- MOBILE & SIDEBAR STYLES --- */
+
+/* 1. Menu Button & Header (Sirf Mobile par dikhega) */
+.mobile-nav-header {
+  display: none; /* Desktop par hidden */
+  position: absolute;
+  top: 20px;
+  left: 20px;
+  z-index: 100;
+}
+
+.nav-btn {
+  background: rgba(0, 0, 0, 0.6);
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  color: white;
+  padding: 8px 12px;
+  border-radius: 8px;
+  cursor: pointer;
+  backdrop-filter: blur(10px);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+/* 2. Overlay (Background Dimmer) */
+.mobile-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background: rgba(0, 0, 0, 0.8);
+  backdrop-filter: blur(3px);
+  z-index: 998; /* Content se upar, Sidebar se neeche */
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 0.3s ease;
+}
+
+.mobile-overlay.active {
+  opacity: 1;
+  pointer-events: auto;
+}
+
+/* 3. MOBILE SPECIFIC SETTINGS (IMP) */
 @media (max-width: 768px) {
-  .user-message .message-actions {
-    position: static;
-    transform: none;
-    margin-top: 0.5rem;
-    opacity: 1;
-    flex-direction: row;
+  .mobile-nav-header {
+    display: flex; /* Button dikhao */
+  }
+
+  /* --- SIDEBAR DRAWER LOGIC --- */
+  .sidebar {
+    position: fixed;
+    top: 0;
+    left: -300px; /* Screen ke bahar */
+    width: 280px;
+    height: 100dvh;
+    background: #000000;
+    border-right: 1px solid rgba(255,255,255,0.1);
+    z-index: 999; /* Sabse upar */
+    transition: left 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    box-shadow: 10px 0 30px rgba(0,0,0,0.5);
+    padding-top: 70px; /* Close button ke liye jagah */
+  }
+
+  /* Jab 'active' class add hogi to sidebar andar aayega */
+  .sidebar.active {
+    left: 0;
+  }
+
+  /* --- INPUT BOX FIX --- */
+  .bottom-input-container {
+    width: 92%;
+    bottom: 70px !important; /* Android Nav Bar se upar */
+    margin-bottom: env(safe-area-inset-bottom, 20px);
+    z-index: 50;
+  }
+
+  .messages-area {
+    padding-bottom: 260px !important;
+    padding-left: 14px;
+    padding-right: 14px;
   }
 }
 
@@ -1049,6 +1124,17 @@ body::before {
 </head>
 <body>
   <div class="film-grain"></div>
+  <div id="mobileOverlay" class="mobile-overlay"></div>
+
+<div class="mobile-nav-header">
+  <button id="mobileMenuBtn" class="nav-btn">
+    <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+      <line x1="3" y1="12" x2="21" y2="12"></line>
+      <line x1="3" y1="6" x2="21" y2="6"></line>
+      <line x1="3" y1="18" x2="21" y2="18"></line>
+    </svg>
+  </button>
+</div>
 
   <div class="flex h-screen">
     <!-- Sidebar -->
@@ -1116,6 +1202,7 @@ body::before {
         <div class="hero-logo-wrapper">
           IMRAN<sup>2</sup> <span class="accent">+</span> AI
         </div>
+
 
         <div class="flex items-center justify-between gap-2 mb-4 px-1">
           <div class="text-sm text-gray-400 font-medium">New chat</div>
