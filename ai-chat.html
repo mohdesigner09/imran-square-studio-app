@@ -346,7 +346,7 @@ body::before {
       z-index: 50;
     }
 
-    
+
 @media (max-width: 768px) {
       /* Mobile Container Settings */
       .bottom-input-container {
@@ -992,6 +992,58 @@ body::before {
 .prose table { width: 100%; border-collapse: collapse; margin: 1rem 0; font-size: 0.9em; }
 .prose th, .prose td { padding: 0.75rem; border: 1px solid rgba(255,255,255,0.1); text-align: left; }
 .prose th { background: rgba(255,255,255,0.05); color: #4ade80; }
+
+/* --- PHASE 3: IMAGE LOADING STYLES --- */
+.image-placeholder {
+  width: 100%;
+  min-height: 300px;
+  background: rgba(255, 255, 255, 0.05);
+  border-radius: 12px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  position: relative;
+  overflow: hidden;
+}
+
+/* Spinner Animation */
+.image-loader {
+  width: 40px;
+  height: 40px;
+  border: 3px solid rgba(255, 255, 255, 0.1);
+  border-top-color: #4ade80; /* Green Color */
+  border-radius: 50%;
+  animation: spin 1s linear infinite;
+  z-index: 10;
+}
+
+@keyframes spin {
+  to { transform: rotate(360deg); }
+}
+
+/* Image jab load ho jaye */
+.ai-generated-image {
+  display: block;
+  max-width: 100%;
+  border-radius: 12px;
+  opacity: 0; /* Shuru mein invisible */
+  transition: opacity 1.5s ease-in-out; /* Dheere se aayegi */
+}
+
+.ai-generated-image.loaded {
+  opacity: 1; /* Load hone par visible */
+}
+
+/* Loading Text */
+.loading-text {
+  position: absolute;
+  bottom: 20px;
+  color: rgba(255, 255, 255, 0.5);
+  font-size: 0.85rem;
+  letter-spacing: 1px;
+  animation: pulse 1.5s infinite;
+}
 
   </style>
 </head>

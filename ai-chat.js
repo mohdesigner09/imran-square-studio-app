@@ -165,35 +165,41 @@ async function sendMessage(inputElement) {
   isGenerating = true;
   
   try {
-    // 🔥 PHASE 3: IMAGE GENERATION CHECK
-    // Agar message "/image" se shuru hota hai
+    // 🔥 PHASE 3: IMAGE GENERATION CHECK (PRO VERSION)
     if (userMessage.toLowerCase().startsWith('/image')) {
       
-      // 1. Prompt nikaalo (e.g., "/image cat" -> "cat")
       const prompt = userMessage.replace(/^\/image\s*/i, '').trim();
-      
-      if (!prompt) throw new Error("Please describe the image! (e.g., /image a red car)");
+      if (!prompt) throw new Error("Please describe the image!");
 
-      // 2. Pollinations URL banao
       const seed = Math.floor(Math.random() * 100000);
       const imageUrl = `https://image.pollinations.ai/prompt/${encodeURIComponent(prompt)}?width=1024&height=1024&seed=${seed}&nologo=true`;
 
       removeTyping();
 
-      // 3. Image ko Chat mein dikhao
+      // 1. Placeholder Create Karo (Loading State)
       const aiMsgDiv = document.createElement('div');
       aiMsgDiv.className = 'msg-row ai';
       
+      // Initially Sirf Loader Dikhao
       aiMsgDiv.innerHTML = `
-        <div class="msg-bubble" style="padding: 0; overflow: hidden; background: transparent; border: none;">
-          <img src="${imageUrl}" alt="Generating..." 
-               style="max-width: 100%; border-radius: 12px; border: 1px solid rgba(255,255,255,0.2); min-height: 200px; display: block;" 
-               onload="this.scrollIntoView({behavior:'smooth'})"
+        <div class="msg-bubble" style="padding: 0; background: transparent; border: none; width: 100%; max-width: 400px;">
+          <div class="image-placeholder" id="loader-${seed}">
+            <div class="image-loader"></div>
+            <div class="loading-text">Creating Art...</div>
+          </div>
+          
+          <img src="${imageUrl}" 
+               class="ai-generated-image" 
+               alt="Generated Art"
+               style="display: none;" 
+               onload="revealImage(this, 'loader-${seed}')"
+               onerror="handleImageError(this, 'loader-${seed}')"
           >
-          <div style="margin-top: 8px; display: flex; gap: 10px;">
+          
+          <div id="btn-${seed}" style="margin-top: 10px; display: none; gap: 10px; opacity: 0; transition: opacity 1s;">
             <a href="${imageUrl}" download="ai-image.jpg" target="_blank" 
-               style="background: #4ade80; color: #000; padding: 6px 12px; border-radius: 6px; text-decoration: none; font-size: 0.8rem; font-weight: bold;">
-               📥 Download
+               style="background: #4ade80; color: #000; padding: 8px 16px; border-radius: 8px; text-decoration: none; font-size: 0.85rem; font-weight: bold; display: inline-flex; align-items: center; gap: 5px;">
+               <span>⬇️</span> Download HD
             </a>
           </div>
         </div>
@@ -202,7 +208,7 @@ async function sendMessage(inputElement) {
       messagesList.appendChild(aiMsgDiv);
       scrollToBottom();
 
-      // 4. Save to History
+      // Save to History
       const chats = getChats();
       const chat = chats.find(c => c.id === currentChatId);
       if (chat) {
@@ -210,7 +216,7 @@ async function sendMessage(inputElement) {
         saveChats(chats);
       }
       
-      // Image ban gayi, yahan se return ho jao
+      isGenerating = false;
       return; 
     }
   
@@ -423,7 +429,37 @@ function attachMessageActions(msgDiv, originalText, role) {
   }
 }
 
+// --- PHASE 3: IMAGE HANDLING HELPERS ---
+function revealImage(imgElement, loaderId) {
+  const loader = document.getElementById(loaderId);
+  const btnDiv = document.getElementById(loaderId.replace('loader', 'btn'));
+  
+  if (loader) {
+    // 1. Loader hatao
+    loader.style.display = 'none';
+    
+    // 2. Image dikhao (Fade In)
+    imgElement.style.display = 'block';
+    // Thoda delay taaki display:block apply ho jaye, fir opacity badhao
+    setTimeout(() => {
+      imgElement.classList.add('loaded');
+      scrollToBottom();
+    }, 50);
 
+    // 3. Button dikhao
+    if(btnDiv) {
+        btnDiv.style.display = 'flex';
+        setTimeout(() => btnDiv.style.opacity = '1', 200);
+    }
+  }
+}
+
+function handleImageError(imgElement, loaderId) {
+  const loader = document.getElementById(loaderId);
+  if (loader) {
+    loader.innerHTML = '<div style="color: #ef4444; padding: 20px; text-align: center;">❌ Failed to load image. <br>Please try again.</div>';
+  }
+}
 
 // --- ACTIONS IMPLEMENTATION ---
 async function copyMessage(btn, text) {
