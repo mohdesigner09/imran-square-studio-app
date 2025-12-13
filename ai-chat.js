@@ -24,6 +24,7 @@ if (typeof marked !== 'undefined') {
 // --- GLOBAL STATE ---
 let wrapper, heroInput, bottomInput, messagesList, heroSendBtn, bottomSendBtn, newChatBtn;
 let currentChatId = null;
+let isGenerating = false; 
 
 // --- STORAGE MANAGEMENT ---
 function getChats() {
@@ -193,8 +194,11 @@ async function sendMessage(inputElement) {
       aiText = '⚠️ Empty response from AI.';
     }
 
-    // 4. Show AI Response
-    addMessage(aiText, 'ai');
+    
+   // 4. Show AI Response WITH TYPEWRITER
+    isGenerating = true; // Flag on
+    await typeWriterEffect(aiText);
+    isGenerating = false; // Flag off
 
     // 5. Save AI Response
     const chats = getChats();
@@ -277,6 +281,56 @@ function addMessage(text, role, animate = true) {
   attachMessageActions(msgDiv, text, role);
 
   if (animate) scrollToBottom();
+}
+
+// --- PHASE 2: TYPEWRITER EFFECT ---
+async function typeWriterEffect(fullText) {
+  if (!messagesList) return;
+
+  // 1. Create UI Elements
+  const msgDiv = document.createElement('div');
+  msgDiv.className = 'msg-row ai';
+  msgDiv.dataset.originalText = fullText;
+
+  const contentDiv = document.createElement('div');
+  contentDiv.className = 'msg-bubble prose';
+  msgDiv.appendChild(contentDiv);
+  
+  // Actions (Hidden initially)
+  const actionsDiv = createActionButtons('ai'); // Ensure createActionButtons exists or copy logic here
+  actionsDiv.style.opacity = '0'; 
+  msgDiv.appendChild(actionsDiv);
+
+  messagesList.appendChild(msgDiv);
+
+  // 2. Typing Logic (Word by Word)
+  const words = fullText.split(' ');
+  let currentText = '';
+  
+  return new Promise((resolve) => {
+    let i = 0;
+    function typeNext() {
+      if (i < words.length) {
+        currentText += (i === 0 ? '' : ' ') + words[i];
+        
+        if (typeof marked !== 'undefined') {
+            contentDiv.innerHTML = marked.parse(currentText);
+        } else {
+            contentDiv.innerText = currentText;
+        }
+        
+        // Auto Scroll
+        if(messagesList) messagesList.scrollTop = messagesList.scrollHeight;
+        
+        i++;
+        setTimeout(typeNext, Math.floor(Math.random() * 15) + 10); // Speed: 10-25ms
+      } else {
+        actionsDiv.style.opacity = '1'; // Show buttons
+        resolve();
+      }
+    }
+    typeNext();
+  });
 }
 
 // --- EVENT LISTENERS FOR MESSAGE BUTTONS ---
