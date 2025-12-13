@@ -345,16 +345,19 @@ body::before {
       max-width: 800px;
       z-index: 50;
     }
+
+    
 @media (max-width: 768px) {
-      /* Mobile ke liye Input Container ki setting */
+      /* Mobile Container Settings */
       .bottom-input-container {
-        width: 96%;
+        width: 92%; /* Side gaps thode aur badhaye taaki edge se na chipke */
         
-        /* 🔥 FIX: Isey thoda upar uthaya hai (20px se 30px) */
-        bottom: 30px; 
+        /* 🔥 BIG CHANGE: Isey 30px se badha kar 70px kar diya hai */
+        /* Isse ye Navigation bar/Gesture bar se kaafi upar rahega */
+        bottom: 70px !important; 
         
-        /* 🔥 FIX: iPhone/Android ke bottom bar/gesture area ke liye safe space */
-        margin-bottom: env(safe-area-inset-bottom); 
+        /* Extra safety for notched phones */
+        margin-bottom: env(safe-area-inset-bottom, 20px); 
       }
 
       .hero-logo-wrapper {
@@ -362,20 +365,19 @@ body::before {
       }
 
       .messages-area {
-        /* Mobile par padding aur zyada rakhein taaki text na chupe */
-        padding-bottom: 220px !important;
-        padding-left: 12px;
-        padding-right: 12px;
+        /* Input box upar gaya, to padding bhi badhani padegi */
+        padding-bottom: 260px !important;
+        padding-left: 14px;
+        padding-right: 14px;
       }
       
       .hero-input-box {
-        padding: 12px 16px;
+        padding: 14px 16px;
       }
-      
-      /* Model Selector Dropdown ko thoda adjust karein agar wo cut raha hai */
-      #modelSelect {
-         max-width: 140px; /* Mobile par width control karein */
-         text-overflow: ellipsis;
+
+      /* Mobile par font size thoda readable karein */
+      .hero-input-box input {
+        font-size: 16px; /* 16px prevents iOS zoom on focus */
       }
     }
 
