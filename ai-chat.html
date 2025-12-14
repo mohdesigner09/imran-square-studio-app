@@ -1570,52 +1570,90 @@ input:checked + .slider:before { transform: translateX(18px); }
 }
 
 @keyframes blink { 0% { opacity: 1; } 50% { opacity: 0.3; } 100% { opacity: 1; } }
-
-/* --- PERSONA GRID STYLES --- */
+/* --- PREMIUM PERSONA GRID (Updated) --- */
 .persona-grid {
   display: grid;
-  grid-template-columns: repeat(3, 1fr); /* 3 cards per row */
-  gap: 10px;
-  margin-bottom: 10px;
+  /* Auto-fill se ye mobile aur PC dono par best fit hoga */
+  grid-template-columns: repeat(auto-fill, minmax(100px, 1fr)); 
+  gap: 12px;
+  margin-bottom: 15px;
 }
 
 .persona-card {
-  background: rgba(255, 255, 255, 0.05);
+  /* Premium Glassy Gradient */
+  background: linear-gradient(145deg, rgba(255, 255, 255, 0.05), rgba(255, 255, 255, 0.01));
   border: 1px solid rgba(255, 255, 255, 0.1);
-  border-radius: 8px;
-  padding: 10px;
+  border-radius: 12px;
+  padding: 12px 5px;
   text-align: center;
   cursor: pointer;
-  transition: all 0.2s ease;
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1); /* Makhan smooth animation */
+  position: relative;
+  overflow: hidden;
 }
 
 .persona-card:hover {
   background: rgba(255, 255, 255, 0.1);
-  transform: translateY(-2px);
+  transform: translateY(-3px); /* Thoda sa upar uthega */
+  border-color: rgba(255, 255, 255, 0.3);
 }
 
-/* Active State (Selected) */
+/* Active State (Normal Cards - Green Glow) */
 .persona-card.active {
-  background: rgba(74, 222, 128, 0.1); /* Green Tint */
+  background: rgba(74, 222, 128, 0.15);
   border-color: #4ade80;
-  box-shadow: 0 0 10px rgba(74, 222, 128, 0.2);
-}
-
-.p-icon {
-  font-size: 1.5rem;
-  margin-bottom: 5px;
-}
-
-.p-name {
-  font-size: 0.75rem;
-  color: #ccc;
-  font-weight: 600;
+  box-shadow: 0 0 15px rgba(74, 222, 128, 0.2);
 }
 
 .persona-card.active .p-name {
   color: #4ade80;
 }
 
+/* 🔥 SPECIAL CARD: IMRAN KHAN MODE (Gold Theme) */
+.persona-card.special-card {
+  border: 1px solid rgba(255, 215, 0, 0.3); /* Gold Border */
+  background: linear-gradient(145deg, rgba(255, 215, 0, 0.1), rgba(0,0,0,0));
+}
+
+/* "ULTIMATE" Tag Style */
+.persona-card.special-card .p-tag {
+  font-size: 0.5rem;
+  background: #ffd700;
+  color: #000;
+  padding: 2px 6px;
+  border-radius: 4px;
+  font-weight: bold;
+  position: absolute;
+  top: 5px;
+  right: 5px;
+  letter-spacing: 0.5px;
+  z-index: 2;
+}
+
+/* Gold Active State */
+.persona-card.special-card.active {
+  background: rgba(255, 215, 0, 0.2);
+  border-color: #ffd700;
+  box-shadow: 0 0 20px rgba(255, 215, 0, 0.3); /* Sone jaisa chamak */
+}
+
+.persona-card.special-card.active .p-name {
+  color: #ffd700;
+}
+
+/* Text & Icon Styles */
+.p-icon {
+  font-size: 1.8rem;
+  margin-bottom: 8px;
+  filter: drop-shadow(0 2px 4px rgba(0,0,0,0.5));
+}
+
+.p-name {
+  font-size: 0.75rem;
+  color: #aaa;
+  font-weight: 600;
+  line-height: 1.2;
+}
   </style>
 </head>
 <body>
@@ -1871,11 +1909,37 @@ input:checked + .slider:before { transform: translateX(18px); }
       <div class="setting-section">
         <div class="section-label">SELECT PERSONA MODE</div>
         
-        <div class="persona-grid">
+<div class="persona-grid">
           
-          <div class="persona-card active" onclick="setPersona('default', this)">
-            <div class="p-icon">🤖</div>
-            <div class="p-name">Default</div>
+          <div class="persona-card special-card" onclick="setPersona('imran', this)">
+            <div class="p-icon">🦁</div>
+            <div class="p-name">Imran Khan</div>
+            <div class="p-tag">ULTIMATE</div>
+          </div>
+
+          <div class="persona-card" onclick="setPersona('mufti', this)">
+            <div class="p-icon">🕌</div>
+            <div class="p-name">Mufti Sahab</div>
+          </div>
+
+          <div class="persona-card" onclick="setPersona('lawyer', this)">
+            <div class="p-icon">⚖️</div>
+            <div class="p-name">Indian Lawyer</div>
+          </div>
+
+          <div class="persona-card" onclick="setPersona('english', this)">
+            <div class="p-icon">🗣️</div>
+            <div class="p-name">English Coach</div>
+          </div>
+
+          <div class="persona-card" onclick="setPersona('fitness', this)">
+            <div class="p-icon">💪</div>
+            <div class="p-name">Fitness Coach</div>
+          </div>
+
+          <div class="persona-card" onclick="setPersona('script', this)">
+            <div class="p-icon">🎬</div>
+            <div class="p-name">Script Coach</div>
           </div>
 
           <div class="persona-card" onclick="setPersona('roast', this)">
@@ -1888,19 +1952,14 @@ input:checked + .slider:before { transform: translateX(18px); }
             <div class="p-name">Girlfriend</div>
           </div>
 
-          <div class="persona-card" onclick="setPersona('bf', this)">
-            <div class="p-icon">😎</div>
-            <div class="p-name">Boyfriend</div>
-          </div>
-
           <div class="persona-card" onclick="setPersona('youtuber', this)">
             <div class="p-icon">📸</div>
             <div class="p-name">YouTuber</div>
           </div>
 
-          <div class="persona-card" onclick="setPersona('batman', this)">
-            <div class="p-icon">🦇</div>
-            <div class="p-name">Batman</div>
+          <div class="persona-card" onclick="setPersona('default', this)">
+            <div class="p-icon">🤖</div>
+            <div class="p-name">Default</div>
           </div>
 
         </div>
