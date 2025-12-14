@@ -1406,52 +1406,35 @@ body::before {
 
   <div class="flex h-screen">
     <!-- Sidebar -->
-    <aside class="sidebar md:flex p-4">
+<aside class="sidebar md:flex p-4">
+      
       <div class="mb-6">
         <button class="new-chat-btn" id="newChatBtn">
           <span class="text-xl">+</span>
           <span class="font-medium">New Chat</span>
         </button>
       </div>
-      <div
-        class="flex-1 overflow-y-auto space-y-1 mb-4 sidebar-scrollable"
-        id="chatHistoryContainer"
-      >
-        <div
-          class="text-[10px] text-gray-500 font-bold uppercase mb-2 px-2 tracking-widest"
-        >
+
+      <div class="flex-1 overflow-y-auto space-y-1 mb-4 sidebar-scrollable" id="chatHistoryContainer">
+        <div class="text-[10px] text-gray-500 font-bold uppercase mb-2 px-2 tracking-widest">
           Recent
         </div>
       </div>
+
       <div class="sidebar-footer">
-      
-      <div class="user-profile">
-        <div class="user-avatar">I²</div>
-        <div class="user-info">
-          <span class="user-name">Imran Square</span>
-          <span class="user-role">Pro Member</span>
+        
+        <div class="user-profile">
+          <div class="user-avatar">I²</div>
+          <div class="user-info">
+            <span class="user-name">Imran Square</span>
+            <span class="user-role">Pro Member</span>
+          </div>
         </div>
-      </div>
 
-      <button id="settingsBtn" class="settings-icon-btn" title="Settings">
-        ⚙️
-      </button>
+        <button id="settingsBtn" class="settings-icon-btn" title="Settings">
+          ⚙️
+        </button>
 
-    </div>
-        <a
-          href="ai-tools.html"
-          class="flex items-center gap-3 p-2 rounded-lg hover:bg-white/5 transition cursor-pointer group"
-        >
-          <div
-            class="w-8 h-8 rounded-full bg-white/10 flex items-center justify-center text-xs font-bold text-white border border-white/10 shadow-lg group-hover:scale-105 transition"
-          >
-            I²
-          </div>
-          <div class="text-sm">
-            <div class="font-medium text-white">Back to Hub</div>
-            <div class="text-xs text-gray-500">Imran Square</div>
-          </div>
-        </a>
       </div>
     </aside>
 
