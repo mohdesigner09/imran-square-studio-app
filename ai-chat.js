@@ -378,14 +378,25 @@ async function sendMessage(inputElement) {
     // ==========================================
 
     const model = document.getElementById('modelSelect')?.value || 'gemini-1.5-flash';
+ // 👇👇👇 REPLACE THE OLD FETCH WITH THIS 👇👇👇
+
+    // 1. Get Custom Instruction (Batman Logic) 🦇
+    let systemInstruction = localStorage.getItem('systemPrompt') || "";
     
+    // Batman Brain Injection 🧠
+    let finalPrompt = userMessage;
+    if(systemInstruction) {
+        // AI ko user message se pehle instruction do
+        finalPrompt = `System Instruction: ${systemInstruction}\n\nUser: ${userMessage}`;
+    }
+
     const response = await fetch(`${API_BASE}/api/chat`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ 
-        userMessage, 
+        userMessage: finalPrompt, // 🔥 Yahan humne Modified Message bheja
         model,
-        history: chatHistory
+        history: chatHistory 
       })
     });
 
@@ -844,3 +855,22 @@ window.exportAllChats = function() {
   document.body.removeChild(a);
   URL.revokeObjectURL(url);
 };
+
+// --- SYSTEM PREFERENCES LOGIC ---
+
+const systemPromptInput = document.getElementById('systemPromptInput');
+
+// 1. Load Saved Prompt on Startup
+const savedPrompt = localStorage.getItem('systemPrompt');
+if (savedPrompt && systemPromptInput) {
+  systemPromptInput.value = savedPrompt;
+}
+
+// 2. Save Prompt on Change (Real-time save)
+if (systemPromptInput) {
+  systemPromptInput.addEventListener('input', (e) => {
+    localStorage.setItem('systemPrompt', e.target.value);
+  });
+}
+
+   

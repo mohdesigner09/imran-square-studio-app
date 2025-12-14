@@ -1388,6 +1388,188 @@ body::before {
   background: rgba(255, 255, 255, 0.1);
   color: white;
 }
+
+/* --- BATMAN / TECH MODAL STYLES --- */
+
+/* 1. Glass Panel Container */
+.modal-box.glass-panel {
+  background: rgba(10, 10, 12, 0.95); /* Deep Black */
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  box-shadow: 0 0 40px rgba(0, 0, 0, 0.8), 0 0 10px rgba(74, 222, 128, 0.1); /* Subtle Green Glow */
+  backdrop-filter: blur(20px);
+  border-radius: 12px;
+  width: 90%;
+  max-width: 450px;
+  font-family: 'Inter', sans-serif;
+  overflow: hidden;
+  animation: modalPop 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+}
+
+@keyframes modalPop {
+  from { transform: scale(0.95); opacity: 0; }
+  to { transform: scale(1); opacity: 1; }
+}
+
+/* 2. Header */
+.modal-header {
+  background: rgba(255, 255, 255, 0.03);
+  padding: 15px 20px;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.header-title {
+  font-family: 'Courier New', monospace;
+  font-weight: 700;
+  letter-spacing: 2px;
+  color: #fff;
+  font-size: 0.9rem;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.tech-icon { color: #4ade80; }
+
+/* 3. Sections */
+.modal-body { padding: 20px; }
+
+.setting-section { margin-bottom: 25px; }
+
+.section-label {
+  font-size: 0.7rem;
+  color: rgba(74, 222, 128, 0.8); /* Matrix Green */
+  font-weight: bold;
+  letter-spacing: 1px;
+  margin-bottom: 10px;
+  text-transform: uppercase;
+}
+
+/* 4. Inputs (Tech Style) */
+.tech-textarea {
+  width: 100%;
+  background: #000;
+  border: 1px solid rgba(255, 255, 255, 0.15);
+  color: #ddd;
+  padding: 10px;
+  border-radius: 6px;
+  font-family: 'Courier New', monospace;
+  font-size: 0.85rem;
+  resize: vertical;
+  min-height: 80px;
+  transition: all 0.3s;
+}
+
+.tech-textarea:focus {
+  border-color: #4ade80;
+  box-shadow: 0 0 10px rgba(74, 222, 128, 0.2);
+  outline: none;
+}
+
+.input-hint {
+  font-size: 0.7rem;
+  color: rgba(255, 255, 255, 0.4);
+  margin-top: 5px;
+}
+
+/* 5. Toggles (Switch) */
+.toggle-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 15px;
+  padding: 8px 0;
+}
+
+.toggle-title { display: block; color: #eee; font-size: 0.9rem; }
+.toggle-desc { display: block; color: #666; font-size: 0.75rem; }
+
+.switch {
+  position: relative;
+  display: inline-block;
+  width: 40px;
+  height: 22px;
+}
+
+.switch input { opacity: 0; width: 0; height: 0; }
+
+.slider {
+  position: absolute;
+  cursor: pointer;
+  top: 0; left: 0; right: 0; bottom: 0;
+  background-color: #333;
+  transition: .4s;
+  border-radius: 34px;
+}
+
+.slider:before {
+  position: absolute;
+  content: "";
+  height: 16px;
+  width: 16px;
+  left: 3px;
+  bottom: 3px;
+  background-color: white;
+  transition: .4s;
+  border-radius: 50%;
+}
+
+input:checked + .slider { background-color: #4ade80; }
+input:checked + .slider:before { transform: translateX(18px); }
+
+/* 6. Buttons */
+.action-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+
+.tech-btn {
+  padding: 10px;
+  border-radius: 6px;
+  font-weight: 600;
+  font-size: 0.85rem;
+  cursor: pointer;
+  transition: all 0.2s;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.tech-btn.outline {
+  background: transparent;
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  color: #fff;
+}
+.tech-btn.outline:hover { background: rgba(255, 255, 255, 0.1); border-color: #fff; }
+
+.tech-btn.danger {
+  background: rgba(239, 68, 68, 0.1);
+  border: 1px solid rgba(239, 68, 68, 0.4);
+  color: #ef4444;
+}
+.tech-btn.danger:hover { background: #ef4444; color: #000; box-shadow: 0 0 15px rgba(239,68,68, 0.4); }
+
+/* 7. Footer Status */
+.modal-footer {
+  background: #000;
+  padding: 10px 20px;
+  border-top: 1px solid rgba(255, 255, 255, 0.1);
+  display: flex;
+  justify-content: space-between;
+  font-size: 0.7rem;
+  color: #555;
+  font-family: monospace;
+}
+
+.blink-dot {
+  display: inline-block;
+  width: 6px;
+  height: 6px;
+  background: #4ade80;
+  border-radius: 50%;
+  margin-right: 5px;
+  animation: blink 2s infinite;
+}
+
+@keyframes blink { 0% { opacity: 1; } 50% { opacity: 0.3; } 100% { opacity: 1; } }
   </style>
 </head>
 <body>
@@ -1629,34 +1811,76 @@ body::before {
 </div>
 
 <div id="settingsModal" class="modal-overlay">
-  <div class="modal-box">
+  <div class="modal-box glass-panel">
     
     <div class="modal-header">
-      <h3>Settings & Preferences</h3>
+      <div class="header-title">
+        <span class="tech-icon">⚙️</span> SYSTEM PREFERENCES
+      </div>
       <button id="closeSettingsBtn" class="close-modal-btn">✖</button>
     </div>
 
     <div class="modal-body">
       
-      <div class="setting-item">
-        <div class="setting-info">
-          <span class="setting-title">📥 Export Data</span>
-          <span class="setting-desc">Download all your chats as a file.</span>
+      <div class="setting-section">
+        <div class="section-label">AI PERSONALITY CORE</div>
+        <div class="input-group">
+          <label class="input-label">System Instructions</label>
+          <textarea id="systemPromptInput" class="tech-textarea" placeholder="E.g., You are a helpful coding assistant. Be concise."></textarea>
+          <div class="input-hint">Define how the AI should behave.</div>
         </div>
-        <button onclick="exportAllChats()" class="action-btn secondary">Export JSON</button>
       </div>
 
-      <hr style="border-color: rgba(255,255,255,0.1); margin: 15px 0;">
-
-      <div class="setting-item">
-        <div class="setting-info">
-          <span class="setting-title" style="color: #ef4444;">🗑️ Clear All History</span>
-          <span class="setting-desc">Delete all chats permanently.</span>
+      <div class="setting-section">
+        <div class="section-label">INTERFACE MODULES</div>
+        
+        <div class="toggle-row">
+          <div class="toggle-info">
+            <span class="toggle-title">Haptic Feedback</span>
+            <span class="toggle-desc">Vibrate on keypress (Mobile)</span>
+          </div>
+          <label class="switch">
+            <input type="checkbox" checked>
+            <span class="slider round"></span>
+          </label>
         </div>
-        <button onclick="clearAllChats()" class="action-btn danger">Delete All</button>
+
+        <div class="toggle-row">
+          <div class="toggle-info">
+            <span class="toggle-title">Stream Responses</span>
+            <span class="toggle-desc">Typewriter effect enabled</span>
+          </div>
+          <label class="switch">
+            <input type="checkbox" checked>
+            <span class="slider round"></span>
+          </label>
+        </div>
+      </div>
+
+      <div class="setting-section danger-zone">
+        <div class="section-label" style="color: #ef4444;">DATA DESTRUCTION</div>
+        
+        <div class="action-grid">
+          <button onclick="exportAllChats()" class="tech-btn outline">
+            📥 Encrypt & Export
+          </button>
+          <button onclick="clearAllChats()" class="tech-btn danger">
+            ☢️ Purge All Data
+          </button>
+        </div>
       </div>
 
     </div>
+    
+    <div class="modal-footer">
+      <div class="status-indicator">
+        <span class="blink-dot"></span> SYSTEM ONLINE
+      </div>
+      <div class="version-code">V2.4.0 // WAYNE ENT.</div>
+    </div>
+
+  </div>
+</div>
     
     <div class="modal-footer">
       <div style="font-size: 0.8rem; color: rgba(255,255,255,0.3);">
