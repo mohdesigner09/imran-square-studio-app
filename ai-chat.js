@@ -795,6 +795,8 @@ document.addEventListener('DOMContentLoaded', () => {
   
 });
 
+
+
 // --- SETTINGS MODAL LOGIC ---
 
 const settingsModal = document.getElementById('settingsModal');
@@ -804,14 +806,14 @@ const closeSettingsBtn = document.getElementById('closeSettingsBtn');
 // 1. Open Modal
 if(settingsBtn) {
   settingsBtn.addEventListener('click', () => {
-    settingsModal.classList.add('show');
+    if(settingsModal) settingsModal.classList.add('show');
   });
 }
 
 // 2. Close Modal
 if(closeSettingsBtn) {
   closeSettingsBtn.addEventListener('click', () => {
-    settingsModal.classList.remove('show');
+    if(settingsModal) settingsModal.classList.remove('show');
   });
 }
 
@@ -824,29 +826,25 @@ if(settingsModal) {
   });
 }
 
-// --- FEATURES ---
+// --- FEATURES: DATA MANAGEMENT ---
 
 // A. CLEAR ALL CHATS
 window.clearAllChats = function() {
   if(confirm("⚠️ WARNING: This will delete ALL your chat history permanently!\nAre you sure?")) {
-    localStorage.removeItem('chatSessions'); // Delete Data
-    location.reload(); // Refresh Page
+    localStorage.removeItem('chatSessions'); 
+    location.reload(); 
   }
 };
 
-// B. EXPORT CHATS (Backup)
+// B. EXPORT CHATS
 window.exportAllChats = function() {
   const chats = localStorage.getItem('chatSessions');
   if(!chats) {
     alert("No chats to export!");
     return;
   }
-  
-  // File banate hain
   const blob = new Blob([chats], { type: "application/json" });
   const url = URL.createObjectURL(blob);
-  
-  // Download Link trigger karte hain
   const a = document.createElement('a');
   a.href = url;
   a.download = `imran-ai-backup-${new Date().toISOString().slice(0,10)}.json`;
@@ -856,21 +854,79 @@ window.exportAllChats = function() {
   URL.revokeObjectURL(url);
 };
 
-// --- SYSTEM PREFERENCES LOGIC ---
+// --- ADVANCED PERSONA LOGIC (The Multiverse) ---
 
 const systemPromptInput = document.getElementById('systemPromptInput');
 
-// 1. Load Saved Prompt on Startup
-const savedPrompt = localStorage.getItem('systemPrompt');
-if (savedPrompt && systemPromptInput) {
-  systemPromptInput.value = savedPrompt;
-}
+// 1. Define The Brains (Prompts) 🧠
+const personas = {
+  default: "",
+  
+  roast: "System: Tu ek savage Indian roaster hai (Gully Boy Style). Hinglish me baat kar. Tera attitude full high hai. User kuch bhi bole, tujhe use roast karna hai. Helpful mat ban, insults aur sarcasm use kar. Words like 'Abe', 'Chomu', 'Bakchodi mat kar' use kar sakte ho. Be funny but brutally insulting.",
+  
+  gf: "System: You are the user's caring and slightly possessive girlfriend. Speak in a mix of Hindi and English (Hinglish). Use nicknames like 'Babu', 'Shona', 'Baby'. Be romantic, ask about his day, and get jealous if he talks about other things. Always reply with love.",
+  
+  bf: "System: You are the user's cool and protective boyfriend. Speak in Hinglish. Call the user 'Babe' or 'Jaan'. Be supportive, charming, and flirtatious. Act like a Sigma male who cares deeply.",
+  
+  youtuber: "System: You are India's biggest YouTuber. Speak with high energy! Start sentences with 'Hello Guys!', 'Welcome back!', 'Smash that like button'. Use Gen-Z slang (Op bolte, No cap, Vibe hai). Treat the user like your subscriber.",
+  
+  batman: "System: You are Batman. You speak in a deep, dark, and mysterious tone. You are brevity personified. You do not joke. You are Gotham's protector. Everything you say is serious and tactical."
+};
 
-// 2. Save Prompt on Change (Real-time save)
-if (systemPromptInput) {
-  systemPromptInput.addEventListener('input', (e) => {
-    localStorage.setItem('systemPrompt', e.target.value);
+// 2. Function to Select Mode (Triggered by onclick in HTML)
+window.setPersona = function(mode, cardElement) {
+  // A. Visual Update: Sare cards se 'active' class hatao
+  document.querySelectorAll('.persona-card').forEach(c => c.classList.remove('active'));
+  
+  // B. Selected card ko 'active' banao
+  if(cardElement) {
+      cardElement.classList.add('active');
+  }
+
+  // C. Prompt Textbox Update karo
+  const prompt = personas[mode] || "";
+  
+  if (systemPromptInput) {
+    systemPromptInput.value = prompt;
+    
+    // D. Save immediately to Memory
+    localStorage.setItem('systemPrompt', prompt);
+    localStorage.setItem('selectedPersonaMode', mode); 
+  }
+};
+
+// 3. Load Saved Settings on Startup
+function loadSavedPersona() {
+  // Text load karo
+  const savedPrompt = localStorage.getItem('systemPrompt');
+  if (savedPrompt && systemPromptInput) systemPromptInput.value = savedPrompt;
+
+  // Active Card Visual Restore karo
+  const savedMode = localStorage.getItem('selectedPersonaMode') || 'default';
+  
+  // Grid mein us card ko dhoondho jiska onclick function us mode se match kare
+  const cards = document.querySelectorAll('.persona-card');
+  cards.forEach(card => {
+     // Check attribute string directly (simple approach)
+     if(card.getAttribute('onclick').includes(`'${savedMode}'`)) {
+       card.classList.add('active');
+     } else {
+       card.classList.remove('active');
+     }
   });
 }
 
-   
+// Run loader when page is ready
+document.addEventListener('DOMContentLoaded', loadSavedPersona);
+
+// 4. Save Manual Edits (Custom Typing)
+if (systemPromptInput) {
+  systemPromptInput.addEventListener('input', (e) => {
+    localStorage.setItem('systemPrompt', e.target.value);
+    
+    // Agar user khud type kar raha hai, toh visually kisi specific mode ko highlight mat rakho
+    // ya fir 'Default' pe switch kar do (hum filhal highlight hata rahe hain)
+    document.querySelectorAll('.persona-card').forEach(c => c.classList.remove('active'));
+    localStorage.setItem('selectedPersonaMode', 'custom'); 
+  });
+}

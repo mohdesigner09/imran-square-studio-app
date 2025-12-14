@@ -1570,6 +1570,52 @@ input:checked + .slider:before { transform: translateX(18px); }
 }
 
 @keyframes blink { 0% { opacity: 1; } 50% { opacity: 0.3; } 100% { opacity: 1; } }
+
+/* --- PERSONA GRID STYLES --- */
+.persona-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr); /* 3 cards per row */
+  gap: 10px;
+  margin-bottom: 10px;
+}
+
+.persona-card {
+  background: rgba(255, 255, 255, 0.05);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 8px;
+  padding: 10px;
+  text-align: center;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.persona-card:hover {
+  background: rgba(255, 255, 255, 0.1);
+  transform: translateY(-2px);
+}
+
+/* Active State (Selected) */
+.persona-card.active {
+  background: rgba(74, 222, 128, 0.1); /* Green Tint */
+  border-color: #4ade80;
+  box-shadow: 0 0 10px rgba(74, 222, 128, 0.2);
+}
+
+.p-icon {
+  font-size: 1.5rem;
+  margin-bottom: 5px;
+}
+
+.p-name {
+  font-size: 0.75rem;
+  color: #ccc;
+  font-weight: 600;
+}
+
+.persona-card.active .p-name {
+  color: #4ade80;
+}
+
   </style>
 </head>
 <body>
@@ -1801,7 +1847,7 @@ input:checked + .slider:before { transform: translateX(18px); }
     }
   </script>
 
-  <div id="globalChatMenu" class="chat-options-dropdown">
+<div id="globalChatMenu" class="chat-options-dropdown">
   <div class="dropdown-item" id="globalRenameBtn">
     ✏️ Rename
   </div>
@@ -1823,11 +1869,45 @@ input:checked + .slider:before { transform: translateX(18px); }
     <div class="modal-body">
       
       <div class="setting-section">
-        <div class="section-label">AI PERSONALITY CORE</div>
-        <div class="input-group">
-          <label class="input-label">System Instructions</label>
-          <textarea id="systemPromptInput" class="tech-textarea" placeholder="E.g., You are a helpful coding assistant. Be concise."></textarea>
-          <div class="input-hint">Define how the AI should behave.</div>
+        <div class="section-label">SELECT PERSONA MODE</div>
+        
+        <div class="persona-grid">
+          
+          <div class="persona-card active" onclick="setPersona('default', this)">
+            <div class="p-icon">🤖</div>
+            <div class="p-name">Default</div>
+          </div>
+
+          <div class="persona-card" onclick="setPersona('roast', this)">
+            <div class="p-icon">🔥</div>
+            <div class="p-name">Roast God</div>
+          </div>
+
+          <div class="persona-card" onclick="setPersona('gf', this)">
+            <div class="p-icon">💕</div>
+            <div class="p-name">Girlfriend</div>
+          </div>
+
+          <div class="persona-card" onclick="setPersona('bf', this)">
+            <div class="p-icon">😎</div>
+            <div class="p-name">Boyfriend</div>
+          </div>
+
+          <div class="persona-card" onclick="setPersona('youtuber', this)">
+            <div class="p-icon">📸</div>
+            <div class="p-name">YouTuber</div>
+          </div>
+
+          <div class="persona-card" onclick="setPersona('batman', this)">
+            <div class="p-icon">🦇</div>
+            <div class="p-name">Batman</div>
+          </div>
+
+        </div>
+
+        <div class="input-group" style="margin-top: 15px;">
+          <label class="input-label">Custom / Current Instructions</label>
+          <textarea id="systemPromptInput" class="tech-textarea" placeholder="Select a mode above or type your own..."></textarea>
         </div>
       </div>
 
@@ -1876,21 +1956,13 @@ input:checked + .slider:before { transform: translateX(18px); }
       <div class="status-indicator">
         <span class="blink-dot"></span> SYSTEM ONLINE
       </div>
-      <div class="version-code">V2.4.0 // WAYNE ENT.</div>
+      <div class="version-code">Version 2.0 • Powered by Imran Square</div>
     </div>
 
   </div>
 </div>
     
-    <div class="modal-footer">
-      <div style="font-size: 0.8rem; color: rgba(255,255,255,0.3);">
-        Version 2.0 • Powered by Imran Square
-      </div>
-    </div>
-
-  </div>
-</div>
-
+   
 <script src="ai-chat.js"></script> </body> 
 </body>
 </html>
