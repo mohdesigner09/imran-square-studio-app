@@ -277,7 +277,7 @@
     </div>
     
     <!-- 📱 MOBILE MENU BUTTON (Three Lines) -->
-    <button id="mobileMenuBtn" class="md:hidden p-2 rounded-lg hover:bg-white/10 text-gray-400 hover:text-white transition-colors" aria-label="Menu">
+   <button id="hamburgerBtn" onclick="toggleSidebar()" class="md:hidden p-2 rounded-lg hover:bg-white/10 text-gray-400 hover:text-white transition-colors" aria-label="Menu">
         <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16M4 18h16"/>
         </svg>
@@ -571,23 +571,39 @@ He pulls out a crumpled photograph.
 .sidebar-overlay.open { opacity: 1; pointer-events: auto; }
 
 /* 3. MOBILE AI BUTTON (Floating) */
+/* --- 1. NEW AI BUTTON THEME (Black/Gray/White) --- */
 .ai-fab {
-    position: fixed; bottom: 80px; right: 20px; width: 56px; height: 56px;
-    border-radius: 50%; background: linear-gradient(135deg, #22c55e, #16a34a);
-    color: white; display: flex; align-items: center; justify-content: center;
-    box-shadow: 0 4px 15px rgba(34, 197, 94, 0.5); z-index: 60; font-size: 24px;
-    cursor: pointer; transition: transform 0.2s;
+    position: fixed; bottom: 80px; right: 20px; 
+    width: 56px; height: 56px;
+    border-radius: 50%; 
+    
+    /* 🔥 Dark Premium Theme */
+    background: #000000; 
+    border: 1px solid rgba(255, 255, 255, 0.3);
+    color: white; 
+    
+    display: flex; align-items: center; justify-content: center;
+    box-shadow: 0 0 20px rgba(255, 255, 255, 0.15); /* White Glow */
+    z-index: 60; font-size: 22px;
+    cursor: pointer; transition: all 0.2s;
 }
-.ai-fab:active { transform: scale(0.9); }
+.ai-fab:active { transform: scale(0.95); background: #222; }
 
-/* 4. AI SHEET (Bottom Popup) */
-#mobileAISheet {
-    position: fixed; bottom: 0; left: 0; right: 0;
-    background: #1a1a1a; border-top: 1px solid rgba(255,255,255,0.1);
-    border-radius: 20px 20px 0 0; padding: 20px; z-index: 100;
-    transform: translateY(100%); transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+/* --- 2. TOOLBAR ACTIVE STATE (White on Black) --- */
+.toolbar-btn.active {
+    background: #ffffff; 
+    color: #000000; 
+    border-color: #ffffff;
+    box-shadow: 0 0 10px rgba(255,255,255,0.3);
 }
-#mobileAISheet.open { transform: translateY(0); }
+
+/* --- 3. SIDEBAR Z-INDEX FIX --- */
+#mobileSidebar {
+    z-index: 9999; /* Sabse upar */
+}
+.sidebar-overlay {
+    z-index: 9998;
+}
 
 </style>
 
@@ -1110,40 +1126,74 @@ if (typeof addNewScene !== 'function') {
 
 // --- JS TO ADD AT THE BOTTOM ---
 
-// 1. Sidebar Toggle Logic
+// 1. SIDEBAR TOGGLE (Fixed for onclick)
 function toggleSidebar() {
     const sidebar = document.getElementById('mobileSidebar');
     const overlay = document.getElementById('sidebarOverlay');
-    sidebar.classList.toggle('open');
-    overlay.classList.toggle('open');
+    
+    // Toggle Classes
+    if (sidebar.classList.contains('open')) {
+        sidebar.classList.remove('open');
+        overlay.classList.remove('open');
+    } else {
+        sidebar.classList.add('open');
+        overlay.classList.add('open');
+    }
 }
-// Button Link
-document.getElementById('mobileMenuBtn')?.addEventListener('click', toggleSidebar);
 
-
-// 2. AI Sheet Toggle
+// 2. AI SHEET TOGGLE
 function toggleAISheet() {
-    document.getElementById('mobileAISheet').classList.toggle('open');
+    const sheet = document.getElementById('mobileAISheet');
+    if(sheet) sheet.classList.toggle('open');
 }
 
-
-// 3. Editor Formatting Logic (Toolbar ke liye)
+// 3. EDITOR FORMATTING & STATE CHECKER (The Fix 🧠)
 function formatDoc(cmd, value = null) {
+    // 🔥 STOP FOCUS LOSS: Button dabane par editor se dhyan nahi hatega
+    if(event) event.preventDefault();
+    
     document.execCommand(cmd, false, value);
+    
+    // Check karo ki button active dikhana hai ya nahi
+    updateToolbarState();
+    
+    // Wapis editor par focus karo
+    const editor = document.getElementById('scriptEditor');
+    if(editor) editor.focus();
 }
 
+// 🔥 NEW FUNCTION: Button Active/Inactive Checker
+function updateToolbarState() {
+    // Bold Check
+    const isBold = document.queryCommandState('bold');
+    const btnBold = document.querySelector('button[onclick="formatDoc(\'bold\')"]');
+    if(btnBold) isBold ? btnBold.classList.add('active') : btnBold.classList.remove('active');
+
+    // Italic Check
+    const isItalic = document.queryCommandState('italic');
+    const btnItalic = document.querySelector('button[onclick="formatDoc(\'italic\')"]');
+    if(btnItalic) isItalic ? btnItalic.classList.add('active') : btnItalic.classList.remove('active');
+
+    // Underline Check
+    const isUnderline = document.queryCommandState('underline');
+    const btnUnderline = document.querySelector('button[onclick="formatDoc(\'underline\')"]');
+    if(btnUnderline) isUnderline ? btnUnderline.classList.add('active') : btnUnderline.classList.remove('active');
+}
+
+// Script Formatting (Scene, Action, etc.)
 function applyScriptFormat(type) {
     if(!type) return;
-    document.execCommand('formatBlock', false, 'div'); // Block reset
+    document.execCommand('formatBlock', false, 'div'); // Reset block
+    
     const selection = window.getSelection();
     if (selection.rangeCount > 0) {
         const node = selection.anchorNode.parentElement;
         
         // Reset Styles
         node.style.textAlign = 'left'; node.style.fontWeight = 'normal'; 
-        node.style.textTransform = 'none'; node.style.marginLeft = '0';
+        node.style.textTransform = 'none'; node.style.marginLeft = '0'; node.style.marginTop = '0';
 
-        // Apply New Styles
+        // Apply Styles
         if (type === 'scene') { 
             node.style.fontWeight = 'bold'; node.style.textTransform = 'uppercase'; node.style.marginTop = '20px'; 
         } 
@@ -1154,16 +1204,26 @@ function applyScriptFormat(type) {
             node.style.textAlign = 'center'; node.style.width = '70%'; node.style.margin = '0 auto';
         }
     }
+    // Wapis focus aur state update
+    const editor = document.getElementById('scriptEditor');
+    if(editor) editor.focus();
 }
 
-
-// 4. FIX FILES TAB (Cards not showing)
-// Ye function ensure karega ki agar koi project na bhi ho, tab bhi cards dikhen
+// 4. INITIALIZATION & LISTENERS
 document.addEventListener('DOMContentLoaded', () => {
-    const grid = document.getElementById('sectionsGrid'); // ID check kar lena
-    // Agar grid khali hai to default cards daalo
+    
+    // A. Editor Listeners for Active State
+    const editor = document.getElementById('scriptEditor');
+    if(editor) {
+        // Jab bhi type kare ya click kare, check karo button active hai kya
+        editor.addEventListener('keyup', updateToolbarState);
+        editor.addEventListener('mouseup', updateToolbarState);
+        editor.addEventListener('click', updateToolbarState);
+    }
+
+    // B. Files Tab Fallback (Cards Fix)
+    const grid = document.getElementById('sectionsGrid');
     if(grid && grid.children.length === 0) {
-        // Fallback Data
         const defaults = [
             { name: "Screenplays", count: 2 }, { name: "Research", count: 5 },
             { name: "Characters", count: 8 }, { name: "Locations", count: 1 },
@@ -1172,7 +1232,7 @@ document.addEventListener('DOMContentLoaded', () => {
         
         defaults.forEach(sec => {
             const div = document.createElement('div');
-            div.className = 'section-card'; // Make sure CSS class exists
+            div.className = 'section-card';
             div.innerHTML = `
                 <div class="flex justify-between mb-4">
                     <h3 class="font-bold text-white uppercase">${sec.name}</h3>
