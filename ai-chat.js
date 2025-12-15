@@ -440,13 +440,15 @@ async function sendMessage(inputElement) {
 }
 
 // --- UI: MESSAGE RENDERING ---
+// 👇👇👇 REPLACE THE OLD 'addMessage' FUNCTION WITH THIS COMPLETE BLOCK 👇👇👇
+
 function addMessage(text, role, animate = true) {
   if (!messagesList) return;
 
   const msgDiv = document.createElement('div');
   msgDiv.className = role === 'user' ? 'msg-row user' : 'msg-row ai';
   
-  // Store raw text for Copy/Edit features
+  // Store raw text for Copy/Edit/Speak features
   msgDiv.dataset.originalText = text;
 
   // Content Bubble
@@ -458,29 +460,56 @@ function addMessage(text, role, animate = true) {
     // User text is safe plain text
     contentDiv.textContent = text;
   } else {
-    // AI text is rendered Markdown
-   if (typeof marked !== 'undefined') {
+    // --- AI TEXT WITH MARKDOWN & CODE HIGHLIGHTING ---
+    if (typeof marked !== 'undefined') {
+        // 1. Convert Markdown to HTML
         contentDiv.innerHTML = marked.parse(text);
         
-        // Pollinations Image Handling
-        const imgRegex = /!\[image\]\((https:\/\/image\.pollinations\.ai\/prompt\/[^)]+)\)/g;
-        if (imgRegex.test(text)) {
-            // Already handled by marked.js img tag, but we can style it
-            const images = contentDiv.querySelectorAll('img');
-            images.forEach(img => {
-                img.style.borderRadius = "12px";
-                img.style.boxShadow = "0 4px 15px rgba(0,0,0,0.5)";
-                img.style.marginTop = "10px";
+        // 2. Syntax Highlighting (Color Code)
+        if (typeof hljs !== 'undefined') {
+            contentDiv.querySelectorAll('pre code').forEach((block) => {
+                hljs.highlightElement(block);
             });
         }
+
+        // 3. Add Copy Button inside Code Blocks
+        contentDiv.querySelectorAll('pre').forEach((pre) => {
+            // Create Button
+            const btn = document.createElement('button');
+            btn.className = 'copy-code-btn';
+            btn.innerHTML = '📋 Copy';
+            
+            // Add Click Event
+            btn.onclick = () => {
+                const code = pre.querySelector('code').innerText; // Get code text
+                navigator.clipboard.writeText(code);
+                
+                // Visual Feedback
+                btn.innerHTML = '✅ Copied!';
+                setTimeout(() => btn.innerHTML = '📋 Copy', 2000);
+            };
+            
+            pre.appendChild(btn);
+        });
+
+        // 4. Image Styling (Pollinations/Standard)
+        const images = contentDiv.querySelectorAll('img');
+        images.forEach(img => {
+            img.style.borderRadius = "12px";
+            img.style.boxShadow = "0 4px 15px rgba(0,0,0,0.5)";
+            img.style.marginTop = "10px";
+            img.style.maxWidth = "100%";
+        });
+
     } else {
+        // Fallback if marked is missing
         contentDiv.innerText = text;
     }
-}
+  }
 
-  // Action Buttons (Copy, Edit, etc.)
+  // --- ACTION BUTTONS (Updated with Speaker 🔊) ---
   const actionsDiv = document.createElement('div');
-  actionsDiv.className = 'message-actions'; // Requires CSS from prev step
+  actionsDiv.className = 'message-actions'; 
 
   if (role === 'user') {
     actionsDiv.innerHTML = `
@@ -488,10 +517,36 @@ function addMessage(text, role, animate = true) {
       <button class="action-btn delete-msg-btn" title="Delete">🗑️</button>
     `;
   } else {
-    actionsDiv.innerHTML = `
-      <button class="action-btn copy-msg-btn" title="Copy">📋</button>
-      <button class="action-btn regen-msg-btn" title="Regenerate">🔄</button>
-    `;
+    // 🔥 NEW: Creating Buttons via JS to add Event Listeners cleanly
+    
+    // A. Speak Button 🔊
+    const speakBtn = document.createElement('button');
+    speakBtn.className = 'action-btn speak-msg-btn';
+    speakBtn.innerHTML = '🔊';
+    speakBtn.title = 'Listen';
+    speakBtn.onclick = () => speakText(msgDiv.dataset.originalText); 
+
+    // B. Copy Button 📋
+    const copyBtn = document.createElement('button');
+    copyBtn.className = 'action-btn copy-msg-btn';
+    copyBtn.innerHTML = '📋';
+    copyBtn.title = 'Copy Text';
+    copyBtn.onclick = () => {
+       navigator.clipboard.writeText(msgDiv.dataset.originalText);
+       copyBtn.innerHTML = '✅';
+       setTimeout(() => copyBtn.innerHTML = '📋', 2000);
+    };
+
+    // C. Regenerate Button 🔄
+    const regenBtn = document.createElement('button');
+    regenBtn.className = 'action-btn regen-msg-btn';
+    regenBtn.innerHTML = '🔄';
+    regenBtn.title = 'Regenerate';
+    
+    // Append all buttons
+    actionsDiv.appendChild(speakBtn);
+    actionsDiv.appendChild(copyBtn);
+    actionsDiv.appendChild(regenBtn);
   }
 
   msgDiv.appendChild(contentDiv);
@@ -500,10 +555,64 @@ function addMessage(text, role, animate = true) {
   // Append to list
   messagesList.appendChild(msgDiv);
   
-  // Attach Event Listeners to Buttons
-  attachMessageActions(msgDiv, text, role);
+  // Attach Event Listeners to Buttons (User side edit/delete mostly)
+  if(typeof attachMessageActions === 'function') {
+      attachMessageActions(msgDiv, text, role);
+  }
 
   if (animate) scrollToBottom();
+}
+
+// --- 🔊 NEW FUNCTION: VOICE LOGIC (Persona Aware) ---
+function speakText(text) {
+  // 1. Stop any current speech
+  if ('speechSynthesis' in window) {
+      window.speechSynthesis.cancel();
+  } else {
+      alert("Voice not supported in this browser.");
+      return;
+  }
+
+  // 2. Clean Text (Remove Markdown symbols like **, #, code blocks for speaking)
+  // Remove code blocks first so it doesn't read code
+  let cleanText = text.replace(/```[\s\S]*?```/g, "Code block skipped.");
+  // Remove markdown symbols
+  cleanText = cleanText.replace(/[*#_`]/g, '');
+
+  // 3. Create Utterance
+  const utterance = new SpeechSynthesisUtterance(cleanText);
+
+  // 4. PERSONA VOICE MODULATION 🎭
+  const mode = localStorage.getItem('selectedPersonaMode') || 'default';
+  
+  // Get available voices
+  const voices = window.speechSynthesis.getVoices();
+  
+  // Try to find a Hindi or Indian English voice for Desi feel
+  // Google Hindi, Microsoft Ravi, or any 'hi-IN' / 'en-IN' voice
+  const indianVoice = voices.find(v => v.lang.includes('hi') || v.lang.includes('IN'));
+  if(indianVoice) utterance.voice = indianVoice;
+
+  // Tweak Pitch & Speed based on Character
+  if(mode === 'imran' || mode === 'batman' || mode === 'lawyer' || mode === 'mufti') {
+    utterance.pitch = 0.8; // Deep Voice (Bhaari Aawaz)
+    utterance.rate = 0.9;  // Slow & Intense
+  } 
+  else if (mode === 'gf') {
+    utterance.pitch = 1.4; // High Pitch (Sweet Voice)
+    utterance.rate = 1.05; 
+  } 
+  else if (mode === 'roast' || mode === 'fitness') {
+    utterance.rate = 1.2;  // Fast (Aggressive)
+    utterance.pitch = 1.1;
+  }
+  else {
+    utterance.pitch = 1;   // Normal
+    utterance.rate = 1;
+  }
+
+  // 5. Speak
+  window.speechSynthesis.speak(utterance);
 }
 
 // --- PHASE 2: TYPEWRITER EFFECT ---
