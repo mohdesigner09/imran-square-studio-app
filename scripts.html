@@ -16,6 +16,7 @@
     <link rel="apple-touch-icon" href="/resources/icon-152.png">
     <link rel="icon" type="image/png" sizes="32x32" href="/resources/icon-32.png">
     <link rel="shortcut icon" href="/resources/favicon.ico">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
 
     <!-- Tailwind & Fonts -->
     <script src="https://cdn.tailwindcss.com"></script>
@@ -293,8 +294,10 @@
     </div>
     
     <!-- 📱 MOBILE MENU BUTTON (Three Lines) -->
-<button id="hamburgerBtn" onclick="toggleSidebar()" class="md:hidden p-2 text-gray-400 hover:text-white transition-colors">
-    <i class="fa-solid fa-bars text-xl"></i>
+<button id="hamburgerBtn" onclick="toggleSidebar()" class="md:hidden p-2 text-gray-400 hover:text-white">
+    <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16M4 18h16"/>
+    </svg>
 </button>
 </header>
 
@@ -1167,26 +1170,25 @@ if (typeof addNewScene !== 'function') {
 
 // --- JS TO ADD AT THE BOTTOM ---
 
-// 1. SIDEBAR TOGGLE (Fixed for onclick)
+// Sidebar kholne/band karne ka code
 function toggleSidebar() {
     const sidebar = document.getElementById('mobileSidebar');
     const overlay = document.getElementById('sidebarOverlay');
     
-    // Toggle Classes
-    if (sidebar.classList.contains('open')) {
-        sidebar.classList.remove('open');
-        overlay.classList.remove('open');
+    if (sidebar) {
+        // Check karo agar khula hai to band karo, nahi to kholo
+        if (sidebar.style.transform === 'translateX(0%)') {
+            sidebar.style.transform = 'translateX(100%)'; // Right me chupao
+            if(overlay) overlay.style.opacity = '0';
+            if(overlay) overlay.style.pointerEvents = 'none';
+        } else {
+            sidebar.style.transform = 'translateX(0%)'; // Screen par lao
+            if(overlay) overlay.style.opacity = '1';
+            if(overlay) overlay.style.pointerEvents = 'auto';
+        }
     } else {
-        sidebar.classList.add('open');
-        overlay.classList.add('open');
+        alert("Error: Sidebar ID nahi mili!"); // Agar ID galat hui to ye batayega
     }
-}
-
-// 2. AI SHEET TOGGLE
-// Isme koi change nahi karna, bas ensure karo ye code hai:
-function toggleAISheet() {
-    const sheet = document.getElementById('mobileAISheet');
-    if(sheet) sheet.classList.toggle('open');
 }
 
 // 3. EDITOR FORMATTING & STATE CHECKER (The Fix 🧠)
