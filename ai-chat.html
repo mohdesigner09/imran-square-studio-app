@@ -1389,28 +1389,50 @@ body::before {
   color: white;
 }
 
-/* --- BATMAN / TECH MODAL STYLES --- */
+/* =========================================
+   🚀 FINAL SETTINGS MODAL CSS (COMPLETE)
+   Includes: Mobile Fix, Gold Cards, Glassy Look
+   ========================================= */
 
-/* 1. Glass Panel Container */
+/* 1. Dark Overlay */
+.modal-overlay {
+  position: fixed;
+  top: 0; left: 0; width: 100%; height: 100%;
+  background: rgba(0, 0, 0, 0.8);
+  backdrop-filter: blur(5px);
+  z-index: 2000;
+  display: none; /* JS isse flex karega */
+  align-items: center;
+  justify-content: center;
+}
+
+.modal-overlay.show {
+  display: flex;
+  animation: fadeIn 0.3s ease;
+}
+
+/* 2. Main Modal Box (Mobile Fixed) */
 .modal-box.glass-panel {
-  background: rgba(10, 10, 12, 0.95); /* Deep Black */
+  background: rgba(10, 10, 12, 0.95);
   border: 1px solid rgba(255, 255, 255, 0.1);
-  box-shadow: 0 0 40px rgba(0, 0, 0, 0.8), 0 0 10px rgba(74, 222, 128, 0.1); /* Subtle Green Glow */
-  backdrop-filter: blur(20px);
-  border-radius: 12px;
-  width: 90%;
+  box-shadow: 0 0 40px rgba(0, 0, 0, 0.8);
+  border-radius: 16px;
+  
+  /* 🔥 IMPORTANT: Mobile Sizing & Scroll Fix */
+  width: 95%;
   max-width: 450px;
-  font-family: 'Inter', sans-serif;
-  overflow: hidden;
+  max-height: 85dvh; /* Screen ka 85% hi lega */
+  height: auto;
+  
+  display: flex;         /* Flexbox zaroori hai */
+  flex-direction: column; /* Upar se neeche layout */
+  
+  position: relative;
+  overflow: hidden;      /* Box ke bahar kuch na dikhe */
   animation: modalPop 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275);
 }
 
-@keyframes modalPop {
-  from { transform: scale(0.95); opacity: 0; }
-  to { transform: scale(1); opacity: 1; }
-}
-
-/* 2. Header */
+/* 3. Header (Fixed at Top) */
 .modal-header {
   background: rgba(255, 255, 255, 0.03);
   padding: 15px 20px;
@@ -1418,12 +1440,13 @@ body::before {
   display: flex;
   justify-content: space-between;
   align-items: center;
+  flex-shrink: 0; /* 🔥 Ye shrink nahi hoga */
 }
 
 .header-title {
   font-family: 'Courier New', monospace;
   font-weight: 700;
-  letter-spacing: 2px;
+  letter-spacing: 1px;
   color: #fff;
   font-size: 0.9rem;
   display: flex;
@@ -1431,229 +1454,128 @@ body::before {
   gap: 10px;
 }
 
-.tech-icon { color: #4ade80; }
-
-/* 3. Sections */
-.modal-body { padding: 20px; }
-
-.setting-section { margin-bottom: 25px; }
-
-.section-label {
-  font-size: 0.7rem;
-  color: rgba(74, 222, 128, 0.8); /* Matrix Green */
-  font-weight: bold;
-  letter-spacing: 1px;
-  margin-bottom: 10px;
-  text-transform: uppercase;
+.close-modal-btn {
+  background: transparent; border: none; color: #666; font-size: 1.2rem; cursor: pointer;
 }
 
-/* 4. Inputs (Tech Style) */
-.tech-textarea {
-  width: 100%;
-  background: #000;
-  border: 1px solid rgba(255, 255, 255, 0.15);
-  color: #ddd;
-  padding: 10px;
-  border-radius: 6px;
-  font-family: 'Courier New', monospace;
-  font-size: 0.85rem;
-  resize: vertical;
-  min-height: 80px;
-  transition: all 0.3s;
+/* 4. Body (Scrollable Middle Part) */
+.modal-body {
+  padding: 20px;
+  overflow-y: auto; /* 🔥 SCROLL YAHAN HOGA */
+  flex-grow: 1;     /* Bachi hui jagah lega */
+  
+  scrollbar-width: thin;
+  scrollbar-color: #333 transparent;
 }
 
-.tech-textarea:focus {
-  border-color: #4ade80;
-  box-shadow: 0 0 10px rgba(74, 222, 128, 0.2);
-  outline: none;
-}
+/* Scrollbar Styling */
+.modal-body::-webkit-scrollbar { width: 5px; }
+.modal-body::-webkit-scrollbar-thumb { background: #333; border-radius: 10px; }
 
-.input-hint {
-  font-size: 0.7rem;
-  color: rgba(255, 255, 255, 0.4);
-  margin-top: 5px;
-}
-
-/* 5. Toggles (Switch) */
-.toggle-row {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  margin-bottom: 15px;
-  padding: 8px 0;
-}
-
-.toggle-title { display: block; color: #eee; font-size: 0.9rem; }
-.toggle-desc { display: block; color: #666; font-size: 0.75rem; }
-
-.switch {
-  position: relative;
-  display: inline-block;
-  width: 40px;
-  height: 22px;
-}
-
-.switch input { opacity: 0; width: 0; height: 0; }
-
-.slider {
-  position: absolute;
-  cursor: pointer;
-  top: 0; left: 0; right: 0; bottom: 0;
-  background-color: #333;
-  transition: .4s;
-  border-radius: 34px;
-}
-
-.slider:before {
-  position: absolute;
-  content: "";
-  height: 16px;
-  width: 16px;
-  left: 3px;
-  bottom: 3px;
-  background-color: white;
-  transition: .4s;
-  border-radius: 50%;
-}
-
-input:checked + .slider { background-color: #4ade80; }
-input:checked + .slider:before { transform: translateX(18px); }
-
-/* 6. Buttons */
-.action-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
-
-.tech-btn {
-  padding: 10px;
-  border-radius: 6px;
-  font-weight: 600;
-  font-size: 0.85rem;
-  cursor: pointer;
-  transition: all 0.2s;
-  text-transform: uppercase;
-  letter-spacing: 0.5px;
-}
-
-.tech-btn.outline {
-  background: transparent;
-  border: 1px solid rgba(255, 255, 255, 0.2);
-  color: #fff;
-}
-.tech-btn.outline:hover { background: rgba(255, 255, 255, 0.1); border-color: #fff; }
-
-.tech-btn.danger {
-  background: rgba(239, 68, 68, 0.1);
-  border: 1px solid rgba(239, 68, 68, 0.4);
-  color: #ef4444;
-}
-.tech-btn.danger:hover { background: #ef4444; color: #000; box-shadow: 0 0 15px rgba(239,68,68, 0.4); }
-
-/* 7. Footer Status */
+/* 5. Footer (Fixed at Bottom) */
 .modal-footer {
   background: #000;
   padding: 10px 20px;
   border-top: 1px solid rgba(255, 255, 255, 0.1);
   display: flex;
   justify-content: space-between;
+  align-items: center;
+  flex-shrink: 0; /* 🔥 Ye bhi shrink nahi hoga */
   font-size: 0.7rem;
   color: #555;
   font-family: monospace;
 }
 
 .blink-dot {
-  display: inline-block;
-  width: 6px;
-  height: 6px;
-  background: #4ade80;
-  border-radius: 50%;
-  margin-right: 5px;
-  animation: blink 2s infinite;
+  display: inline-block; width: 6px; height: 6px; background: #4ade80;
+  border-radius: 50%; margin-right: 5px; animation: blink 2s infinite;
 }
 
-@keyframes blink { 0% { opacity: 1; } 50% { opacity: 0.3; } 100% { opacity: 1; } }
-/* --- PREMIUM PERSONA GRID (Updated) --- */
+/* 6. Persona Grid (Responsive) */
 .persona-grid {
   display: grid;
-  /* Auto-fill se ye mobile aur PC dono par best fit hoga */
-  grid-template-columns: repeat(auto-fill, minmax(100px, 1fr)); 
-  gap: 12px;
-  margin-bottom: 15px;
+  grid-template-columns: repeat(auto-fill, minmax(90px, 1fr));
+  gap: 10px;
+  margin-bottom: 20px;
 }
 
+/* 7. Persona Cards (Premium + Gold) */
 .persona-card {
-  /* Premium Glassy Gradient */
   background: linear-gradient(145deg, rgba(255, 255, 255, 0.05), rgba(255, 255, 255, 0.01));
   border: 1px solid rgba(255, 255, 255, 0.1);
   border-radius: 12px;
   padding: 12px 5px;
   text-align: center;
   cursor: pointer;
-  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1); /* Makhan smooth animation */
+  transition: all 0.2s;
   position: relative;
-  overflow: hidden;
 }
 
 .persona-card:hover {
   background: rgba(255, 255, 255, 0.1);
-  transform: translateY(-3px); /* Thoda sa upar uthega */
+  transform: translateY(-2px);
   border-color: rgba(255, 255, 255, 0.3);
 }
 
-/* Active State (Normal Cards - Green Glow) */
 .persona-card.active {
   background: rgba(74, 222, 128, 0.15);
   border-color: #4ade80;
   box-shadow: 0 0 15px rgba(74, 222, 128, 0.2);
 }
+.persona-card.active .p-name { color: #4ade80; }
 
-.persona-card.active .p-name {
-  color: #4ade80;
-}
-
-/* 🔥 SPECIAL CARD: IMRAN KHAN MODE (Gold Theme) */
+/* GOLD IMRAN KHAN CARD */
 .persona-card.special-card {
-  border: 1px solid rgba(255, 215, 0, 0.3); /* Gold Border */
+  border: 1px solid rgba(255, 215, 0, 0.3);
   background: linear-gradient(145deg, rgba(255, 215, 0, 0.1), rgba(0,0,0,0));
 }
-
-/* "ULTIMATE" Tag Style */
 .persona-card.special-card .p-tag {
-  font-size: 0.5rem;
-  background: #ffd700;
-  color: #000;
-  padding: 2px 6px;
-  border-radius: 4px;
-  font-weight: bold;
-  position: absolute;
-  top: 5px;
-  right: 5px;
-  letter-spacing: 0.5px;
-  z-index: 2;
+  font-size: 0.5rem; background: #ffd700; color: #000;
+  padding: 2px 6px; border-radius: 4px; font-weight: bold;
+  position: absolute; top: 4px; right: 4px;
 }
-
-/* Gold Active State */
 .persona-card.special-card.active {
   background: rgba(255, 215, 0, 0.2);
   border-color: #ffd700;
-  box-shadow: 0 0 20px rgba(255, 215, 0, 0.3); /* Sone jaisa chamak */
+  box-shadow: 0 0 20px rgba(255, 215, 0, 0.3);
 }
+.persona-card.special-card.active .p-name { color: #ffd700; }
 
-.persona-card.special-card.active .p-name {
-  color: #ffd700;
-}
-
-/* Text & Icon Styles */
-.p-icon {
-  font-size: 1.8rem;
-  margin-bottom: 8px;
-  filter: drop-shadow(0 2px 4px rgba(0,0,0,0.5));
-}
-
+.p-icon { font-size: 1.6rem; margin-bottom: 5px; }
 .p-name {
-  font-size: 0.75rem;
-  color: #aaa;
-  font-weight: 600;
-  line-height: 1.2;
+  font-size: 0.7rem; color: #aaa; font-weight: 600;
+  white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
 }
+
+/* 8. Textarea & Inputs */
+.setting-section { margin-bottom: 20px; }
+.section-label { font-size: 0.75rem; color: #4ade80; font-weight: bold; margin-bottom: 10px; }
+
+.tech-textarea {
+  width: 100%; background: #000; border: 1px solid rgba(255,255,255,0.15);
+  color: #ddd; padding: 10px; border-radius: 6px; font-family: monospace;
+  font-size: 0.8rem; resize: none; height: 80px;
+}
+.tech-textarea:focus { border-color: #4ade80; outline: none; }
+
+/* 9. Toggles & Buttons */
+.toggle-row { display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px; }
+.toggle-title { font-size: 0.85rem; color: #fff; }
+.toggle-desc { font-size: 0.7rem; color: #666; display: block; }
+
+.switch { position: relative; display: inline-block; width: 40px; height: 20px; }
+.switch input { opacity: 0; width: 0; height: 0; }
+.slider { position: absolute; cursor: pointer; top: 0; left: 0; right: 0; bottom: 0; background-color: #333; transition: .4s; border-radius: 34px; }
+.slider:before { position: absolute; content: ""; height: 14px; width: 14px; left: 3px; bottom: 3px; background-color: white; transition: .4s; border-radius: 50%; }
+input:checked + .slider { background-color: #4ade80; }
+input:checked + .slider:before { transform: translateX(20px); }
+
+.action-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+.tech-btn { padding: 10px; border-radius: 6px; font-weight: 600; font-size: 0.75rem; cursor: pointer; text-transform: uppercase; }
+.tech-btn.outline { background: transparent; border: 1px solid rgba(255,255,255,0.2); color: #fff; }
+.tech-btn.danger { background: rgba(239, 68, 68, 0.1); border: 1px solid rgba(239, 68, 68, 0.4); color: #ef4444; }
+
+
   </style>
 </head>
 <body>
