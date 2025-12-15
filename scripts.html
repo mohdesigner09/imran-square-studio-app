@@ -556,22 +556,35 @@ He pulls out a crumpled photograph.
 }
 .toolbar-btn.active, .toolbar-btn:hover { background: #ff6b35; color: white; border-color: #ff6b35; }
 
-/* 2. MOBILE SIDEBAR (Slide Effect) */
+/* --- 1. SIDEBAR FIX (Now opens from RIGHT) --- */
 #mobileSidebar {
-    position: fixed; top: 0; left: 0; bottom: 0; width: 280px;
-    background: #0a0a0a; border-right: 1px solid rgba(255,255,255,0.1);
-    z-index: 200; transform: translateX(-100%); transition: transform 0.3s ease;
+    position: fixed; 
+    top: 0; 
+    right: 0; /* Left hata diya, Right kar diya */
+    bottom: 0; 
+    width: 280px;
+    background: #0a0a0a; 
+    border-left: 1px solid rgba(255,255,255,0.1); /* Border ab left side */
+    z-index: 9999; 
+    
+    /* Pehle -100% (Left) tha, ab 100% (Right) hai taaki right me chupe */
+    transform: translateX(100%); 
+    transition: transform 0.3s ease;
     padding-top: 60px;
 }
-#mobileSidebar.open { transform: translateX(0); }
+#mobileSidebar.open { 
+    transform: translateX(0); /* Wapis screen par layega */
+}
+
 .sidebar-overlay {
-    position: fixed; inset: 0; background: rgba(0,0,0,0.7); z-index: 150;
+    position: fixed; inset: 0; background: rgba(0,0,0,0.7); 
+    z-index: 9998; /* Sidebar se ek level neeche */
     opacity: 0; pointer-events: none; transition: opacity 0.3s;
 }
 .sidebar-overlay.open { opacity: 1; pointer-events: auto; }
 
-/* 3. MOBILE AI BUTTON (Floating) */
-/* --- 1. NEW AI BUTTON THEME (Black/Gray/White) --- */
+
+/* --- 2. AI BUTTON THEME (Premium Black) --- */
 .ai-fab {
     position: fixed; bottom: 80px; right: 20px; 
     width: 56px; height: 56px;
@@ -589,20 +602,34 @@ He pulls out a crumpled photograph.
 }
 .ai-fab:active { transform: scale(0.95); background: #222; }
 
-/* --- 2. TOOLBAR ACTIVE STATE (White on Black) --- */
+
+/* --- 3. AI SHEET FIX (Initially Hidden) --- */
+/* Ye code zaroor add karna taaki sheet pehle se na dikhe */
+#mobileAISheet {
+    position: fixed; 
+    bottom: 0; left: 0; right: 0;
+    background: #1a1a1a; 
+    border-top: 1px solid rgba(255,255,255,0.1);
+    border-radius: 20px 20px 0 0; 
+    padding: 20px; 
+    z-index: 10000; /* Sabse upar */
+    
+    /* 🔥 Yeh Line Important Hai: Isse sheet neeche chupi rahegi */
+    transform: translateY(100%); 
+    
+    transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+}
+#mobileAISheet.open { 
+    transform: translateY(0); /* Class lagne par upar ayegi */
+}
+
+
+/* --- 4. TOOLBAR ACTIVE STATE --- */
 .toolbar-btn.active {
     background: #ffffff; 
     color: #000000; 
     border-color: #ffffff;
     box-shadow: 0 0 10px rgba(255,255,255,0.3);
-}
-
-/* --- 3. SIDEBAR Z-INDEX FIX --- */
-#mobileSidebar {
-    z-index: 9999; /* Sabse upar */
-}
-.sidebar-overlay {
-    z-index: 9998;
 }
 
 </style>
@@ -1142,6 +1169,7 @@ function toggleSidebar() {
 }
 
 // 2. AI SHEET TOGGLE
+// Isme koi change nahi karna, bas ensure karo ye code hai:
 function toggleAISheet() {
     const sheet = document.getElementById('mobileAISheet');
     if(sheet) sheet.classList.toggle('open');
