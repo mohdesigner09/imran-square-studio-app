@@ -230,6 +230,24 @@
 </head>
 <body class="flex flex-col h-screen">
 
+    <div class="sidebar-overlay" id="sidebarOverlay" onclick="toggleSidebar()"></div>
+<div id="mobileSidebar">
+    <div class="px-6 mb-6">
+        <h2 class="text-xl font-bold text-white tracking-wider">SCENES</h2>
+        <p class="text-xs text-gray-500">Navigation</p>
+    </div>
+    <div class="flex flex-col gap-1 px-4 overflow-y-auto h-full pb-20">
+        <button class="text-left px-4 py-3 rounded bg-white/10 text-white text-xs font-mono border-l-2 border-orange-500">1. INT. COFFEE SHOP</button>
+        <button class="text-left px-4 py-3 rounded hover:bg-white/5 text-gray-400 text-xs font-mono">2. EXT. STREET</button>
+        <button class="text-left px-4 py-3 rounded hover:bg-white/5 text-gray-400 text-xs font-mono">3. INT. APARTMENT</button>
+        
+        <hr class="border-white/10 my-4">
+        <button onclick="window.location.href='index.html'" class="text-left px-4 py-3 text-red-400 text-sm font-bold">
+            Exit Workspace
+        </button>
+    </div>
+</div>
+
   <header class="h-14 md:h-16 glass-header flex items-center justify-between px-3 md:px-6 shrink-0 z-50">
     <div class="flex items-center gap-2 md:gap-4">
         <!-- Back Button -->
@@ -358,14 +376,26 @@
         </aside>
 
         <!-- CENTER: EDITOR CANVAS -->
-        <main class="flex-1 overflow-y-auto relative bg-transparent flex flex-col items-center custom-scrollbar">
+<main class="flex-1 overflow-y-auto relative bg-transparent flex flex-col items-center custom-scrollbar">
             
-           <!-- Multi-Page Container (Google Docs Style) -->
-<div id="editorContainer" class="flex flex-col items-center gap-6 py-8 overflow-auto custom-scrollbar" style="height: calc(100vh - 120px);">
-    <!-- Page Template (cloned dynamically) -->
-    <div class="script-page-wrapper" data-page="1">
-        <div contenteditable="true" class="script-page" id="scriptEditor" data-page-num="1">
-            INT. COFFEE SHOP - DAY
+            <div class="editor-toolbar w-full sticky top-0 z-30">
+                <button class="toolbar-btn font-bold" onclick="formatDoc('bold')">B</button>
+                <button class="toolbar-btn italic" onclick="formatDoc('italic')">I</button>
+                <button class="toolbar-btn underline" onclick="formatDoc('underline')">U</button>
+                <div class="w-px h-5 bg-white/20 mx-1"></div>
+                
+                <select class="bg-black text-white border border-white/20 rounded px-2 py-1 text-xs" onchange="applyScriptFormat(this.value)">
+                    <option value="">Format...</option>
+                    <option value="scene">Scene Heading</option>
+                    <option value="action">Action</option>
+                    <option value="character">Character</option>
+                    <option value="dialogue">Dialogue</option>
+                </select>
+            </div>
+            <div id="editorContainer" class="flex flex-col items-center gap-6 py-8 overflow-auto custom-scrollbar w-full" style="height: calc(100vh - 120px);">
+                <div class="script-page-wrapper" data-page="1">
+                    <div contenteditable="true" class="script-page" id="scriptEditor" data-page-num="1">
+INT. COFFEE SHOP - DAY
 
 Rain lashes against the window. A lone figure, KABIR (30s, disheveled), sits nursing a cold espresso.
 
@@ -374,10 +404,30 @@ KABIR
 It wasn't supposed to end like this.
 
 He pulls out a crumpled photograph.
-        </div>
-        <div class="page-number">Page 1</div>
-    </div>
-</div>
+                    </div>
+                    <div class="page-number">Page 1</div>
+                </div>
+            </div>
+
+
+            <button id="mobileAIBtn" class="ai-fab md:hidden" onclick="toggleAISheet()">
+                ✨
+            </button>
+
+            <div id="mobileAISheet">
+                <div class="flex justify-between items-center mb-4">
+                    <h3 class="text-green-400 font-bold uppercase">AI Copilot</h3>
+                    <button onclick="toggleAISheet()" class="text-gray-400">✕</button>
+                </div>
+                <div class="bg-white/10 p-3 rounded mb-3 text-xs text-gray-300">
+                    AI Suggestion: "Try making the dialogue shorter here."
+                </div>
+                <div class="flex gap-2">
+                    <input type="text" placeholder="Ask AI..." class="flex-1 bg-black border border-white/20 rounded px-3 py-2 text-white">
+                    <button class="bg-green-600 px-4 rounded text-white">Go</button>
+                </div>
+            </div>
+            </main>
 
 <style>
 /* Google Docs Style Pages */
@@ -489,6 +539,55 @@ He pulls out a crumpled photograph.
 .card-upload-btn:active:not(:disabled) {
     transform: translateY(0);
 }
+
+/* --- NEW ADDITIONS (Paste at the end of <style>) --- */
+
+/* 1. EDITOR TOOLBAR */
+.editor-toolbar {
+    background: #1a1a1a;
+    border-bottom: 1px solid rgba(255,255,255,0.1);
+    padding: 8px 12px;
+    display: flex; gap: 8px; align-items: center;
+    overflow-x: auto; white-space: nowrap;
+}
+.toolbar-btn {
+    background: rgba(255,255,255,0.05); border: 1px solid rgba(255,255,255,0.1);
+    color: #ccc; padding: 6px 10px; border-radius: 6px; font-size: 14px; cursor: pointer;
+}
+.toolbar-btn.active, .toolbar-btn:hover { background: #ff6b35; color: white; border-color: #ff6b35; }
+
+/* 2. MOBILE SIDEBAR (Slide Effect) */
+#mobileSidebar {
+    position: fixed; top: 0; left: 0; bottom: 0; width: 280px;
+    background: #0a0a0a; border-right: 1px solid rgba(255,255,255,0.1);
+    z-index: 200; transform: translateX(-100%); transition: transform 0.3s ease;
+    padding-top: 60px;
+}
+#mobileSidebar.open { transform: translateX(0); }
+.sidebar-overlay {
+    position: fixed; inset: 0; background: rgba(0,0,0,0.7); z-index: 150;
+    opacity: 0; pointer-events: none; transition: opacity 0.3s;
+}
+.sidebar-overlay.open { opacity: 1; pointer-events: auto; }
+
+/* 3. MOBILE AI BUTTON (Floating) */
+.ai-fab {
+    position: fixed; bottom: 80px; right: 20px; width: 56px; height: 56px;
+    border-radius: 50%; background: linear-gradient(135deg, #22c55e, #16a34a);
+    color: white; display: flex; align-items: center; justify-content: center;
+    box-shadow: 0 4px 15px rgba(34, 197, 94, 0.5); z-index: 60; font-size: 24px;
+    cursor: pointer; transition: transform 0.2s;
+}
+.ai-fab:active { transform: scale(0.9); }
+
+/* 4. AI SHEET (Bottom Popup) */
+#mobileAISheet {
+    position: fixed; bottom: 0; left: 0; right: 0;
+    background: #1a1a1a; border-top: 1px solid rgba(255,255,255,0.1);
+    border-radius: 20px 20px 0 0; padding: 20px; z-index: 100;
+    transform: translateY(100%); transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+}
+#mobileAISheet.open { transform: translateY(0); }
 
 </style>
 
@@ -1009,6 +1108,85 @@ if (typeof addNewScene !== 'function') {
     }
 }
 
+// --- JS TO ADD AT THE BOTTOM ---
+
+// 1. Sidebar Toggle Logic
+function toggleSidebar() {
+    const sidebar = document.getElementById('mobileSidebar');
+    const overlay = document.getElementById('sidebarOverlay');
+    sidebar.classList.toggle('open');
+    overlay.classList.toggle('open');
+}
+// Button Link
+document.getElementById('mobileMenuBtn')?.addEventListener('click', toggleSidebar);
+
+
+// 2. AI Sheet Toggle
+function toggleAISheet() {
+    document.getElementById('mobileAISheet').classList.toggle('open');
+}
+
+
+// 3. Editor Formatting Logic (Toolbar ke liye)
+function formatDoc(cmd, value = null) {
+    document.execCommand(cmd, false, value);
+}
+
+function applyScriptFormat(type) {
+    if(!type) return;
+    document.execCommand('formatBlock', false, 'div'); // Block reset
+    const selection = window.getSelection();
+    if (selection.rangeCount > 0) {
+        const node = selection.anchorNode.parentElement;
+        
+        // Reset Styles
+        node.style.textAlign = 'left'; node.style.fontWeight = 'normal'; 
+        node.style.textTransform = 'none'; node.style.marginLeft = '0';
+
+        // Apply New Styles
+        if (type === 'scene') { 
+            node.style.fontWeight = 'bold'; node.style.textTransform = 'uppercase'; node.style.marginTop = '20px'; 
+        } 
+        else if (type === 'character') { 
+            node.style.textAlign = 'center'; node.style.fontWeight = 'bold'; node.style.textTransform = 'uppercase'; node.style.width = '60%'; node.style.margin = '15px auto 0 auto';
+        } 
+        else if (type === 'dialogue') { 
+            node.style.textAlign = 'center'; node.style.width = '70%'; node.style.margin = '0 auto';
+        }
+    }
+}
+
+
+// 4. FIX FILES TAB (Cards not showing)
+// Ye function ensure karega ki agar koi project na bhi ho, tab bhi cards dikhen
+document.addEventListener('DOMContentLoaded', () => {
+    const grid = document.getElementById('sectionsGrid'); // ID check kar lena
+    // Agar grid khali hai to default cards daalo
+    if(grid && grid.children.length === 0) {
+        // Fallback Data
+        const defaults = [
+            { name: "Screenplays", count: 2 }, { name: "Research", count: 5 },
+            { name: "Characters", count: 8 }, { name: "Locations", count: 1 },
+            { name: "Legal", count: 0 }, { name: "Misc", count: 3 }
+        ];
+        
+        defaults.forEach(sec => {
+            const div = document.createElement('div');
+            div.className = 'section-card'; // Make sure CSS class exists
+            div.innerHTML = `
+                <div class="flex justify-between mb-4">
+                    <h3 class="font-bold text-white uppercase">${sec.name}</h3>
+                    <span class="text-xs text-gray-500">${sec.count}/10</span>
+                </div>
+                <div class="h-1 w-full bg-gray-700 rounded overflow-hidden">
+                    <div class="h-full bg-orange-500" style="width: ${(sec.count/10)*100}%"></div>
+                </div>
+                <button class="mt-4 w-full py-2 bg-white/10 text-xs text-white rounded hover:bg-white/20">+ Upload</button>
+            `;
+            grid.appendChild(div);
+        });
+    }
+});
     </script>
 
         <!-- 📱 MOBILE BOTTOM NAVIGATION -->
