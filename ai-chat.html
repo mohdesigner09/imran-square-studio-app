@@ -1625,6 +1625,31 @@ code {
 }
 .copy-btn:hover { background: #4ade80; color: #000; }
 
+/* --- CODE BLOCK COPY BUTTON --- */
+pre {
+  position: relative; /* Button positioning ke liye zaroori */
+}
+
+.copy-code-btn {
+  position: absolute;
+  top: 5px;
+  right: 5px;
+  background: rgba(255, 255, 255, 0.1);
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  color: #aaa;
+  font-size: 0.7rem;
+  padding: 4px 8px;
+  border-radius: 4px;
+  cursor: pointer;
+  transition: all 0.2s;
+  font-family: sans-serif;
+}
+
+.copy-code-btn:hover {
+  background: #4ade80;
+  color: #000;
+  border-color: #4ade80;
+}
   </style>
 </head>
 <body>
