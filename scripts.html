@@ -293,11 +293,9 @@
     </div>
     
     <!-- 📱 MOBILE MENU BUTTON (Three Lines) -->
-   <button id="hamburgerBtn" onclick="toggleSidebar()" class="md:hidden p-2 rounded-lg hover:bg-white/10 text-gray-400 hover:text-white transition-colors" aria-label="Menu">
-        <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16M4 18h16"/>
-        </svg>
-    </button>
+<button id="hamburgerBtn" onclick="toggleSidebar()" class="md:hidden p-2 text-gray-400 hover:text-white transition-colors">
+    <i class="fa-solid fa-bars text-xl"></i>
+</button>
 </header>
 
 <!-- 📱 MOBILE MENU OVERLAY -->
@@ -1254,19 +1252,16 @@ function applyScriptFormat(type) {
 }
 
 
-
-// 👇👇👇 PASTE THIS IN YOUR SCRIPT TAG 👇👇👇
-
-// --- PROJECT MANAGER SYSTEM (Phase 1) ---
-
+// --- 1. GLOBAL VARIABLES ---
 let projects = [];
 let activeProjectId = null;
 
-// 1. Initialize (Load Data)
+// --- 2. INITIALIZATION ---
 document.addEventListener('DOMContentLoaded', () => {
+    // Load Projects
     loadProjects();
     
-    // Auto-save Editor Content on typing
+    // Auto-save Editor Listener
     const editor = document.getElementById('scriptEditor');
     if(editor) {
         editor.addEventListener('input', () => {
@@ -1279,85 +1274,117 @@ document.addEventListener('DOMContentLoaded', () => {
                 }
             }
         });
+        
+        // Button Active State Check
+        editor.addEventListener('keyup', updateToolbarState);
+        editor.addEventListener('mouseup', updateToolbarState);
+        editor.addEventListener('click', updateToolbarState);
     }
 });
 
-// 2. Create New Project
+// --- 3. SIDEBAR & AI SHEET TOGGLE ---
+function toggleSidebar() {
+    const sidebar = document.getElementById('mobileSidebar');
+    const overlay = document.getElementById('sidebarOverlay');
+    
+    if(sidebar && overlay) {
+        if(sidebar.classList.contains('open')) {
+            sidebar.classList.remove('open'); // Close
+            sidebar.style.transform = 'translateX(100%)'; // Hide Right
+            overlay.classList.remove('open');
+        } else {
+            sidebar.classList.add('open'); // Open
+            sidebar.style.transform = 'translateX(0)'; // Show
+            overlay.classList.add('open');
+        }
+    }
+}
+
+function toggleAISheet() {
+    const sheet = document.getElementById('mobileAISheet');
+    if(sheet) sheet.classList.toggle('open');
+}
+
+// --- 4. PROJECT SYSTEM LOGIC ---
+
+// A. Create New Project
 function createNewProject() {
-    const title = prompt("Enter Project/Book Name:");
+    const title = prompt("Enter Project Name:");
     if (!title) return;
 
     const newProject = {
-        id: Date.now().toString(), // Unique ID
+        id: Date.now().toString(),
         title: title,
-        content: `<div><b>${title.toUpperCase()}</b></div><div><br></div><div>Start writing here...</div>`, // Default Page 1
+        content: `<div><b>${title.toUpperCase()}</b></div><div><br></div><div>Start writing...</div>`,
         lastModified: Date.now()
     };
 
-    projects.unshift(newProject); // Add to top
+    projects.unshift(newProject);
     saveProjectsToStorage();
-    loadProjectIntoEditor(newProject.id); // Open immediately
-    toggleSidebar(); // Close sidebar to start writing
+    loadProjectIntoEditor(newProject.id);
+    toggleSidebar(); // Close sidebar after creating
 }
 
-// 3. Load Project into Editor
+// B. Load Project
 function loadProjectIntoEditor(id) {
     const project = projects.find(p => p.id === id);
     if (!project) return;
 
     activeProjectId = id;
     
-    // Update Editor
-    document.getElementById('scriptEditor').innerHTML = project.content;
-    document.getElementById('scriptTitle').textContent = project.title.toUpperCase();
+    // Update UI
+    const editor = document.getElementById('scriptEditor');
+    const title = document.getElementById('scriptTitle');
     
-    // Update Sidebar Selection UI
-    renderProjects(); 
+    if(editor) editor.innerHTML = project.content;
+    if(title) title.textContent = project.title.toUpperCase();
+    
+    // Refresh List UI to show active
+    renderProjects();
+    
+    // Mobile: Close sidebar if open
+    const sidebar = document.getElementById('mobileSidebar');
+    if(sidebar && sidebar.classList.contains('open')) toggleSidebar();
 }
 
-// 4. Render Sidebar List (With Search)
+// C. Render List
 function renderProjects() {
     const list = document.getElementById('projectList');
-    const searchTerm = document.getElementById('projectSearch').value.toLowerCase();
+    const searchInput = document.getElementById('projectSearch');
+    const searchTerm = searchInput ? searchInput.value.toLowerCase() : "";
     
     if(!list) return;
     list.innerHTML = '';
 
-    // Filter projects based on search
     const filtered = projects.filter(p => p.title.toLowerCase().includes(searchTerm));
 
     if(filtered.length === 0) {
-        list.innerHTML = `<div class="text-center text-gray-600 text-xs mt-10">No projects found.<br>Create one!</div>`;
+        list.innerHTML = `<div class="text-center text-gray-600 text-xs mt-10">No projects found.<br>Click + to create.</div>`;
         return;
     }
 
     filtered.forEach(p => {
-        // Check if this project is active
-        const isActive = p.id === activeProjectId ? 'bg-white text-black border-white' : 'bg-white/5 text-gray-300 border-transparent hover:bg-white/10';
-        const activeIcon = p.id === activeProjectId ? '<i class="fa-solid fa-pen-nib text-orange-500"></i>' : '<i class="fa-regular fa-file-lines text-gray-500"></i>';
-
-        const btn = document.createElement('div');
-        btn.className = `p-3 rounded-lg border cursor-pointer transition flex items-center justify-between group ${isActive}`;
-        btn.onclick = () => loadProjectIntoEditor(p.id);
+        const isActive = p.id === activeProjectId;
+        const div = document.createElement('div');
+        div.className = `p-3 rounded-lg border cursor-pointer transition flex items-center justify-between group mb-1 ${isActive ? 'bg-white text-black border-white' : 'bg-white/5 text-gray-300 border-transparent hover:bg-white/10'}`;
+        div.onclick = () => loadProjectIntoEditor(p.id);
         
-        // Date formatting
-        const date = new Date(p.lastModified).toLocaleDateString(undefined, {month:'short', day:'numeric'});
+        const date = new Date(p.lastModified).toLocaleDateString();
 
-        btn.innerHTML = `
+        div.innerHTML = `
             <div class="flex items-center gap-3 overflow-hidden">
-                ${activeIcon}
+                <i class="fa-regular fa-file-lines ${isActive ? 'text-orange-500' : 'text-gray-500'}"></i>
                 <div class="truncate">
                     <div class="font-bold text-xs truncate w-32">${p.title}</div>
                     <div class="text-[10px] opacity-60">${date}</div>
                 </div>
             </div>
-            ${p.id === activeProjectId ? '<div class="w-2 h-2 bg-green-500 rounded-full animate-pulse"></div>' : ''}
         `;
-        list.appendChild(btn);
+        list.appendChild(div);
     });
 }
 
-// 5. Storage Helpers
+// D. Storage
 function saveProjectsToStorage() {
     localStorage.setItem('imran_scripts', JSON.stringify(projects));
     renderProjects();
@@ -1367,11 +1394,66 @@ function loadProjects() {
     const data = localStorage.getItem('imran_scripts');
     if (data) {
         projects = JSON.parse(data);
-        // Load the most recent project automatically
-        if(projects.length > 0) {
-            loadProjectIntoEditor(projects[0].id);
+        if(projects.length > 0) loadProjectIntoEditor(projects[0].id);
+    } else {
+        renderProjects(); // Show empty state
+    }
+}
+
+// --- 5. EDITOR FORMATTING ---
+function formatDoc(cmd, value = null) {
+    if(event) event.preventDefault(); // Stop focus loss
+    document.execCommand(cmd, false, value);
+    updateToolbarState();
+    
+    const editor = document.getElementById('scriptEditor');
+    if(editor) editor.focus();
+}
+
+function updateToolbarState() {
+    const states = ['bold', 'italic', 'underline'];
+    states.forEach(cmd => {
+        const isActive = document.queryCommandState(cmd);
+        const btn = document.querySelector(`button[onclick="formatDoc('${cmd}')"]`);
+        if(btn) isActive ? btn.classList.add('active') : btn.classList.remove('active');
+    });
+}
+
+function applyScriptFormat(type) {
+    if(!type) return;
+    document.execCommand('formatBlock', false, 'div');
+    const selection = window.getSelection();
+    if (selection.rangeCount > 0) {
+        const node = selection.anchorNode.parentElement;
+        node.style.cssText = ''; // Clear styles
+        
+        if (type === 'scene') { 
+            node.style.fontWeight = 'bold'; node.style.textTransform = 'uppercase'; node.style.marginTop = '20px'; 
+        } 
+        else if (type === 'character') { 
+            node.style.textAlign = 'center'; node.style.fontWeight = 'bold'; node.style.textTransform = 'uppercase'; node.style.width = '60%'; node.style.margin = '15px auto 0 auto';
+        } 
+        else if (type === 'dialogue') { 
+            node.style.textAlign = 'center'; node.style.width = '70%'; node.style.margin = '0 auto';
         }
-        renderProjects();
+    }
+    const editor = document.getElementById('scriptEditor');
+    if(editor) editor.focus();
+}
+
+// --- 6. SWITCH MODES (Writer vs Files) ---
+function switchMode(mode) {
+    const editorEl = document.getElementById('modeEditor');
+    const filesEl = document.getElementById('modeFiles');
+    
+    if(mode === 'editor') {
+        if(editorEl) editorEl.classList.remove('hidden');
+        if(filesEl) filesEl.classList.add('hidden');
+        document.getElementById('mobileAIBtn').style.display = 'flex';
+    } else {
+        if(editorEl) editorEl.classList.add('hidden');
+        if(filesEl) filesEl.classList.remove('hidden');
+        document.getElementById('mobileAIBtn').style.display = 'none';
     }
 }
 
