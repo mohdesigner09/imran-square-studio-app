@@ -563,57 +563,87 @@ function addMessage(text, role, animate = true) {
   if (animate) scrollToBottom();
 }
 
-// --- 🔊 NEW FUNCTION: VOICE LOGIC (Persona Aware) ---
+// 👇👇👇 REPLACE THE OLD 'speakText' FUNCTION WITH THIS IMPROVED VERSION 👇👇👇
+
 function speakText(text) {
-  // 1. Stop any current speech
-  if ('speechSynthesis' in window) {
-      window.speechSynthesis.cancel();
-  } else {
-      alert("Voice not supported in this browser.");
+  // 1. Browser Check
+  if (!('speechSynthesis' in window)) {
+      alert("Sorry, Voice features not supported on this browser.");
       return;
   }
 
-  // 2. Clean Text (Remove Markdown symbols like **, #, code blocks for speaking)
-  // Remove code blocks first so it doesn't read code
-  let cleanText = text.replace(/```[\s\S]*?```/g, "Code block skipped.");
-  // Remove markdown symbols
-  cleanText = cleanText.replace(/[*#_`]/g, '');
+  // 2. Stop previous speech
+  window.speechSynthesis.cancel();
 
-  // 3. Create Utterance
+  // 3. Text Cleanup (Code aur symbols hatao taaki wo na bole)
+  // Remove code blocks
+  let cleanText = text.replace(/```[\s\S]*?```/g, "Code block skipped.");
+  // Remove Markdown symbols (*, #, etc.)
+  cleanText = cleanText.replace(/[*#_`]/g, '');
+  // Remove URLs
+  cleanText = cleanText.replace(/https?:\/\/[^\s]+/g, "link.");
+
+  // 4. Create Utterance
   const utterance = new SpeechSynthesisUtterance(cleanText);
 
-  // 4. PERSONA VOICE MODULATION 🎭
-  const mode = localStorage.getItem('selectedPersonaMode') || 'default';
-  
-  // Get available voices
+  // 5. 🔥 FIND THE BEST INDIAN VOICE (The Magic Part)
   const voices = window.speechSynthesis.getVoices();
   
-  // Try to find a Hindi or Indian English voice for Desi feel
-  // Google Hindi, Microsoft Ravi, or any 'hi-IN' / 'en-IN' voice
-  const indianVoice = voices.find(v => v.lang.includes('hi') || v.lang.includes('IN'));
-  if(indianVoice) utterance.voice = indianVoice;
+  // Hum priority list banayenge. Pehle Hindi dhundo, fir Indian English.
+  let targetVoice = null;
 
-  // Tweak Pitch & Speed based on Character
-  if(mode === 'imran' || mode === 'batman' || mode === 'lawyer' || mode === 'mufti') {
-    utterance.pitch = 0.8; // Deep Voice (Bhaari Aawaz)
-    utterance.rate = 0.9;  // Slow & Intense
+  // Priority 1: Specific Best Voices (Google Hindi, Microsoft Ravi, Apple Lekha)
+  targetVoice = voices.find(v => 
+    v.name.includes("Google हिन्दी") || 
+    v.name.includes("Google Hindi") || 
+    v.name.includes("Microsoft Ravi") || 
+    v.name.includes("Lekha") || 
+    v.name.includes("Rishi")
+  );
+
+  // Priority 2: Any Hindi Voice ('hi-IN')
+  if (!targetVoice) {
+    targetVoice = voices.find(v => v.lang === 'hi-IN' || v.lang === 'hi');
+  }
+
+  // Priority 3: Any Indian English Voice ('en-IN')
+  if (!targetVoice) {
+    targetVoice = voices.find(v => v.lang === 'en-IN');
+  }
+
+  // Agar Indian voice mili to set karo, warna default rahegi
+  if (targetVoice) {
+    utterance.voice = targetVoice;
+    console.log("Selected Voice:", targetVoice.name); // Debugging ke liye
+  } else {
+    console.log("No Indian voice found. Using system default.");
+  }
+
+  // 6. PERSONA MODULATION (Thoda adjustment)
+  const mode = localStorage.getItem('selectedPersonaMode') || 'default';
+
+  if(mode === 'imran' || mode === 'batman' || mode === 'lawyer') {
+    utterance.pitch = 0.8; // Thodi Bhaari Aawaz
+    utterance.rate = 0.85; // Thoda aaram se bolega
   } 
   else if (mode === 'gf') {
-    utterance.pitch = 1.4; // High Pitch (Sweet Voice)
-    utterance.rate = 1.05; 
+    utterance.pitch = 1.2; // Thodi Meethi Aawaz
+    utterance.rate = 1.0; 
   } 
-  else if (mode === 'roast' || mode === 'fitness') {
-    utterance.rate = 1.2;  // Fast (Aggressive)
-    utterance.pitch = 1.1;
+  else if (mode === 'roast') {
+    utterance.rate = 1.15; // Tez bolega
+    utterance.pitch = 1.0;
   }
   else {
-    utterance.pitch = 1;   // Normal
-    utterance.rate = 1;
+    utterance.rate = 0.95; // Default Indian speed thodi slow achi lagti hai
   }
 
-  // 5. Speak
+  // 7. Speak
   window.speechSynthesis.speak(utterance);
 }
+
+// 🔥 IMPORTANT: Load voices immediately (Chrome bug fix)
+window.speechSynthesis.getVoices();
 
 // --- PHASE 2: TYPEWRITER EFFECT ---
 async function typeWriterEffect(fullText) {
