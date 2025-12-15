@@ -2,13 +2,17 @@
   "name": "IMRAN SQUARE - Documentary Studio",
   "short_name": "IMRAN SQUARE",
   "description": "Professional media management & AI-powered filmmaking platform",
-  "start_url": "/",
+  "start_url": "/login.html",
   "scope": "/",
   "display": "standalone",
-  "background_color": "#050505",
-  "theme_color": "#ff6b35",
+  "background_color": "#000000",
+  "theme_color": "#000000",
   "orientation": "portrait-primary",
-  "categories": ["productivity", "entertainment", "photo"],
+  "categories": [
+    "productivity",
+    "entertainment",
+    "photo"
+  ],
   "dir": "ltr",
   "lang": "en-US",
   "icons": [
