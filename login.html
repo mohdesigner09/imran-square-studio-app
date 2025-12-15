@@ -4,6 +4,8 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Sign in - Imran Square Studio</title>
+    <link rel="manifest" href="manifest.json">
+<meta name="theme-color" content="#0a0a0a">
     <script src="https://cdn.tailwindcss.com"></script>
     
     <style>
@@ -465,62 +467,130 @@ function startTimer(seconds = 60) {
     }
   }, 1000);
 }
-
-// DOM Ready
 document.addEventListener('DOMContentLoaded', function () {
     console.log('✅ DOM Ready');
 
-    // ============================================
-    // 🔥 YE CODE YAHAN ADD KARO - LINE 2 PE
-    // ============================================
-    
-    // PWA INSTALL PROMPT CAPTURE
-    let deferredPrompt = null;
+    // ============================================================
+    // 🚀 STEP 1: REGISTER SERVICE WORKER (VERY IMPORTANT FOR PWA)
+    // ============================================================
+    if ('serviceWorker' in navigator) {
+        navigator.serviceWorker.register('service-worker.js')
+            .then(() => console.log('✅ Service Worker Registered Successfully'))
+            .catch((err) => console.log('❌ Service Worker Failed:', err));
+    }
 
+    // ============================================================
+    // 🚀 STEP 2: PWA INSTALL PROMPT LOGIC
+    // ============================================================
+    let deferredPrompt = null;
+    const installBtn = document.getElementById('pwaInstallBtn');
+
+    // 1. Capture the event
     window.addEventListener('beforeinstallprompt', (e) => {
         console.log('✅ beforeinstallprompt event fired!');
-        e.preventDefault();
-        deferredPrompt = e;
+        e.preventDefault(); // Browser ka default popup roko
+        deferredPrompt = e; // Event ko save karo baad ke liye
         
-        const installBtn = document.getElementById('pwaInstallBtn');
+        // Button ko dikhao
         if (installBtn) {
             installBtn.style.display = 'flex';
-            console.log('✅ Install button ready');
+            console.log('✅ Install button visible now');
         }
     });
 
+    // 2. Handle Install Success
     window.addEventListener('appinstalled', () => {
         console.log('✅ PWA installed!');
         deferredPrompt = null;
-        const installBtn = document.getElementById('pwaInstallBtn');
-        if (installBtn) {
-            installBtn.style.display = 'none';
-        }
+        if (installBtn) installBtn.style.display = 'none';
     });
 
-    // Install Button Click Handler
-    const installBtn = document.getElementById('pwaInstallBtn');
+    // 3. Button Click Handler
     if (installBtn) {
         installBtn.addEventListener('click', async () => {
             console.log('🔘 Install Button Clicked');
             
             if (deferredPrompt) {
                 console.log('✅ Triggering Native Prompt');
-                deferredPrompt.prompt();
+                deferredPrompt.prompt(); // Native popup dikhao
                 const outcome = await deferredPrompt.userChoice;
                 console.log('User response:', outcome);
                 deferredPrompt = null;
             } else {
                 console.log('❌ No native prompt available');
+                // Fallback instructions
                 const isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent) && !window.MSStream;
                 if (isIOS) {
-                    alert('Install on iPhone:\n1. Tap the Share icon (bottom center)\n2. Scroll down & tap "Add to Home Screen"');
+                    alert('To install on iPhone:\n1. Tap the Share icon (bottom center)\n2. Scroll down & tap "Add to Home Screen"');
                 } else {
-                    alert('App is likely already installed or your browser doesn\'t support automatic installation. Try checking your browser menu for "Install App".');
+                    alert('App might already be installed or not supported. Check your browser menu for "Install App".');
                 }
             }
         });
     }
+
+    // ============================================================
+    // 🚀 STEP 3: LOGIN & AUTHENTICATION LOGIC
+    // ============================================================
+
+    // Global State
+    let currentProvider = null;
+    let contactValue = null;
+    let timerInterval = null;
+
+    // Helpers
+    function $(id) { return document.getElementById(id); }
+    
+    const API_BASE = window.location.hostname === 'localhost' 
+      ? 'http://localhost:10000' 
+      : 'https://imran-square-studio.onrender.com';
+
+    function showToast(msg, timeout = 3000) {
+        const el = $('toast');
+        if (!el) { alert(msg); return; }
+        el.textContent = msg;
+        el.classList.remove('hidden');
+        setTimeout(() => el.classList.add('hidden'), timeout);
+    }
+
+    function showStep(stepId) {
+        ['stepProviders', 'stepContact', 'stepOtp', 'stepRegister', 'stepUsernameLogin'].forEach(id => {
+            const el = $(id);
+            if (el) el.classList.add('hidden');
+        });
+        const target = $(stepId);
+        if (target) target.classList.remove('hidden');
+    }
+
+    function setStepTitle(title, subtitle) {
+        const wrapper = $('stepTitle');
+        if (!wrapper) return;
+        wrapper.querySelector('h1').textContent = title;
+        wrapper.querySelector('p').textContent = subtitle;
+    }
+
+    function startTimer(seconds = 60) {
+        const timer = $('timer');
+        const btnResendOtp = $('btnResendOtp');
+        if (!timer) return;
+        
+        let timeLeft = seconds;
+        timer.textContent = `${timeLeft}`;
+        if (btnResendOtp) btnResendOtp.disabled = true;
+        
+        clearInterval(timerInterval);
+        timerInterval = setInterval(() => {
+            timeLeft--;
+            timer.textContent = `${timeLeft}`;
+            if (timeLeft <= 0) {
+                clearInterval(timerInterval);
+                if (btnResendOtp) btnResendOtp.disabled = false;
+            }
+        }, 1000);
+    }
+
+    // --- EVENT LISTENERS ---
+
     // 1. Google Button
     const btnGoogle = $('btnGoogle');
     if (btnGoogle) {
@@ -533,7 +603,6 @@ document.addEventListener('DOMContentLoaded', function () {
             showStep('stepContact');
         });
     }
-
 
     // 2. Email Login
     const btnLoginGoogle = $('btnLoginGoogle');
@@ -621,38 +690,28 @@ document.addEventListener('DOMContentLoaded', function () {
                 const data = await res.json();
 
                 if (data.success) {
-                    // Temporarily save email for registration step
                     localStorage.setItem('tempEmail', contactValue);
                     
-                    // Save User Data if exists
                     if (data.user) {
                         localStorage.setItem('imranUser', JSON.stringify(data.user));
                         localStorage.setItem('userId', data.user.userId);
                     }
 
                     if (data.isNew) {
-                        // NEW USER -> Register Screen
                         showStep('stepRegister');
                         setStepTitle('Complete Setup', 'Create your account details.');
-                    } 
-                    
-                    else {
-                       
-                       localStorage.setItem('imranUser', JSON.stringify(data.user));
-                    localStorage.setItem('userId', data.user.userId);
-                    
-                    // 🔥 GOD MODE CHECK
-                    if (data.user.email === 'mohdesigner09@gmail.com') {
-                        window.location.href = 'admin.html';
                     } else {
-                        window.location.href = 'index.html';
+                        localStorage.setItem('imranUser', JSON.stringify(data.user));
+                        localStorage.setItem('userId', data.user.userId);
+                        
+                        // GOD MODE CHECK
+                        if (data.user.email === 'mohdesigner09@gmail.com') {
+                            window.location.href = 'admin.html';
+                        } else {
+                            window.location.href = 'index.html';
+                        }
                     }
-                    }
-                } 
-                
-                
-                
-                else {
+                } else {
                     alert(data.message || 'Invalid Code');
                 }
             } catch (err) {
@@ -689,7 +748,6 @@ document.addEventListener('DOMContentLoaded', function () {
                     localStorage.setItem('imranUser', JSON.stringify(data.user));
                     localStorage.setItem('userId', data.user.userId);
                     
-                    // 🔥 GOD MODE CHECK
                     if (data.user.email === 'mohdesigner09@gmail.com') {
                         window.location.href = 'admin.html';
                     } else {
@@ -707,34 +765,23 @@ document.addEventListener('DOMContentLoaded', function () {
             }
         });
     }
-// 8. CREATE ACCOUNT (Register) Logic
+
+    // 8. CREATE ACCOUNT Logic
     const btnRegister = $('btnRegister');
     if (btnRegister) {
         btnRegister.addEventListener('click', async () => {
-            // Get Values
             const firstName = $('firstName').value.trim();
             const lastName = $('lastName').value.trim();
             const username = $('username').value.trim();
-            const brotherName = $('brotherName').value.trim(); // Security Answer
+            const brotherName = $('brotherName').value.trim();
             const password = $('password').value;
             const passwordConfirm = $('passwordConfirm').value;
             const email = localStorage.getItem('tempEmail') || contactValue;
 
-            // Validation
-            if (!firstName || !lastName || !username || !password) {
-                alert('Please fill all fields');
-                return;
-            }
-            if (password !== passwordConfirm) {
-                alert('Passwords do not match');
-                return;
-            }
-            if (brotherName !== 'IMRAN KHAN') { // Simple security check
-                alert('Security answer is incorrect (Bro Name?)');
-                return;
-            }
+            if (!firstName || !lastName || !username || !password) { alert('Please fill all fields'); return; }
+            if (password !== passwordConfirm) { alert('Passwords do not match'); return; }
+            if (brotherName !== 'IMRAN KHAN') { alert('Security answer is incorrect (Bro Name?)'); return; }
 
-            // Button State
             btnRegister.textContent = 'Creating Account...';
             btnRegister.disabled = true;
 
@@ -742,36 +789,23 @@ document.addEventListener('DOMContentLoaded', function () {
                 const res = await fetch(`${API_BASE}/api/complete-registration`, {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({
-                        email,
-                        firstName,
-                        lastName,
-                        username,
-                        password,
-                        role: 'user'
-                    })
+                    body: JSON.stringify({ email, firstName, lastName, username, password, role: 'user' })
                 });
 
                 const data = await res.json();
 
                 if (data.success) {
                     showToast('Account Created! Redirecting...');
-                    
                     setTimeout(() => {
-                        // ✅ YAHAN MAINE LOGIC DAL DIYA HAI
-                        
-                        // 1. Data Save Karo
                         localStorage.setItem('imranUser', JSON.stringify(data.user));
                         localStorage.setItem('userId', data.user.userId);
                         
-                        // 2. 🔥 GOD MODE CHECK
                         if (data.user.email === 'mohdesigner09@gmail.com') {
                             window.location.href = 'admin.html';
                         } else {
                             window.location.href = 'index.html';
                         }
                     }, 1000);
-                    
                 } else {
                     alert(data.message || 'Registration failed');
                     btnRegister.disabled = false;
@@ -785,7 +819,8 @@ document.addEventListener('DOMContentLoaded', function () {
             }
         });
     }
-    // 9. PASSWORD TOGGLE (Eye Icon)
+
+    // 9. PASSWORD TOGGLE
     const togglePassword = $('togglePassword');
     const passwordInput = $('password');
     if (togglePassword && passwordInput) {

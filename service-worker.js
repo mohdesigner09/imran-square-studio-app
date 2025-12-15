@@ -4,12 +4,13 @@ const CACHE_NAME = 'imran-square-resend-v100'; // Version naam badal diya
 const urlsToCache = [
   '/',
   '/index.html',
+  '/login.html',       // ✅ Added
+  '/ai-chat.html',     // ✅ Added (Taaki chat bhi offline load ho sake)
   '/landing.html',
   '/manifest.json',
-  '/resources/icon-32.png',
-  '/resources/icon-192.png',
-  '/main.js',
-  '/dashboard-advanced.js'
+  '/resources/icon-192.png', // Check kar lena ye file folder me hai na?
+  '/main.js'
+  // '/dashboard-advanced.js' // Agar ye file nahi hai to hata dena warna error ayega
 ];
 
 // 1. Install (Sirf apni files save karo)
