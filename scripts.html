@@ -42,6 +42,7 @@
         }
     </script>
     
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
 
     <style>
         /* =========================================
@@ -431,19 +432,24 @@ He pulls out a crumpled photograph.
                 ✨
             </button>
 
-            <div id="mobileAISheet">
-                <div class="flex justify-between items-center mb-4">
-                    <h3 class="text-green-400 font-bold uppercase">AI Copilot</h3>
-                    <button onclick="toggleAISheet()" class="text-gray-400">✕</button>
-                </div>
-                <div class="bg-white/10 p-3 rounded mb-3 text-xs text-gray-300">
-                    AI Suggestion: "Try making the dialogue shorter here."
-                </div>
-                <div class="flex gap-2">
-                    <input type="text" placeholder="Ask AI..." class="flex-1 bg-black border border-white/20 rounded px-3 py-2 text-white">
-                    <button class="bg-green-600 px-4 rounded text-white">Go</button>
-                </div>
-            </div>
+         <div id="mobileAISheet">
+    <div class="flex justify-between items-center mb-4">
+        <h3 class="text-green-400 font-bold uppercase"><i class="fa-solid fa-robot mr-2"></i>AI Copilot</h3>
+        <button onclick="toggleAISheet()" class="text-gray-400">✕</button>
+    </div>
+    
+    <div id="aiResponseArea" class="bg-white/10 p-3 rounded mb-3 text-xs text-gray-300 h-40 overflow-y-auto border border-white/10">
+        AI Suggestion: "Select text or ask me to generate a scene..."
+    </div>
+    
+    <div class="flex gap-2 mt-auto">
+        <input type="text" id="aiInput" placeholder="Ask AI..." class="flex-1 bg-black border border-white/20 rounded px-3 py-2 text-white outline-none focus:border-green-500 transition">
+        
+        <button onclick="callRealAI()" class="bg-green-600 px-4 rounded text-white font-bold hover:bg-green-500 transition">
+            Go
+        </button>
+    </div>
+</div>
             </main>
 
 <style>
@@ -1088,11 +1094,6 @@ switchMode = function(mode) {
 // Make closeMobileMenu global
 window.closeMobileMenu = closeMobileMenu;
 
-// Export PDF function (placeholder)
-function exportPDF() {
-    alert('Export PDF feature coming soon!');
-    // TODO: Implement PDF export
-}
 
 // Add Scene function (if not already defined)
 if (typeof addNewScene !== 'function') {
@@ -1348,10 +1349,118 @@ if (typeof addNewScene !== 'function') {
         if(editor) editor.focus();
     }
     
-    // --- 6. EXPORT PDF (Placeholder fix) ---
-    function exportPDF() {
-        alert("PDF Export Feature coming soon!");
+  // 👇👇👇 PASTE THIS AT THE BOTTOM OF YOUR JAVASCRIPT 👇👇👇
+
+// --- 1. REAL PDF EXPORT (Using html2pdf) ---
+function exportPDF() {
+    const element = document.getElementById('scriptEditor');
+    const title = document.getElementById('scriptTitle').innerText || 'Script';
+    
+    // PDF Options
+    const opt = {
+        margin:       1,
+        filename:     `${title}.pdf`,
+        image:        { type: 'jpeg', quality: 0.98 },
+        html2canvas:  { scale: 2 },
+        jsPDF:        { unit: 'in', format: 'letter', orientation: 'portrait' }
+    };
+
+    // Button Feedback
+    const btn = document.querySelector('button[onclick="exportPDF()"]');
+    const originalText = btn ? btn.innerHTML : '';
+    if(btn) btn.innerHTML = '<i class="fa-solid fa-spinner animate-spin"></i> Generating...';
+
+    // Generate
+    html2pdf().set(opt).from(element).save().then(() => {
+        if(btn) btn.innerHTML = originalText;
+        alert("PDF Downloaded! 📄");
+    }).catch(err => {
+        console.error(err);
+        alert("PDF generation failed. Check console.");
+        if(btn) btn.innerHTML = originalText;
+    });
+}
+
+// --- 2. REAL AI INTEGRATION (Google Gemini API) ---
+async function callRealAI() {
+    const input = document.getElementById('aiInput');
+    const area = document.getElementById('aiResponseArea'); // Ensure this ID exists in your HTML
+    const userText = input.value.trim();
+    
+    if(!userText) return;
+
+    // 1. Get API Key (Saved in Browser)
+    let apiKey = localStorage.getItem('imran_gemini_key');
+    if(!apiKey) {
+        apiKey = prompt("Enter your Google Gemini API Key (It will be saved locally):");
+        if(!apiKey) return alert("API Key is required for AI to work!");
+        localStorage.setItem('imran_gemini_key', apiKey);
     }
+
+    // 2. Show User Message
+    area.innerHTML += `<div class="text-white mb-2 text-right bg-white/10 p-2 rounded-lg inline-block ml-auto">"${userText}"</div>`;
+    input.value = '';
+    
+    // 3. Show Thinking Animation
+    const thinkingId = 'thinking_' + Date.now();
+    area.innerHTML += `<div id="${thinkingId}" class="text-green-400 mb-2 italic text-left"><i class="fa-solid fa-circle-notch animate-spin"></i> Thinking...</div>`;
+    area.scrollTop = area.scrollHeight;
+
+    // 4. Context (Full Script Content)
+    const scriptContext = document.getElementById('scriptEditor').innerText;
+
+    // 5. Call Gemini API
+    try {
+        const response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${apiKey}`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+                contents: [{
+                    parts: [{
+                        text: `You are a professional Screenplay Editor AI. 
+                        Context of the script so far: 
+                        """${scriptContext.substring(0, 10000)}""" 
+                        
+                        User Request: "${userText}"
+                        
+                        Answer briefly and helpfully.` 
+                    }]
+                }]
+            })
+        });
+
+        const data = await response.json();
+        
+        // Remove Thinking
+        document.getElementById(thinkingId).remove();
+
+        if(data.error) {
+            throw new Error(data.error.message);
+        }
+
+        const aiReply = data.candidates[0].content.parts[0].text;
+        
+        // Show AI Reply (Markdown to HTML simple conversion)
+        const formattedReply = aiReply.replace(/\n/g, '<br>').replace(/\*\*(.*?)\*\*/g, '<b>$1</b>');
+
+        area.innerHTML += `
+            <div class="text-gray-300 mb-4 pb-2 border-b border-white/10 text-left">
+                <strong class="text-green-400">AI:</strong><br>
+                ${formattedReply}
+            </div>
+        `;
+        area.scrollTop = area.scrollHeight;
+
+    } catch (error) {
+        document.getElementById(thinkingId).remove();
+        area.innerHTML += `<div class="text-red-400 mb-2">Error: ${error.message} <br> (Check API Key or Internet)</div>`;
+        // Option to reset key if it was wrong
+        if(confirm("Error occurred. Do you want to reset your API Key?")) {
+            localStorage.removeItem('imran_gemini_key');
+        }
+    }
+}
+
 
 </script>
 
