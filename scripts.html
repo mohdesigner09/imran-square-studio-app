@@ -24,7 +24,7 @@
     
     <!-- External Scripts -->
     <script src="https://cdnjs.cloudflare.com/ajax/libs/animejs/3.2.1/anime.min.js"></script>
-    <script src="main.js"></script>
+  
 
     <script>
         tailwind.config = {
@@ -713,42 +713,7 @@ He pulls out a crumpled photograph.
             { id: 6, name: "Misc", files: [] }
         ];
 
-        // --- 2. INIT & RENDER ---
-    // --- 2. INIT & RENDER ---
-// Wait for DOM and main.js to load
-document.addEventListener('DOMContentLoaded', function() {
-    // Check if main.js loaded
-    if (typeof window.projects === 'undefined') {
-        console.error('❌ main.js not loaded!');
-        alert('Error: Please include main.js before scripts.html');
-        return;
-    }
-    
-    // Initialize page
-    const params = new URLSearchParams(window.location.search);
-    const projectId = params.get('id');
-    
-    if (projectId) {
-        const project = window.projects.find(p => p.id === projectId);
-        if (project) {
-            const titleEl = document.getElementById('scriptTitle');
-            if (titleEl) {
-                titleEl.textContent = (project.title || 'UNTITLED').toUpperCase();
-            }
-            
-            // Load sections
-            if (project.sections && Array.isArray(project.sections)) {
-                sectionsData = project.sections;
-            }
-        }
-    }
 
-    
-    
-    // Render
-    renderSections();
-    switchMode('files');
-});
 
 
 function renderSections() {
@@ -1055,7 +1020,7 @@ const editorText = document.getElementById('scriptEditor').textContent; // NOT i
                window.location.href = id ? `project-hub.html?id=${encodeURIComponent(id)}` : 'project-hub.html';
         }
         
-        document.addEventListener('DOMContentLoaded', initPage);
+    
 
         // ===== MOBILE MENU FUNCTIONALITY =====
 function toggleMobileMenu() {
