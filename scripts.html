@@ -886,31 +886,7 @@ function saveProject() {
     }
 }
 
-// ✅ SAFE EDITOR SAVE (XSS Protected)
-function saveEditorContent() {
-    const editor = document.getElementById('scriptEditor');
-    if (!editor) return;
-    
-    const projectId = new URLSearchParams(window.location.search).get('id');
-    const project = projects.find(p => p.id === projectId);
-    
-    if (project) {
-        // ✅ USE textContent (safe from XSS)
-        project.scriptContent = editor.textContent;
-        localStorage.setItem('imranProjects', JSON.stringify(projects));
-        console.log('✅ Script saved');
-    }
-}
 
-// Auto-save on typing (debounced)
-let saveTimeout;
-const editorEl = document.getElementById('scriptEditor');
-if (editorEl) {
-    editorEl.addEventListener('input', () => {
-        clearTimeout(saveTimeout);
-        saveTimeout = setTimeout(saveEditorContent, 1000);
-    });
-}
 
 
         // --- 3. UPLOAD LOGIC ---
