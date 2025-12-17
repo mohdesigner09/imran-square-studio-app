@@ -490,54 +490,106 @@
             }
         }
 
-        // --- 2. RENDER VIDEOS ---
+      
+// --- 2. RENDER VIDEOS & FILTERS (Fixed) ---
+        
+        // 1. Switch Tabs (Shorts vs Landscape)
+        function switchType(type, btn) {
+            currentType = type;
+
+            // Update Tab Styles
+            document.querySelectorAll('.type-btn').forEach(b => {
+                b.classList.remove('active-tab', 'text-white', 'border-orange-500');
+                b.classList.add('text-gray-500', 'border-transparent');
+            });
+            btn.classList.remove('text-gray-500', 'border-transparent');
+            btn.classList.add('active-tab', 'text-white', 'border-orange-500');
+
+            // Show/Hide Grids
+            const shortGrid = document.getElementById('gridShorts');
+            const longGrid = document.getElementById('gridLongs');
+
+            if(type === 'shorts') {
+                if(shortGrid) shortGrid.classList.remove('hidden-grid', 'hidden');
+                if(longGrid) longGrid.classList.add('hidden-grid', 'hidden');
+            } else {
+                if(longGrid) longGrid.classList.remove('hidden-grid', 'hidden');
+                if(shortGrid) shortGrid.classList.add('hidden-grid', 'hidden');
+            }
+        }
+
+        // 2. Filter Pills (All/Today/Week)
+        function filterBy(filter, btn) {
+            currentFilter = filter;
+
+            // Update Pill Styles
+            document.querySelectorAll('.filter-pill').forEach(b => {
+                b.classList.remove('active-pill', 'bg-orange-500', 'text-white', 'border-orange-500');
+                b.classList.add('text-gray-400', 'border-white/10');
+            });
+            btn.classList.remove('text-gray-400', 'border-white/10');
+            btn.classList.add('active-pill', 'bg-orange-500', 'text-white', 'border-orange-500');
+
+            renderVideos();
+        }
+
+        // 3. Render Logic
         function renderVideos() {
-            const gridShorts = document.getElementById('gridShorts'); // Ensure ye IDs HTML me hon
-            const gridLongs = document.getElementById('gridLongs'); 
+            const gridShorts = document.getElementById('gridShorts');
+            const gridLongs = document.getElementById('gridLongs');
             
-            // Safety check agar IDs alag hain to
-            const mainGrid = document.getElementById('rawFootageGrid') || gridShorts;
+            if(gridShorts) gridShorts.innerHTML = '';
+            if(gridLongs) gridLongs.innerHTML = '';
 
-            if(!mainGrid) return;
-            mainGrid.innerHTML = '';
+            // Filter Data
+            const filtered = rawClips.filter(clip => {
+                if(currentFilter === 'all') return true;
+                const today = new Date().toLocaleDateString();
+                if(currentFilter === 'today') return clip.date === today;
+                return true;
+            });
 
-            if(rawClips.length === 0) {
-                mainGrid.innerHTML = `<div class="col-span-full text-center text-gray-500 py-10">No raw footage uploaded yet.</div>`;
+            if(filtered.length === 0) {
+                const msg = `<div class="col-span-full text-center text-gray-500 py-10">No videos found.</div>`;
+                if(gridShorts) gridShorts.innerHTML = msg;
+                if(gridLongs) gridLongs.innerHTML = msg;
                 return;
             }
 
-            [...rawClips].reverse().forEach((video, index) => {
-                const div = document.createElement('div');
-                div.className = 'video-card group relative bg-gray-900 rounded-lg overflow-hidden border border-white/10';
+            [...filtered].reverse().forEach((vid, index) => {
+                // Determine Real Index for Deletion
+                const realIdx = rawClips.indexOf(vid);
                 
-                // Thumbnail Logic
-                const thumbHTML = video.thumb 
-                    ? `<img src="${video.thumb}" class="w-full h-48 object-cover opacity-60 group-hover:opacity-100 transition">`
-                    : `<div class="w-full h-48 bg-gray-800 flex items-center justify-center"><i class="fa-solid fa-film text-3xl text-gray-600"></i></div>`;
+                // Determine Type (Default to Shorts if undefined)
+                const isShort = vid.type !== 'long'; // Agar 'long' nahi likha to short mano
+
+                const div = document.createElement('div');
+                div.className = `group relative bg-gray-900 rounded-lg overflow-hidden border border-white/10 hover:border-orange-500/50 transition ${isShort ? 'aspect-[9/16]' : 'aspect-video'}`;
+                
+                const thumb = vid.thumb || '';
+                const bgStyle = thumb ? `background-image: url('${thumb}'); background-size: cover; background-position: center;` : 'background: #222;';
 
                 div.innerHTML = `
-                    <div onclick="openTheater('${video.link}', '${video.title}')" class="cursor-pointer">
-                        ${thumbHTML}
-                        <div class="absolute inset-0 flex items-center justify-center opacity-0 group-hover:opacity-100 transition duration-300">
-                            <div class="w-12 h-12 bg-orange-500 rounded-full flex items-center justify-center shadow-lg">
+                    <div onclick="openTheater('${vid.link}', '${vid.title}')" class="w-full h-full cursor-pointer relative" style="${bgStyle}">
+                        <div class="absolute inset-0 bg-black/40 group-hover:bg-black/20 transition flex items-center justify-center">
+                            <div class="w-10 h-10 rounded-full bg-white/20 backdrop-blur-sm flex items-center justify-center opacity-0 group-hover:opacity-100 transition duration-300 transform group-hover:scale-110">
                                 <i class="fa-solid fa-play text-white"></i>
                             </div>
                         </div>
-                    </div>
-                    <div class="p-3 flex justify-between items-start">
-                        <div>
-                            <h3 class="text-sm font-bold text-white truncate w-32">${video.title}</h3>
-                            <span class="text-[10px] text-gray-400 font-mono">${video.date || 'Today'}</span>
+                        <div class="absolute bottom-0 left-0 right-0 p-3 bg-gradient-to-t from-black via-black/80 to-transparent">
+                            <h4 class="text-white text-xs font-bold truncate">${vid.title}</h4>
+                            <div class="flex justify-between items-center mt-1">
+                                <span class="text-[9px] text-gray-400 font-mono">${vid.date || 'Unknown'}</span>
+                                <button onclick="deleteClip(${realIdx})" class="text-gray-500 hover:text-red-500 transition px-2 z-20"><i class="fa-solid fa-trash text-xs"></i></button>
+                            </div>
                         </div>
-                        <button onclick="deleteClip(${rawClips.length - 1 - index})" class="text-gray-500 hover:text-red-500 transition">
-                            <i class="fa-solid fa-trash text-xs"></i>
-                        </button>
                     </div>
                 `;
-                mainGrid.appendChild(div);
+
+                if(isShort && gridShorts) gridShorts.appendChild(div);
+                else if(!isShort && gridLongs) gridLongs.appendChild(div);
             });
         }
-
         // --- 3. UPLOAD LOGIC (Connected to Server) ---
         
         // File Selection Listener
