@@ -240,14 +240,12 @@
 
 
 
-   <section id="features" class="w-full bg-[#030303] relative overflow-hidden">
+ <section id="features" class="w-full bg-[#030303] relative overflow-hidden">
   
-  <div class="relative w-full h-[450px] md:h-[550px] flex items-center justify-center">
+  <div class="relative w-full h-[35vh] min-h-[280px] md:h-[550px] flex items-center justify-center">
     
     <style>
       spline-viewer::part(logo) { display: none !important; opacity: 0 !important; }
-      /* Optional: Disable touch on spline to allow easier scrolling on mobile */
-      spline-viewer { touch-action: pan-y; } 
     </style>
 
     <div class="w-full h-full relative z-0">
@@ -255,14 +253,14 @@
       
       <spline-viewer 
         url="https://prod.spline.design/xsdDmXYJVIuwuTUn/scene.splinecode"
-        class="w-full h-full"
+        class="w-full h-full pointer-events-none"
       ></spline-viewer>
 
-      <div class="absolute bottom-0 left-0 w-full h-40 bg-gradient-to-t from-[#030303] via-[#030303]/80 to-transparent pointer-events-none z-10"></div>
+      <div class="absolute bottom-0 left-0 w-full h-24 md:h-40 bg-gradient-to-t from-[#030303] via-[#030303]/80 to-transparent pointer-events-none z-10"></div>
     </div>
   </div>
 
-  <div class="relative z-20 -mt-20 pb-24 px-6">
+  <div class="relative z-20 -mt-12 md:-mt-20 pb-24 px-6">
     <div class="max-w-6xl mx-auto">
       
       <div class="text-center mb-16">
