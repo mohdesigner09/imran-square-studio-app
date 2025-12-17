@@ -158,22 +158,23 @@
         </div>
     </section>
 
-    <section class="w-full bg-[#030303] pt-20 pb-40 border-b border-zinc-900 overflow-hidden">
+        <section class="w-full bg-[#030303] pt-20 pb-40 border-b border-zinc-900 overflow-hidden">
         <div class="max-w-6xl mx-auto px-4 md:px-6 relative">
             
-            <!-- Main Card Container -->
-            <div class="relative w-full rounded-[40px]">
+            <!-- Main Card Container (No background color on card) -->
+            <div class="relative w-full">
                 
-                <!-- === SIMPLE STRAIGHT GLOWING LINE (RESEND STYLE) === -->
-                <!-- बस एक सीधी लाइन जो बीच में ज्यादा चमकती है -->
-                <div class="absolute top-0 left-0 right-0 h-[1px] bg-gradient-to-r from-transparent via-white/60 to-transparent"></div>
+                <!-- === THE GLOWING LINE (Straight with curved ends) === -->
+                <!-- बीच में ग्लो, ends पर हल्की bend -->
+                <div class="absolute top-0 left-8 right-8 md:left-12 md:right-12 h-[1px] bg-gradient-to-r from-transparent via-white/60 to-transparent rounded-full"></div>
                 
-                <!-- Optional: Extra subtle glow effect on the line -->
-                <div class="absolute top-[-1px] left-1/2 -translate-x-1/2 w-[40%] h-[2px] bg-white/20 blur-sm"></div>
-                <!-- ================================================== -->
-
-                <!-- Card Background (Very subtle fade) -->
-                <div class="absolute inset-0 bg-gradient-to-b from-white/[0.03] via-white/[0.01] to-transparent pointer-events-none h-[120%] rounded-[40px]"></div>
+                <!-- Extra glow for the center of the line -->
+                <div class="absolute top-[-1px] left-1/2 -translate-x-1/2 w-[30%] h-[2px] bg-white/30 blur-sm"></div>
+                
+                <!-- === GLASS VIBE (Only from top to heading area) === -->
+                <!-- सिर्फ ऊपर से heading तक - बहुत हल्का -->
+                <div class="absolute top-0 left-0 right-0 h-[180px] bg-gradient-to-b from-white/[0.02] to-transparent pointer-events-none rounded-t-[40px]"></div>
+                <!-- After this point, ZERO opacity (pure black) -->
 
                 <div class="relative pt-16 pb-12 md:pt-24 md:pb-32 text-center z-10">
                     
@@ -183,6 +184,7 @@
                     </p>
 
                     <!-- Grid Layout: 6 Items -->
+                    <!-- यहाँ से नीचे बिल्कुल 0% - कोई बैकग्राउंड नहीं -->
                     <div class="grid grid-cols-2 md:grid-cols-3 gap-y-16 gap-x-4 items-start justify-items-center">
                         
                         <!-- 1. ZERO-BUDGET STARTUPS -->
@@ -233,6 +235,7 @@
 
         </div>
     </section>
+
 
 
 
