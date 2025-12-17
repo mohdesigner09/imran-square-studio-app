@@ -263,16 +263,17 @@
 <body class="pb-24">
 
     <!-- 1. HEADER -->
-    <header class="h-16 glass-header fixed top-0 w-full z-50 flex items-center justify-between px-4 md:px-6">
-        <div class="flex items-center gap-4">
-            <a href="#" onclick="goBackToFootageVault()" class="group p-2 rounded-lg hover:bg-white/10 text-gray-400 hover:text-white transition border border-transparent hover:border-white/10">
-                <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7"></path></svg>
-            </a>
-            <div>
-                <h1 class="text-sm font-bold text-white tracking-wide uppercase font-display" id="rawProjectTitle">Raw Footage</h1>
-                <p class="text-[10px] text-gray-500 uppercase tracking-widest">Vault</p>
-            </div>
+<header class="h-16 glass-header fixed top-0 w-full z-50 flex items-center justify-between px-4 md:px-6">
+    <div class="flex items-center gap-4">
+        <a href="#" onclick="goBackToHub()" class="group p-2 rounded-lg hover:bg-white/10 text-gray-400 hover:text-white transition border border-transparent hover:border-white/10">
+            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7"></path></svg>
+        </a>
+        <div>
+            <h1 class="text-sm font-bold text-white tracking-wide uppercase font-display" id="rawProjectTitle">Raw Footage</h1>
+            <p class="text-[10px] text-gray-500 uppercase tracking-widest">Vault</p>
         </div>
+    </div>
+    </header>
 
         <div class="flex items-center gap-3">
             <div class="search-box" id="searchBox" onclick="expandSearch()">
@@ -440,12 +441,7 @@
     <script src="main.js"></script>
 
     <script>
-        // --- CONFIG ---
-        // ✅ Server Port 3000 set kiya (Localhost ke liye)
-        const API_BASE = window.location.hostname === 'localhost' 
-            ? 'http://localhost:3000' 
-            : 'https://imran-square-studio.onrender.com';
-
+    
         let currentProjectID = new URLSearchParams(window.location.search).get('id');
         let rawClips = [];
         let selectedFile = null;
@@ -716,13 +712,21 @@
         }
 
         // --- 6. NAVIGATION ---
-        function goBackToFootageVault() {
-            // ✅ Ab ye seedha Project Hub par jayega
-            if(currentProjectID) {
-                window.location.href = `project-hub.html?id=${currentProjectID}`;
-            } else {
-                window.location.href = 'index.html';
-            }
-        }
+       // ✅ BACK BUTTON LOGIC
+function goBackToHub() {
+    // 1. Current URL se Project ID nikalo
+    const params = new URLSearchParams(window.location.search);
+    const projectId = params.get('id');
+
+    // 2. Check karo ID hai ya nahi
+    if (projectId) {
+        // Agar ID mili, to Project Hub par wapis jao
+        window.location.href = `project-hub.html?id=${projectId}`;
+    } else {
+        // Agar ID gum ho gayi, to majboori me Main Dashboard par jao
+        console.warn("Project ID missing, going to Dashboard");
+        window.location.href = 'index.html';
+    }
+}
 
     </script>

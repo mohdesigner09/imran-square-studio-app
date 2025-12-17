@@ -1016,13 +1016,21 @@ He pulls out a crumpled photograph.
         // ... (Keep your existing queue logic here or use main.js global one)
     }
 
-    function goBackToHub() { window.location.href = 'index.html'; }
-    function switchMode(mode) {
-        const ed = document.getElementById('modeEditor');
-        const fl = document.getElementById('modeFiles');
-        if(mode === 'editor') { ed.classList.remove('hidden-mode'); fl.classList.add('hidden-mode'); }
-        else { ed.classList.add('hidden-mode'); fl.classList.remove('hidden-mode'); }
+  // ✅ BACK BUTTON LOGIC (Hub Par Wapis Jane Ke Liye)
+function goBackToHub() {
+    // 1. URL se Project ID nikalo
+    const params = new URLSearchParams(window.location.search);
+    const projectId = params.get('id');
+
+    // 2. Check karo ID hai ya nahi
+    if (projectId) {
+        // ID hai to Project Hub par jao
+        window.location.href = `project-hub.html?id=${projectId}`;
+    } else {
+        // ID nahi hai to Main Dashboard par
+        window.location.href = 'index.html';
     }
+}
 </script>
 
         <!-- 📱 MOBILE BOTTOM NAVIGATION -->
