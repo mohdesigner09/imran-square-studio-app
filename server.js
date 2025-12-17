@@ -162,26 +162,14 @@ const DRIVE_SCOPES = ['https://www.googleapis.com/auth/drive.file'];
 const AVATAR_FOLDER_ID =
   process.env.DRIVE_FOLDER_ID ||
   process.env.GOOGLE_DRIVE_FOLDER_ID ||
-  DRIVE_ROOT_FOLDER_ID;
+  DRIVE_FOLDER_ID
 
 const FOOTAGE_FOLDER_ID =
   process.env.FOOTAGE_FOLDER_ID ||
   process.env.DRIVE_FOOTAGE_FOLDER_ID ||
   process.env.GOOGLE_DRIVE_FOLDER_ID ||
   process.env.DRIVE_FOLDER_ID ||
-  DRIVE_ROOT_FOLDER_ID;
-
-console.log('📁 DRIVE_ROOT_FOLDER_ID:', DRIVE_ROOT_FOLDER_ID ? 'SET' : 'MISSING');
-console.log('📁 AVATAR_FOLDER_ID:', AVATAR_FOLDER_ID ? 'SET' : 'MISSING');
-console.log('📁 FOOTAGE_FOLDER_ID:', FOOTAGE_FOLDER_ID ? 'SET' : 'MISSING');
-
-// Helper: Buffer → Readable stream
-function bufferToStream(buffer) {
-  const stream = new Readable();
-  stream.push(buffer);
-  stream.push(null);
-  return stream;
-}
+  DRIVE_FOLDER_ID
 
 
 
@@ -1261,8 +1249,8 @@ app.post('/api/drive/smart-upload', upload.single('file'), async (req, res) => {
     console.log(`📤 Uploading: ${file.originalname} to ${userName}/${projectName}`);
 
     // .env Check
-    const ROOT_ID = process.env.DRIVE_ROOT_FOLDER_ID;
-    if (!ROOT_ID) return res.status(500).json({ success: false, message: 'Server Error: DRIVE_ROOT_FOLDER_ID missing' });
+    const ROOT_ID = process.env.DRIVE_FOLDER_ID;
+    if (!ROOT_ID) return res.status(500).json({ success: false, message: 'Server Error: DRIVE_FOLDER_ID missing' });
 
     // 1. Create Hierarchy
     const userId = await findOrCreateFolder(userName, ROOT_ID);
