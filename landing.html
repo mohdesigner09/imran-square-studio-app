@@ -160,119 +160,59 @@
 
    <!-- fade card design -->
 
-<section class="w-full bg-[#030303] pt-20 pb-40 overflow-hidden">
+     <section class="w-full bg-[#030303] pt-20 pb-10 overflow-hidden border-b border-white/5">
   <div class="w-full max-w-6xl mx-auto px-0 md:px-6">
-
     <div class="relative w-full rounded-[32px]">
-
-      <div 
-        class="absolute inset-0 rounded-[32px] border border-white/10 pointer-events-none"
-        style="
-          -webkit-mask-image: linear-gradient(to bottom, black 0%, black 5%, transparent 100%);
-          mask-image: linear-gradient(to bottom, black 0%, black 5%, transparent 100%);
-        "
-      ></div>
-
-      <div 
-        class="absolute inset-0 rounded-[32px] pointer-events-none"
-        style="
-          background: linear-gradient(to bottom, rgba(255,255,255,0.03) 0%, rgba(255,255,255,0) 60%);
-        "
-      ></div>
-
-      <div class="absolute top-0 left-1/2 -translate-x-1/2 w-3/4 h-[1px] bg-gradient-to-r from-transparent via-white/50 to-transparent"></div>
       
+      <div class="absolute inset-0 rounded-[32px] pointer-events-none" style="background: linear-gradient(to bottom, rgba(255,255,255,0.03) 0%, rgba(255,255,255,0) 60%);"></div>
+      <div class="absolute top-0 left-1/2 -translate-x-1/2 w-3/4 h-[1px] bg-gradient-to-r from-transparent via-white/50 to-transparent"></div>
       <div class="absolute -top-[2px] left-1/2 -translate-x-1/2 w-[220px] h-[4px] bg-white/30 blur-md"></div>
 
       <div class="relative z-10 pt-16 pb-12 px-6">
-        
         <div class="text-center mb-16">
-          <p class="text-zinc-400 text-sm md:text-base font-normal">
-            Companies of all sizes trust Imran Square
-          </p>
+          <p class="text-zinc-400 text-sm md:text-base font-normal">Companies of all sizes trust Imran Square</p>
         </div>
-
-        <div class="grid grid-cols-2 md:grid-cols-3 gap-y-16 gap-x-6 items-start justify-items-center">
-          
-          <div class="flex items-center justify-center w-full">
-            <h3 class="font-display font-bold text-base md:text-xl text-center leading-tight text-white/80">
-              ZERO-BUDGET<br>STARTUPS
-            </h3>
-          </div>
-
-          <div class="flex items-center justify-center w-full">
-            <h3 class="font-display font-bold text-base md:text-xl text-center leading-tight text-white/80">
-              CONTENT<br>STUDIOS
-            </h3>
-          </div>
-
-          <div class="flex items-center justify-center w-full">
-            <h3 class="font-display font-bold text-base md:text-xl text-center leading-tight text-white/80">
-              CREATORS
-            </h3>
-          </div>
-
-          <div class="flex items-center justify-center w-full">
-            <h3 class="font-display font-bold text-base md:text-xl text-center leading-tight text-white/80">
-              ARCHIVES
-            </h3>
-          </div>
-
-          <div class="flex items-center justify-center w-full">
-            <h3 class="font-display font-bold text-base md:text-xl text-center leading-tight text-white/80">
-              FILMMAKERS
-            </h3>
-          </div>
-
-          <div class="flex items-center justify-center w-full">
-            <h3 class="font-display font-bold text-base md:text-xl text-center leading-tight text-white/80">
-              AGENCIES
-            </h3>
-          </div>
-
+        <div class="grid grid-cols-2 md:grid-cols-3 gap-y-16 gap-x-6 items-center justify-items-center">
+          <h3 class="font-display font-bold text-base md:text-xl text-center text-white/80">ZERO-BUDGET<br>STARTUPS</h3>
+          <h3 class="font-display font-bold text-base md:text-xl text-center text-white/80">CONTENT<br>STUDIOS</h3>
+          <h3 class="font-display font-bold text-base md:text-xl text-center text-white/80">CREATORS</h3>
+          <h3 class="font-display font-bold text-base md:text-xl text-center text-white/80">ARCHIVES</h3>
+          <h3 class="font-display font-bold text-base md:text-xl text-center text-white/80">FILMMAKERS</h3>
+          <h3 class="font-display font-bold text-base md:text-xl text-center text-white/80">AGENCIES</h3>
         </div>
       </div>
-
     </div>
   </div>
 </section>
 
-
-
-<section class="w-full bg-[#030303] pt-20 pb-0 overflow-visible">
-  </section>
-
-<div class="relative w-full flex items-center justify-center bg-[#030303] z-20 overflow-visible">
+<div class="relative w-full bg-[#030303] py-16 md:py-24 flex items-center justify-center overflow-visible z-20">
   
-  <div class="relative w-full flex justify-center items-center pointer-events-none -mt-20 md:-mt-32 overflow-visible h-[300px] md:h-[500px]">
-    
+  <div class="relative w-full flex justify-center items-center pointer-events-none overflow-visible h-[300px] md:h-[500px]">
     <style>
       spline-viewer::part(logo) { display: none !important; opacity: 0 !important; }
-      /* Isse canvas ke bahar ke particles bhi dikhte rahenge */
       spline-viewer { overflow: visible !important; } 
     </style>
 
-    <div class="absolute w-[140vw] md:w-[100vw] h-[600px] md:h-[900px] flex items-center justify-center">
+    <div class="absolute w-[130vw] md:w-[100vw] h-[600px] md:h-[900px] flex items-center justify-center">
         <script type="module" src="https://unpkg.com/@splinetool/viewer@1.12.22/build/spline-viewer.js"></script>
-        
         <spline-viewer 
           url="https://prod.spline.design/xsdDmXYJVIuwuTUn/scene.splinecode"
-          class="w-full h-full scale-[0.55] md:scale-90 origin-center"
+          class="w-full h-full scale-[0.6] md:scale-95 origin-center"
         ></spline-viewer>
-
+        
         <div class="absolute bottom-10 right-0 w-full h-32 bg-gradient-to-t from-[#030303] to-transparent z-50"></div>
     </div>
   </div>
 </div>
 
-<section id="features" class="relative z-30 bg-[#030303] pt-0 pb-32 px-6">
+<section id="features" class="relative z-30 bg-[#030303] pt-10 pb-32 px-6">
   <div class="max-w-6xl mx-auto">
     
-    <div class="text-center mb-20">
-      <h2 class="text-4xl md:text-7xl font-bold tracking-tighter mb-6 text-white -mt-10">
+    <div class="text-center mb-24">
+      <h2 class="text-4xl md:text-7xl font-bold tracking-tighter mb-6 text-white">
         Everything in your control
       </h2>
-      <p class="text-zinc-400 max-w-2xl mx-auto text-lg md:text-xl font-normal">
+      <p class="text-zinc-400 max-w-2xl mx-auto text-lg md:text-xl font-normal leading-relaxed">
         All the features you need to manage your video projects, troubleshoot with detailed logs, and protect your media assets.
       </p>
     </div>
@@ -296,7 +236,6 @@
         <p class="text-zinc-500 leading-relaxed font-normal">Secure Google OAuth + Email OTP ensures only authorized users access your projects.</p>
       </div>
     </div>
-
   </div>
 </section>
 
