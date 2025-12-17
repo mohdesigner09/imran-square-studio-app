@@ -160,7 +160,7 @@
 
    <!-- fade card design -->
 
-<section class="w-full bg-[#030303] pt-20 pb-40 border-b border-zinc-900 overflow-hidden">
+<section class="w-full bg-[#030303] pt-20 pb-40 overflow-hidden">
   <div class="w-full max-w-6xl mx-auto px-0 md:px-6">
 
     <div class="relative w-full rounded-[32px]">
@@ -240,27 +240,31 @@
 
 <div class="relative w-full bg-[#030303]">
 
-  <div class="absolute left-0 w-full flex justify-center pointer-events-none z-40 overflow-visible
-              -top-20 h-[300px] 
-              md:-top-40 md:h-[600px]">
+  <div class="absolute left-0 w-full flex justify-center pointer-events-none z-20 overflow-visible
+              -top-28 h-[350px] 
+              md:-top-48 md:h-[600px]">
     
     <style>
-      spline-viewer::part(logo) { display: none !important; opacity: 0 !important; }
+      spline-viewer::part(logo) { display: none !important; opacity: 0 !important; visibility: hidden !important; }
     </style>
 
-    <div class="w-full h-full scale-75 md:scale-100 origin-center">
+    <div class="w-full h-full scale-[0.65] md:scale-100 origin-center relative">
         <script type="module" src="https://unpkg.com/@splinetool/viewer@1.12.22/build/spline-viewer.js"></script>
+        
         <spline-viewer 
           url="https://prod.spline.design/xsdDmXYJVIuwuTUn/scene.splinecode"
           class="w-full h-full"
         ></spline-viewer>
+
+        <div class="absolute bottom-4 right-4 w-32 h-10 bg-[#030303] z-50"></div>
     </div>
 
-    <div class="absolute bottom-0 left-0 w-full h-32 bg-gradient-to-t from-[#030303] via-[#030303]/90 to-transparent"></div>
+    <div class="absolute bottom-0 left-0 w-full h-32 bg-gradient-to-t from-[#030303] via-[#030303] to-transparent"></div>
+    <div class="absolute top-0 left-0 w-full h-20 bg-gradient-to-b from-[#030303] to-transparent opacity-50"></div>
   </div>
 
 
-  <section id="features" class="relative z-30 pt-64 pb-24 px-6">
+  <section id="features" class="relative z-30 pt-48 pb-24 px-6">
     <div class="max-w-6xl mx-auto">
       
       <div class="text-center mb-16">
@@ -273,26 +277,25 @@
       </div>
 
       <div class="grid grid-cols-1 md:grid-cols-3 gap-6 relative z-10">
-        
         <div class="bg-white/5 border border-white/10 backdrop-blur-sm p-8 rounded-2xl group hover:bg-white/10 transition-colors duration-300">
-          <div class="w-10 h-10 rounded-full bg-orange-500/10 flex items-center justify-center mb-6 text-orange-500 group-hover:scale-110 transition-transform duration-300">📊</div>
+          <div class="w-10 h-10 rounded-full bg-orange-500/10 flex items-center justify-center mb-6 text-orange-500">📊</div>
           <h3 class="text-lg font-medium text-white mb-2">Intuitive Analytics</h3>
           <p class="text-sm text-zinc-400 leading-relaxed">Track raw footage uploads, admin actions, and user activity with real-time Firestore updates.</p>
         </div>
 
         <div class="bg-white/5 border border-white/10 backdrop-blur-sm p-8 rounded-2xl group hover:bg-white/10 transition-colors duration-300">
-          <div class="w-10 h-10 rounded-full bg-blue-500/10 flex items-center justify-center mb-6 text-blue-500 group-hover:scale-110 transition-transform duration-300">👁</div>
+          <div class="w-10 h-10 rounded-full bg-blue-500/10 flex items-center justify-center mb-6 text-blue-500">👁</div>
           <h3 class="text-lg font-medium text-white mb-2">Full Visibility</h3>
           <p class="text-sm text-zinc-400 leading-relaxed">Monitor upload progress, file statuses (10-40GB), and project timelines with a clean dashboard.</p>
         </div>
 
         <div class="bg-white/5 border border-white/10 backdrop-blur-sm p-8 rounded-2xl group hover:bg-white/10 transition-colors duration-300">
-          <div class="w-10 h-10 rounded-full bg-green-500/10 flex items-center justify-center mb-6 text-green-500 group-hover:scale-110 transition-transform duration-300">🔐</div>
+          <div class="w-10 h-10 rounded-full bg-green-500/10 flex items-center justify-center mb-6 text-green-500">🔐</div>
           <h3 class="text-lg font-medium text-white mb-2">Domain Auth</h3>
           <p class="text-sm text-zinc-400 leading-relaxed">Secure Google OAuth + Email OTP ensures only authorized users access your projects.</p>
         </div>
-
       </div>
+
     </div>
   </section>
 
