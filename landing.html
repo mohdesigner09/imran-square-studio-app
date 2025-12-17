@@ -78,6 +78,11 @@
         .code-comment { color: #6272a4; } /* Grey */
         .code-plain { color: #f8f8f2; }   /* White */
 
+html, body {
+  max-width: 100%;
+  overflow-x: hidden; /* Isse left-right move hona band ho jayega */
+  position: relative;
+}
  
     </style>
 </head>
@@ -86,7 +91,7 @@
 
     <div class="hero-bg"></div>
 
-    <header class="fixed top-0 w-full z-50 border-b border-white/5 bg-black/50 backdrop-blur-md">
+    <header class="fixed top-0 left-0 w-full z-[100] bg-[#030303]/80 backdrop-blur-md border-b border-white/5">
         <div class="max-w-6xl mx-auto px-6 h-16 flex items-center justify-between">
             <div class="flex items-center gap-3">
                 <img src="resources/logo.png" alt="IS" class="w-8 h-8 rounded border border-white/10 opacity-90">
@@ -185,7 +190,7 @@
   </div>
 </section>
 
-<div class="relative w-full bg-[#030303] py-16 md:py-24 flex items-center justify-center overflow-visible z-20">
+<div class="relative w-full bg-[#030303] overflow-x-hidden">
   
   <div class="relative w-full flex justify-center items-center pointer-events-none overflow-visible h-[300px] md:h-[500px]">
     <style>
