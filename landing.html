@@ -77,6 +77,12 @@
         .code-string { color: #f1fa8c; }  /* Yellow */
         .code-comment { color: #6272a4; } /* Grey */
         .code-plain { color: #f8f8f2; }   /* White */
+
+        /* Hide Spline Logo */
+spline-viewer::part(logo) {
+    display: none !important;
+}
+
     </style>
 </head>
 
@@ -104,30 +110,51 @@
         </div>
     </header>
 
-   <section class="relative pt-32 pb-20 px-6 flex flex-col items-center text-center min-h-screen">
-  
-  <!-- DIRECT SPLINE, NO WRAPPERS -->
-  <script type="module" src="https://unpkg.com/@splinetool/viewer@1.12.6/build/spline-viewer.js"></script>
-  <spline-viewer url="https://prod.spline.design/k71e1VJcmIyEHmpQ/scene.splinecode"></spline-viewer>
+ <section class="relative w-full min-h-screen flex flex-col items-center justify-center overflow-hidden bg-[#030303]">
+        
+        <div class="absolute inset-0 z-0 w-full h-full">
+            <script type="module" src="https://unpkg.com/@splinetool/viewer@1.12.6/build/spline-viewer.js"></script>
+            
+            <spline-viewer 
+                url="https://prod.spline.design/k71e1VJcmIyEHmpQ/scene.splinecode"
+                class="w-full h-full opacity-80" 
+            ></spline-viewer>
+            
+            <div class="absolute inset-0 bg-gradient-to-t from-[#030303] via-transparent to-transparent pointer-events-none"></div>
+            <div class="absolute inset-0 bg-gradient-to-b from-[#030303]/80 via-transparent to-transparent pointer-events-none"></div>
+        </div>
 
-  <!-- rest text stays same -->
-  <div class="max-w-3xl mx-auto relative z-10 animate-fade-in-up">
-      <h1 class="text-5xl md:text-7xl font-semibold tracking-tighter mb-6 text-white leading-[1.1] drop-shadow-2xl">
+        <div class="relative z-10 w-full max-w-5xl mx-auto text-center px-4 mt-12 md:mt-0 animate-fade-up">
+            
+            <div class="inline-flex items-center gap-2 px-3 py-1 rounded-full border border-white/10 bg-white/5 text-xs font-medium text-orange-400 mb-6 backdrop-blur-md">
+                <span class="relative flex h-2 w-2">
+                  <span class="animate-ping absolute inline-flex h-full w-full rounded-full bg-orange-400 opacity-75"></span>
+                  <span class="relative inline-flex rounded-full h-2 w-2 bg-orange-500"></span>
+                </span>
+                Interactive 3D Experience
+            </div>
+
+            <h1 class="font-display text-5xl md:text-7xl lg:text-8xl font-bold tracking-tight leading-[1.1] mb-6 drop-shadow-2xl">
                 Video management <br>
-                <span class="text-gray-500">reimagined.</span>
+                <span class="text-gradient-brand">reimagined.</span>
             </h1>
-            <p class="text-lg text-gray-400 max-w-xl mx-auto mb-10 leading-relaxed font-light">
+
+            <p class="text-lg md:text-xl text-gray-300 max-w-2xl mx-auto mb-10 font-light leading-relaxed drop-shadow-lg">
                 A simple, elegant interface so you can start managing raw footage in minutes. Fits right into your workflow.
             </p>
-            <div class="flex flex-col sm:flex-row gap-4 justify-center">
-                <a href="/login" class="btn-glass h-12 px-8 rounded-full flex items-center justify-center text-sm font-semibold hover:scale-105 transition-transform">
-                    Get Started
+
+            <div class="flex flex-col md:flex-row gap-4 justify-center items-center">
+                <a href="login.html" class="group relative px-8 py-4 bg-white text-black rounded-full font-bold text-lg overflow-hidden transition-all hover:scale-105 shadow-[0_0_20px_rgba(255,255,255,0.3)]">
+                    <span>Get Started</span>
+                    <i class="fa-solid fa-arrow-right ml-2 group-hover:translate-x-1 transition-transform"></i>
                 </a>
-                <button class="h-12 px-8 rounded-full text-gray-500 hover:text-white transition text-sm font-medium border border-transparent hover:border-white/10 hover:bg-white/5">
-                    Documentation
+                
+                <button class="px-8 py-4 rounded-full font-medium text-white border border-white/10 hover:bg-white/10 backdrop-blur-sm transition-colors flex items-center gap-2">
+                    <i class="fa-regular fa-file-lines"></i> Documentation
                 </button>
             </div>
         </div>
+
     </section>
 
 <section class="py-24 border-y border-white/5 bg-black/40">
