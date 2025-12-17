@@ -158,30 +158,47 @@
         </div>
     </section>
 
-       <section class="w-full bg-[#030303] pt-20 pb-40 border-b border-zinc-900 overflow-hidden">
+    <section class="w-full bg-[#030303] pt-20 pb-40 border-b border-zinc-900 overflow-hidden">
         <div class="max-w-6xl mx-auto px-4 md:px-6 relative">
             
-            <!-- Resend Style Fading Container -->
-            <!-- Height is handled by the content (6 items) -->
-            <div class="relative w-full">
+            <!-- Main Card Container -->
+            <div class="relative w-full rounded-[40px] border-t border-white/5">
                 
-                <!-- 1. Top Highlight Line (Clean & Sharp) -->
-                <!-- Opacity boosted slightly to 30% for better visibility -->
-                <div class="absolute top-0 left-0 right-0 h-[1px] bg-gradient-to-r from-transparent via-white/30 to-transparent"></div>
-                
-                <!-- 2. Background Gradient (The "Clean" Card Vibe) -->
-                <!-- Increased from 0.02 to 0.04 (Just that small 1-2% boost you asked for) -->
-                <!-- No heavy blurs, just clean fading gradient -->
-                <div class="absolute inset-0 bg-gradient-to-b from-white/[0.04] via-white/[0.01] to-transparent pointer-events-none h-[120%]"></div>
+                <!-- === THE CURVED GLOWING LINE (SVG) === -->
+                <!-- यह एक कर्व्ड लाइन है जो बीच में चमकती है -->
+                <div class="absolute -top-[1px] left-0 right-0 h-[1px] overflow-visible">
+                    <svg class="absolute top-0 left-1/2 -translate-x-1/2 w-full h-[20px]" viewBox="0 0 100 10" preserveAspectRatio="none">
+                        <!-- The Curve Path -->
+                        <path d="M0 10 Q50 -5 100 10" fill="none" stroke="url(#glowGradient)" stroke-width="0.5" />
+                        
+                        <!-- Gradient Definition for the Glow -->
+                        <defs>
+                            <linearGradient id="glowGradient" x1="0%" y1="0%" x2="100%" y2="0%">
+                                <stop offset="0%" stop-color="transparent" />
+                                <stop offset="30%" stop-color="rgba(255, 255, 255, 0.1)" />
+                                <stop offset="50%" stop-color="rgba(255, 255, 255, 0.9)" /> <!-- Bright Center -->
+                                <stop offset="70%" stop-color="rgba(255, 255, 255, 0.1)" />
+                                <stop offset="100%" stop-color="transparent" />
+                            </linearGradient>
+                        </defs>
+                    </svg>
+                    
+                    <!-- Extra Center Spot Glow (To make the peak shine) -->
+                    <div class="absolute top-[-5px] left-1/2 -translate-x-1/2 w-[100px] h-[10px] bg-white/40 blur-[8px] rounded-full"></div>
+                </div>
+                <!-- ====================================== -->
 
-                <div class="relative pt-16 pb-12 md:pt-24 md:pb-32 text-center">
+                <!-- Card Background (Clean Fade) -->
+                <div class="absolute inset-0 bg-gradient-to-b from-white/[0.04] via-white/[0.01] to-transparent pointer-events-none h-[120%] rounded-[40px]"></div>
+
+                <div class="relative pt-16 pb-12 md:pt-24 md:pb-32 text-center z-10">
                     
                     <!-- Heading -->
                     <p class="text-zinc-400 text-sm md:text-lg mb-16 px-4 font-medium tracking-wide">
                         Companies of all sizes trust Imran Square
                     </p>
 
-                    <!-- Grid Layout: 6 Items (Perfect Height) -->
+                    <!-- Grid Layout: 6 Items -->
                     <div class="grid grid-cols-2 md:grid-cols-3 gap-y-16 gap-x-4 items-start justify-items-center">
                         
                         <!-- 1. ZERO-BUDGET STARTUPS -->
@@ -232,6 +249,7 @@
 
         </div>
     </section>
+
 
 
     <section id="features" class="py-24 px-6 relative overflow-hidden">
