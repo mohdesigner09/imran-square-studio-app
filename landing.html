@@ -106,7 +106,59 @@
         </div>
     </header>    
 
-    <section class="w-full bg-[#030303] py-24 border-b border-zinc-900 overflow-hidden">
+<section class="relative w-full h-screen bg-[#030303] overflow-hidden">
+        
+        <style>
+            spline-viewer::part(logo) { display: none !important; opacity: 0 !important; }
+            #spline-wrapper { touch-action: pan-y; } /* Scroll Fix */
+        </style>
+
+        <div id="spline-wrapper" class="absolute top-0 left-0 w-full h-[45vh] z-0 overflow-hidden">
+            <script type="module" src="https://unpkg.com/@splinetool/viewer@1.12.6/build/spline-viewer.js"></script>
+            
+            <spline-viewer 
+                url="https://prod.spline.design/k71e1VJcmIyEHmpQ/scene.splinecode"
+                class="w-full h-full scale-105"
+            ></spline-viewer>
+
+            <div class="absolute bottom-0 right-0 w-72 h-24 bg-[#030303] z-50 pointer-events-none"></div>
+            
+            <div class="absolute bottom-0 left-0 w-full h-24 bg-gradient-to-t from-[#030303] to-transparent pointer-events-none"></div>
+        </div>
+
+      <div class="absolute top-[42vh] left-0 w-full h-[58vh] z-10 flex flex-col items-center justify-start px-6">
+            
+            <div class="text-center animate-fade-up pointer-events-auto max-w-4xl mx-auto">
+                
+                <h1 class="font-display text-5xl md:text-7xl lg:text-8xl font-medium tracking-tighter leading-[1.05] mb-6 text-white drop-shadow-2xl">
+                    Video management <br>
+                    <span class="text-transparent bg-clip-text bg-gradient-to-b from-zinc-200 to-zinc-500">reimagined.</span>
+                </h1>
+
+                <p class="text-lg md:text-xl text-zinc-400 max-w-2xl mx-auto mb-10 font-normal leading-relaxed tracking-tight">
+                    A simple, elegant interface to manage raw footage. 
+                    Fits right into your workflow without the complexity.
+                </p>
+
+                <div class="flex flex-col sm:flex-row gap-4 justify-center items-center w-full sm:w-auto">
+                    
+                    <a href="login.html" class="group relative h-14 w-full sm:w-auto min-w-[180px] px-8 rounded-full bg-zinc-900/40 border border-white/10 backdrop-blur-md flex items-center justify-center gap-3 transition-all duration-300 hover:bg-white hover:border-white">
+                        <span class="font-semibold text-zinc-200 group-hover:text-black transition-colors">Get Started</span>
+                        <svg class="w-4 h-4 text-zinc-400 group-hover:text-black transition-colors transform group-hover:translate-x-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 7l5 5m0 0l-5 5m5-5H6"></path>
+                        </svg>
+                    </a>
+                    
+                    <button class="group h-14 w-full sm:w-auto min-w-[180px] px-8 rounded-full border border-transparent hover:border-zinc-800 hover:bg-zinc-900/30 text-zinc-400 hover:text-white transition-all duration-300 font-medium">
+                        Documentation
+                    </button>
+
+                </div>
+            </div>
+        </div>
+    </section>
+
+      <section class="w-full bg-[#030303] py-24 border-b border-zinc-900 overflow-hidden">
         <div class="max-w-5xl mx-auto px-4 md:px-6 relative">
             
             <!-- Resend Style Fading Spotlight Container -->
@@ -164,60 +216,6 @@
         </div>
     </section>
 
-
-    <section class="w-full bg-[#030303] py-24 border-b border-zinc-900">
-        <div class="max-w-5xl mx-auto px-6">
-            
-            <!-- Resend Style Unified Card -->
-            <div class="relative rounded-[32px] border border-white/10 bg-white/[0.02] overflow-hidden">
-                
-                <!-- Optional: Top Glow Effect like Resend -->
-                <div class="absolute top-0 left-1/2 -translate-x-1/2 w-1/2 h-[1px] bg-gradient-to-r from-transparent via-white/20 to-transparent"></div>
-
-                <div class="px-6 py-12 md:py-16 text-center">
-                    
-                    <!-- Heading Inside the Card -->
-                    <p class="text-zinc-400 text-base md:text-lg mb-12">
-                        Companies of all sizes trust Resend to deliver their most important emails.
-                    </p>
-
-                    <!-- Grid Layout (Without Borders) -->
-                    <div class="grid grid-cols-2 md:grid-cols-4 gap-y-12 gap-x-8 items-center justify-items-center opacity-80">
-                        
-                        <!-- Item 1 -->
-                        <div class="group flex items-center justify-center">
-                            <h3 class="font-display font-bold text-xl md:text-2xl text-center leading-none tracking-tight text-white group-hover:text-zinc-300 transition-colors">
-                                ZERO-BUDGET<br>STARTUPS
-                            </h3>
-                        </div>
-
-                        <!-- Item 2 -->
-                        <div class="group flex items-center justify-center">
-                            <h3 class="font-display font-bold text-xl md:text-2xl text-center leading-none tracking-tight text-white group-hover:text-zinc-300 transition-colors">
-                                CONTENT<br>STUDIOS
-                            </h3>
-                        </div>
-
-                        <!-- Item 3 -->
-                        <div class="group flex items-center justify-center">
-                            <h3 class="font-display font-bold text-xl md:text-2xl text-center leading-none tracking-tight text-white group-hover:text-zinc-300 transition-colors">
-                                CREATORS
-                            </h3>
-                        </div>
-
-                        <!-- Item 4 -->
-                        <div class="group flex items-center justify-center">
-                            <h3 class="font-display font-bold text-xl md:text-2xl text-center leading-none tracking-tight text-white group-hover:text-zinc-300 transition-colors">
-                                ARCHIVES
-                            </h3>
-                        </div>
-
-                    </div>
-                </div>
-            </div>
-
-        </div>
-    </section>
 
 
     <section id="features" class="py-24 px-6 relative overflow-hidden">
