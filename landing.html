@@ -240,34 +240,64 @@
 
 
 
-    <section id="features" class="py-24 px-6 relative overflow-hidden">
-        <div class="max-w-6xl mx-auto">
-            <div class="text-center mb-16">
-                <h2 class="text-3xl md:text-5xl font-semibold tracking-tight mb-4 text-white">Everything in your control</h2>
-                <p class="text-gray-400 max-w-2xl mx-auto">All the features you need to manage your video projects, troubleshoot with detailed logs, and protect your media assets.</p>
-            </div>
+   <section id="features" class="w-full bg-[#030303] relative overflow-hidden">
+  
+  <div class="relative w-full h-[450px] md:h-[550px] flex items-center justify-center">
+    
+    <style>
+      spline-viewer::part(logo) { display: none !important; opacity: 0 !important; }
+      /* Optional: Disable touch on spline to allow easier scrolling on mobile */
+      spline-viewer { touch-action: pan-y; } 
+    </style>
 
-            <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
-                <div class="glass-panel p-8 rounded-2xl group">
-                    <div class="w-10 h-10 rounded-full bg-orange-500/10 flex items-center justify-center mb-6 text-orange-500 group-hover:scale-110 transition">📊</div>
-                    <h3 class="text-lg font-medium text-white mb-2">Intuitive Analytics</h3>
-                    <p class="text-sm text-gray-500 leading-relaxed">Track raw footage uploads, admin actions, and user activity with real-time Firestore updates.</p>
-                </div>
+    <div class="w-full h-full relative z-0">
+      <script type="module" src="https://unpkg.com/@splinetool/viewer@1.12.22/build/spline-viewer.js"></script>
+      
+      <spline-viewer 
+        url="https://prod.spline.design/xsdDmXYJVIuwuTUn/scene.splinecode"
+        class="w-full h-full"
+      ></spline-viewer>
 
-                <div class="glass-panel p-8 rounded-2xl group">
-                    <div class="w-10 h-10 rounded-full bg-blue-500/10 flex items-center justify-center mb-6 text-blue-500 group-hover:scale-110 transition">👁</div>
-                    <h3 class="text-lg font-medium text-white mb-2">Full Visibility</h3>
-                    <p class="text-sm text-gray-500 leading-relaxed">Monitor upload progress, file statuses (10-40GB), and project timelines with a clean dashboard.</p>
-                </div>
+      <div class="absolute bottom-0 left-0 w-full h-40 bg-gradient-to-t from-[#030303] via-[#030303]/80 to-transparent pointer-events-none z-10"></div>
+    </div>
+  </div>
 
-                <div class="glass-panel p-8 rounded-2xl group">
-                    <div class="w-10 h-10 rounded-full bg-green-500/10 flex items-center justify-center mb-6 text-green-500 group-hover:scale-110 transition">🔐</div>
-                    <h3 class="text-lg font-medium text-white mb-2">Domain Auth</h3>
-                    <p class="text-sm text-gray-500 leading-relaxed">Secure Google OAuth + Email OTP ensures only authorized users access your projects.</p>
-                </div>
-            </div>
+  <div class="relative z-20 -mt-20 pb-24 px-6">
+    <div class="max-w-6xl mx-auto">
+      
+      <div class="text-center mb-16">
+        <h2 class="text-3xl md:text-5xl font-semibold tracking-tight mb-4 text-white drop-shadow-2xl">
+          Everything in your control
+        </h2>
+        <p class="text-zinc-400 max-w-2xl mx-auto text-lg">
+          All the features you need to manage your video projects, troubleshoot with detailed logs, and protect your media assets.
+        </p>
+      </div>
+
+      <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
+        
+        <div class="bg-white/5 border border-white/10 backdrop-blur-sm p-8 rounded-2xl group hover:bg-white/10 transition-colors duration-300">
+          <div class="w-10 h-10 rounded-full bg-orange-500/10 flex items-center justify-center mb-6 text-orange-500 group-hover:scale-110 transition-transform duration-300">📊</div>
+          <h3 class="text-lg font-medium text-white mb-2">Intuitive Analytics</h3>
+          <p class="text-sm text-zinc-400 leading-relaxed">Track raw footage uploads, admin actions, and user activity with real-time Firestore updates.</p>
         </div>
-    </section>
+
+        <div class="bg-white/5 border border-white/10 backdrop-blur-sm p-8 rounded-2xl group hover:bg-white/10 transition-colors duration-300">
+          <div class="w-10 h-10 rounded-full bg-blue-500/10 flex items-center justify-center mb-6 text-blue-500 group-hover:scale-110 transition-transform duration-300">👁</div>
+          <h3 class="text-lg font-medium text-white mb-2">Full Visibility</h3>
+          <p class="text-sm text-zinc-400 leading-relaxed">Monitor upload progress, file statuses (10-40GB), and project timelines with a clean dashboard.</p>
+        </div>
+
+        <div class="bg-white/5 border border-white/10 backdrop-blur-sm p-8 rounded-2xl group hover:bg-white/10 transition-colors duration-300">
+          <div class="w-10 h-10 rounded-full bg-green-500/10 flex items-center justify-center mb-6 text-green-500 group-hover:scale-110 transition-transform duration-300">🔐</div>
+          <h3 class="text-lg font-medium text-white mb-2">Domain Auth</h3>
+          <p class="text-sm text-zinc-400 leading-relaxed">Secure Google OAuth + Email OTP ensures only authorized users access your projects.</p>
+        </div>
+
+      </div>
+    </div>
+  </div>
+</section>
 
     <section class="py-24 px-6 bg-[#030303] border-y border-white/5 relative">
         <div class="absolute inset-0 bg-[url('resources/3rd_heavy_curved.jpg')] bg-cover opacity-10 pointer-events-none mix-blend-screen"></div>
