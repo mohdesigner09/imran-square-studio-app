@@ -1,8 +1,6 @@
-const API_BASE =
-  window.location.hostname === 'localhost'
-    ? 'http://localhost:10000'   // ⬅️ yahan 3000 → 10000
+const API_BASE = window.location.hostname === 'localhost'
+    ? 'http://localhost:3000'   // ✅ CORRECT (Match with server.js)
     : 'https://imran-square-studio.onrender.com';
-
 
 // niche tumhara pura JS code...
 
@@ -137,35 +135,51 @@ function createSections() {
 let projects = JSON.parse(localStorage.getItem('imranProjects'));// REPLACE initDashboard FUNCTION IN main.js
 
 async function initDashboard() {
-  console.log('🔄 Loading Dashboard from Server...');
-  
+  console.log('🔄 Loading Dashboard from Cloud...');
+
+  // 1. Agar User Login nahi hai, to ruk jao
+  if (!CURRENTUSER) return;
+
   try {
-    // 1. Fetch Projects from Server (Not LocalStorage)
-    const res = await fetch(`${API_BASE}/api/user/projects`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ userId: CURRENTUSER.userId }) // Current user ID bhejo
+    // 🔥 FIREBASE: Projects load karo (Database se)
+    // 'db' global variable hai jo humne upar define kiya tha
+    const snapshot = await db.collection('projects').get();
+    
+    let serverProjects = [];
+    snapshot.forEach(doc => {
+        serverProjects.push({ id: doc.id, ...doc.data() });
     });
 
-    const data = await res.json();
-    
-    if (data.success) {
-      projects = data.projects; // Server ka data use karo
-      console.log('✅ Projects Loaded:', projects.length);
+    if (serverProjects.length > 0) {
+        projects = serverProjects;
+        console.log(`✅ Loaded ${projects.length} Projects from Firestore`);
     } else {
-      console.warn('⚠️ No projects found on server, using empty list');
-      projects = [];
+        console.log("⚠️ New User/No Projects. Using Defaults.");
+        projects = defaultProjects; 
     }
-  } catch (err) {
-    console.error('❌ Failed to load projects:', err);
-    projects = [];
+
+    // Offline Backup (Optional)
+    localStorage.setItem('imranProjects', JSON.stringify(projects));
+
+  } catch (error) {
+    console.error("❌ Cloud Load Failed:", error);
+    // Fallback: Agar internet nahi hai to LocalStorage use karo
+    const local = localStorage.getItem('imranProjects');
+    if(local) projects = JSON.parse(local);
   }
 
-  // ... baaki render logic same rahega ...
+  // UI Render karo
   renderDashboardProjects();
   updateStats();
-  
-  // ... events ...
+
+  // Search Logic
+  const searchInput = document.getElementById('projectSearchInput');
+  if (searchInput) {
+    searchInput.addEventListener('input', (e) => {
+        SEARCH_QUERY = e.target.value.toLowerCase().trim();
+        renderDashboardProjects();
+    });
+  }
 }
 
 if (!projects || !Array.isArray(projects) || projects.length === 0) {
@@ -396,46 +410,69 @@ if (cancel && modal) cancel.onclick = () => {
   if (titleInput) titleInput.classList.remove('border-red-500');
 };
 
+// ✅ CLOUD SYNC HELPER
+async function saveProjectToCloud(project) {
+    if(!project || !project.id) return;
+    try {
+        // Firestore me save/update karo
+        await db.collection('projects').doc(project.id).set(project);
+        console.log("☁️ Project Synced to Cloud:", project.title);
+        
+        // Local backup bhi update kar do (Speed ke liye)
+        localStorage.setItem('imranProjects', JSON.stringify(projects));
+    } catch(e) {
+        console.error("Sync Failed:", e);
+        showDashToast("Save Failed! Check Internet.");
+    }
+}
+
 // Create project helper function
-function createNewProject(openAfter = false) {
-  const title = titleInput ? titleInput.value.trim() : '';
-  const genre = genreSelect ? genreSelect.value : 'Other';
+// ✅ REPLACE: createNewProject (Cloud Version)
+async function createNewProject(openAfter = false) {
+    const titleInput = document.getElementById('projectTitle');
+    const genreSelect = document.getElementById('projectGenre');
+    const modal = document.getElementById('projectModal');
+    
+    const title = titleInput ? titleInput.value.trim() : '';
+    const genre = genreSelect ? genreSelect.value : 'Other';
 
-  // Validation
-  if (!title) {
-    if (titleError) titleError.classList.remove('hidden');
-    if (titleInput) titleInput.classList.add('border-red-500');
-    return null;
-  }
+    if (!title) {
+        alert("Please enter a project title");
+        return null;
+    }
 
-  // Hide error
-  if (titleError) titleError.classList.add('hidden');
-  if (titleInput) titleInput.classList.remove('border-red-500');
+    const newProject = {
+        id: 'proj_' + Date.now(), // Unique ID
+        title: title,
+        genre: genre,
+        chapters: 0,
+        progress: 0,
+        words: '0',
+        readTime: '0min',
+        ownerEmail: CURRENTUSER ? CURRENTUSER.email : 'guest',
+        ownerName: CURRENTUSER ? (CURRENTUSER.displayName || 'Creator') : 'Guest',
+        createdAt: new Date().toISOString(),
+        sections: createSections() // Default sections
+    };
 
-  const newProject = {
-    id: Date.now().toString(),
-    title: title,
-    genre: genre,
-    chapters: 0,
-    progress: 0,
-    words: '0',
-    readTime: '0min',
-    ownerEmail: CURRENTUSER ? CURRENTUSER.email : 'unknown',
-    ownerName: CURRENTUSER ? getImranFullName(CURRENTUSER) : 'Unknown User',
-    sections: createSections()
-  };
+    // 1. Array me add karo (Instant UI update)
+    projects.unshift(newProject);
+    renderDashboardProjects();
+    updateStats();
 
-  projects.unshift(newProject);
-  localStorage.setItem('imranProjects', JSON.stringify(projects));
-  renderDashboardProjects();
-  updateStats();
+    // 2. 🔥 CLOUD SAVE (Background me)
+    await saveProjectToCloud(newProject);
 
-  // Reset form
-  if (titleInput) titleInput.value = '';
-  if (genreSelect) genreSelect.selectedIndex = 0;
-  modal.classList.add('hidden');
+    // 3. Reset UI
+    if (titleInput) titleInput.value = '';
+    if (modal) modal.classList.add('hidden');
 
-  return newProject;
+    // 4. Redirect if needed
+    if (openAfter) {
+        window.location.href = `project-hub.html?id=${newProject.id}`;
+    }
+    
+    return newProject;
 }
 
 // Create button - stay on dashboard
@@ -750,30 +787,119 @@ function renderFootage(list) { const data = list || footageLib; const grid = doc
 // --- UPLOADS ---
 function handleAuthClick(cb) { if (gapi.client.getToken() === null) { tokenClient.callback = async (r) => { if (!r.error) await cb(); }; tokenClient.requestAccessToken({prompt: ''}); } else { cb(); } }
 
-window.startVideoUpload = () => { if (!tokenClient) { alert("Waiting for connection..."); return; } handleAuthClick(() => { const i = document.createElement('input'); i.type = 'file'; i.accept = 'video/*'; i.multiple = true; i.onchange = (e) => { Array.from(e.target.files).forEach(f => uploadFileWithQueue(f, 'video')); }; i.click(); }); };
-window.startScriptUpload = (pId, sIdx) => { if (!tokenClient) { alert("Waiting for connection..."); return; } handleAuthClick(() => { const i = document.createElement('input'); i.type='file'; i.multiple=true; i.onchange=(e)=>{ Array.from(e.target.files).forEach(f => uploadFileWithQueue(f, 'script', pId, sIdx)); }; i.click(); }); };
+window.startVideoUpload = () => {
+    // Direct File Input (No Auth Popup needed)
+    const i = document.createElement('input'); 
+    i.type = 'file'; i.accept = 'video/*'; i.multiple = true; 
+    i.onchange = (e) => { Array.from(e.target.files).forEach(f => uploadFileWithQueue(f, 'video')); }; 
+    i.click(); 
+};
+
+window.startScriptUpload = (pId, sIdx) => { 
+    const i = document.createElement('input'); 
+    i.type='file'; i.multiple=true; 
+    i.onchange=(e)=>{ Array.from(e.target.files).forEach(f => uploadFileWithQueue(f, 'script', pId, sIdx)); }; 
+    i.click(); 
+};
 
 async function uploadFileWithQueue(file, type, pId, sIdx) {
-    const uid = 'up-'+Date.now()+Math.random().toString(36).substr(2,5);
-    let q = document.getElementById('uploadQueue'); if(!q) { q = document.createElement('div'); q.id='uploadQueue'; document.body.appendChild(q); }
-    
-    const ui = document.createElement('div'); ui.className = 'upload-item'; ui.id = uid;
-    ui.innerHTML = `<div style="display:flex;justify-content:space-between;margin-bottom:4px"><span style="font-size:12px;font-weight:bold;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;max-width:150px">${file.name}</span><span style="font-size:10px;color:#ff6b35" id="p-${uid}">Init...</span></div><div style="width:100%;background:black;height:3px;border-radius:2px"><div style="height:100%;background:#ff6b35;width:0%;transition:width 0.2s" id="b-${uid}"></div></div>`;
-    ui.style.cssText = "background:#111;border:1px solid rgba(255,255,255,0.15);border-left:3px solid #ff6b35;padding:10px;border-radius:8px;box-shadow:0 10px 20px rgba(0,0,0,0.8);color:white;margin-bottom:5px;";
+    // 1. Queue UI (Progress Bar) Banao
+    const uid = 'up-' + Date.now();
+    let q = document.getElementById('uploadQueue');
+    if (!q) { 
+        q = document.createElement('div'); q.id = 'uploadQueue'; document.body.appendChild(q); 
+    }
+
+    const ui = document.createElement('div'); 
+    ui.className = 'upload-item'; ui.id = uid;
+    ui.innerHTML = `
+        <div style="display:flex;justify-content:space-between;margin-bottom:4px">
+            <span style="font-weight:bold;max-width:150px;overflow:hidden;text-overflow:ellipsis">${file.name}</span>
+            <span style="font-size:10px;color:#ff6b35" id="status-${uid}">Start...</span>
+        </div>
+        <div style="width:100%;background:#333;height:3px;border-radius:2px">
+            <div style="height:100%;background:#ff6b35;width:0%;transition:width 0.2s" id="bar-${uid}"></div>
+        </div>`;
+    ui.style.cssText = "background:#111;border:1px solid #333;border-left:3px solid #ff6b35;padding:10px;border-radius:8px;margin-bottom:5px;color:white;box-shadow:0 4px 12px rgba(0,0,0,0.5);";
     q.appendChild(ui);
 
+    // 2. Data Prepare Karo (FormData)
+    const formData = new FormData();
+    formData.append('file', file);
+    formData.append('userName', CURRENTUSER ? (CURRENTUSER.displayName || CURRENTUSER.email) : 'Guest');
+    
+    // Project Name Nikalo
+    let projName = 'General Uploads';
+    if(pId) {
+        const p = projects.find(x => x.id === pId);
+        if(p) projName = p.title;
+    }
+    formData.append('projectName', projName);
+    
+    // File Type (Folder Category)
+    formData.append('fileType', type === 'script' ? 'Scripts' : 'Raw Footage');
+
     try {
-        const t = gapi.client.getToken().access_token;
-        const init = await fetch('https://www.googleapis.com/upload/drive/v3/files?uploadType=resumable', { method: 'POST', headers: { 'Authorization': `Bearer ${t}`, 'Content-Type': 'application/json' }, body: JSON.stringify({ 'name': file.name, 'mimeType': file.type || 'application/pdf' }) });
-        const uri = init.headers.get('Location');
-        const xhr = new XMLHttpRequest(); xhr.open('PUT', uri);
-        xhr.upload.onprogress = (e) => { if(e.lengthComputable) { const p = Math.round((e.loaded/e.total)*100); document.getElementById(`p-${uid}`).innerText = `${p}%`; document.getElementById(`b-${uid}`).style.width = `${p}%`; } };
-        xhr.onload = async () => { if(xhr.status<300) { const d = JSON.parse(xhr.responseText); await gapi.client.drive.permissions.create({ fileId: d.id, resource: { role: 'reader', type: 'anyone' } }); const l = `https://drive.google.com/file/d/${d.id}/preview`;
-            if(type === 'script') { const p = projects.find(x => x.id === pId); p.sections[sIdx].scripts.push({ name: d.name, date: new Date().toLocaleDateString(), link: l }); localStorage.setItem('imranProjects', JSON.stringify(projects)); renderSections(p); } 
-            else if (type === 'video') { footageLib.unshift({ id: Date.now(), title: d.name, link: l }); localStorage.setItem('imranFootage', JSON.stringify(footageLib)); renderFootage(); }
-            const u=document.getElementById(uid); u.style.borderLeftColor="#22c55e"; u.querySelector(`#p-${uid}`).innerText="DONE"; setTimeout(()=>u.remove(),3000); 
-        } else throw new Error("Fail"); }; xhr.send(file);
-    } catch(e) { document.getElementById(uid)?.remove(); alert("Failed"); }
+        // 3. 🔥 SEND TO YOUR SERVER (API Call)
+        const xhr = new XMLHttpRequest();
+        xhr.open('POST', `${API_BASE}/api/drive/smart-upload`, true);
+
+        // Progress Tracking
+        xhr.upload.onprogress = (e) => {
+            if (e.lengthComputable) {
+                const p = Math.round((e.loaded / e.total) * 100);
+                document.getElementById(`bar-${uid}`).style.width = `${p}%`;
+                document.getElementById(`status-${uid}`).innerText = `${p}% Uploading`;
+            }
+        };
+
+        // Complete Handler
+        xhr.onload = async () => {
+            if (xhr.status === 200) {
+                const response = JSON.parse(xhr.responseText);
+                
+                if(response.success) {
+                    // Success UI
+                    document.getElementById(`status-${uid}`).innerText = "✅ DONE";
+                    document.getElementById(uid).style.borderLeftColor = "#22c55e"; // Green
+                    
+                    const link = response.viewLink;
+                    const name = file.name;
+
+                    // 4. Update Frontend State (App me file dikhao)
+                    if (type === 'script' && pId) {
+                        const p = projects.find(x => x.id === pId);
+                        if (p) {
+                            if(!p.sections[sIdx].scripts) p.sections[sIdx].scripts = [];
+                            p.sections[sIdx].scripts.push({ name: name, date: new Date().toLocaleDateString(), link: link });
+                            
+                            // Database Sync (Firestore update)
+                            await db.collection('projects').doc(pId).update({ sections: p.sections });
+                            renderSections(p);
+                        }
+                    } else if (type === 'video') {
+                        footageLib.unshift({ id: Date.now(), title: name, link: link, driveId: response.fileId });
+                        // Local update for speed (Next refresh pe DB se aayega)
+                        renderFootage();
+                    }
+
+                    // Remove Toast after 3 sec
+                    setTimeout(() => ui.remove(), 3000);
+                } else {
+                    throw new Error(response.message);
+                }
+            } else {
+                throw new Error("Server Error");
+            }
+        };
+
+        xhr.send(formData);
+
+    } catch (error) {
+        console.error(error);
+        document.getElementById(`status-${uid}`).innerText = "❌ ERROR";
+        ui.style.borderLeftColor = "red";
+    }
 }
 
 // UTILS
@@ -953,10 +1079,29 @@ function exportProject() {
     // TODO: Export functionality
 }
 
-function deleteProject() {
-    if (confirm('Are you sure you want to delete this project?')) {
-        console.log('Project deleted');
-        window.location.href = 'index.html';
+// ✅ REPLACE: deleteProject (Cloud Version)
+async function deleteProject(idx) {
+    if(confirm("Are you sure you want to delete this project permanently?")) {
+        const projectToDelete = projects[idx];
+        
+        // 1. Local UI se hatao
+        projects.splice(idx, 1);
+        renderDashboardProjects();
+        updateStats();
+
+        // 2. 🔥 CLOUD DELETE
+        if(projectToDelete && projectToDelete.id) {
+            try {
+                await db.collection('projects').doc(projectToDelete.id).delete();
+                showDashToast("Project Deleted from Cloud");
+                
+                // Backup update
+                saveProjectToCloud(project); // ✅ Cloud Update
+            } catch(e) {
+                console.error("Delete Failed:", e);
+                alert("Failed to delete from server.");
+            }
+        }
     }
 }
 
@@ -1171,4 +1316,4 @@ document.addEventListener('DOMContentLoaded', () => {
       }
     });
   }
-});   // <-- yahi LAST line honi chahiye
+});  

@@ -230,8 +230,7 @@
                 </div>
             </div>
 
-            <!-- 2. FINAL FOOTAGE CARD (Purple Pulse) -->
-            <div class="hub-card group" onclick="openFootagePage()">
+<div class="hub-card group" onclick="openEditedFootage()">
                 <div class="flex justify-between">
                     <div class="icon-box glow-purple">
                         <svg class="icon-svg" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 10l4.553-2.276A1 1 0 0121 8.618v6.764a1 1 0 01-1.447.894L15 14M5 18h8a2 2 0 002-2V8a2 2 0 00-2-2H5a2 2 0 00-2 2v8a2 2 0 002 2z"></path></svg>
@@ -244,8 +243,7 @@
                 </div>
             </div>
 
-            <!-- 3. RAW VIDEO CARD (Blue Pulse) -->
-            <div class="hub-card group" onclick="openHubLink('raw')">
+            <div class="hub-card group" onclick="openRawFootage()">
                 <div class="flex justify-between">
                     <div class="icon-box glow-blue">
                         <svg class="icon-svg" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 4v16M17 4v16M3 8h4m10 0h4M3 12h18M3 16h4m10 0h4M4 20h16a1 1 0 001-1V5a1 1 0 00-1-1H4a1 1 0 00-1 1v14a1 1 0 001 1z"></path></svg>
@@ -473,30 +471,41 @@
             window.location.href = 'index.html';
         }
 
-        // Other Navigation Functions (Preserved)
+       // --- NAVIGATION FUNCTIONS (Updated for Direct Access) ---
+        
+        function getCurrentProjectId() { 
+            return new URLSearchParams(window.location.search).get('id'); 
+        }
+
+        // 1. Go to Scripts
         function openScriptsPage() { 
             const id = getCurrentProjectId(); 
             if (!id) { window.location.href = 'index.html'; return; }
             window.location.href = `scripts.html?id=${encodeURIComponent(id)}`;
         }
-        function openFootagePage() {
+
+        // 2. Go directly to Raw Footage (Bypassing footage.html)
+        function openRawFootage() {
             const id = getCurrentProjectId(); 
             if (!id) { window.location.href = 'index.html'; return; }
-            window.location.href = `footage.html?id=${encodeURIComponent(id)}`;
+            window.location.href = `raw-footage.html?id=${encodeURIComponent(id)}`;
         }
-        function openHubLink(type) {
-            const id = getCurrentProjectId();
+
+        // 3. Go directly to Edited Footage (Bypassing footage.html)
+        function openEditedFootage() {
+            const id = getCurrentProjectId(); 
             if (!id) { window.location.href = 'index.html'; return; }
-            if (type === 'raw') { window.location.href = `raw-footage.html?id=${encodeURIComponent(id)}`; }
-            else if (type === 'ai') { window.location.href = `ai-tools.html?id=${encodeURIComponent(id)}`; }
+            window.location.href = `edited-footage.html?id=${encodeURIComponent(id)}`;
         }
-        function openDashboardFromProject() { window.location.href = 'index.html'; }
+
+        // 4. Brainstorm / AI Tools
         function openAiToolsPage() {
             const id = getCurrentProjectId();
             if (!id) { window.location.href = 'index.html'; return; }
             window.location.href = `ai-tools.html?id=${encodeURIComponent(id)}`;
         }
-
+        
+        // (Old openHubLink function ki ab zaroorat nahi hai, use hata sakte ho)
         // Brainstorm 2-option panel wiring
         document.addEventListener('DOMContentLoaded', () => {
             const card = document.getElementById('brainstormHubCard');

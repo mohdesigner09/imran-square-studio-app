@@ -96,6 +96,49 @@ try {
 
 const db = admin.firestore();
 
+// ✅ PASTE THIS RIGHT AFTER: const db = admin.firestore();
+
+// 1. DRIVE SERVICE ACCOUNT SETUP (Stable)
+const DRIVE_KEY_PATH = path.join(__dirname, 'drive-service-account.json');
+
+const driveAuth = new google.auth.GoogleAuth({
+  keyFile: DRIVE_KEY_PATH,
+  scopes: ['https://www.googleapis.com/auth/drive'],
+});
+
+// Main Drive Object
+const drive = google.drive({ version: 'v3', auth: driveAuth });
+
+// 3. HELPER FUNCTIONS (Folder Logic)
+async function findOrCreateFolder(folderName, parentId) {
+  try {
+    const query = `mimeType='application/vnd.google-apps.folder' and name='${folderName}' and '${parentId}' in parents and trashed=false`;
+    const response = await drive.files.list({
+      q: query, fields: 'files(id, name)', spaces: 'drive',
+    });
+
+    if (response.data.files.length > 0) return response.data.files[0].id;
+    
+    const file = await drive.files.create({
+      resource: { name: folderName, mimeType: 'application/vnd.google-apps.folder', parents: [parentId] },
+      fields: 'id',
+    });
+    return file.data.id;
+  } catch (error) {
+    console.error('Folder Error:', error);
+    throw error;
+  }
+}
+
+async function setFilePublic(fileId) {
+  try {
+    await drive.permissions.create({
+      fileId: fileId,
+      requestBody: { role: 'reader', type: 'anyone' },
+    });
+  } catch (error) { console.error('Permission Error:', error); }
+}
+
 // ============ MULTER + GOOGLE DRIVE SETUP ============
 const upload = multer({
   storage: multer.memoryStorage(),
@@ -110,46 +153,10 @@ const upload = multer({
 // (optional) scope reference – docs ke liye
 const DRIVE_SCOPES = ['https://www.googleapis.com/auth/drive.file'];
 
-/**
- * GOOGLE DRIVE SETUP - OAuth2 (tumhara personal Google account)
- *
- * Required env vars:
- *  - GOOGLE_OAUTH_CLIENT_ID
- *  - GOOGLE_OAUTH_CLIENT_SECRET
- *  - GOOGLE_OAUTH_REDIRECT_URI   (usually https://developers.google.com/oauthplayground)
- *  - GOOGLE_DRIVE_REFRESH_TOKEN  (Playground se liya hua)
- */
 
-// OAuth2 client banate hain
-const oAuth2Client = new google.auth.OAuth2(
-  process.env.GOOGLE_OAUTH_CLIENT_ID,
-  process.env.GOOGLE_OAUTH_CLIENT_SECRET,
-  process.env.GOOGLE_OAUTH_REDIRECT_URI || 'https://developers.google.com/oauthplayground'
-);
 
-// Refresh token set karo taaki server tumhare naam se upload kar sake
-oAuth2Client.setCredentials({
-  refresh_token: process.env.GOOGLE_DRIVE_REFRESH_TOKEN,
-});
 
-// Google Drive client – ab OAuth2 use karega (service account nahi)
-const drive = google.drive({
-  version: 'v3',
-  auth: oAuth2Client,
-});
 
-// ✅ Root folder ID – multiple env names support
-const DRIVE_ROOT_FOLDER_ID =
-  process.env.FOOTAGE_FOLDER_ID ||        // clear naam
-  process.env.DRIVE_FOOTAGE_FOLDER_ID ||  // agar ye use kiya ho
-  process.env.DRIVE_FOLDER_ID ||          // backup
-  process.env.GOOGLE_DRIVE_FOLDER_ID;     // ya purana naam
-
-if (!DRIVE_ROOT_FOLDER_ID) {
-  console.warn(
-    '⚠️ DRIVE_ROOT_FOLDER_ID missing. Set DRIVE_FOLDER_ID / FOOTAGE_FOLDER_ID in env.'
-  );
-}
 
 // Folder IDs (Avatar + Footage) – sab ko same vault par point kara sakte ho
 const AVATAR_FOLDER_ID =
@@ -1188,6 +1195,8 @@ app.post('/api/admin/update-user-details', requireAdmin, async (req, res) => {
 });
 
 
+
+
 // 5. 👻 GHOST MODE (Impersonate User)
 app.post('/api/admin/ghost-login', requireAdmin, async (req, res) => {
     const { targetUserId } = req.body;
@@ -1232,172 +1241,61 @@ app.get('/api/get-announcement', async (req, res) => {
     } catch(e) { return res.json({ success: false }); }
 });
 
+
+
+
 // ===== DRIVE RESUMABLE UPLOAD ENDPOINTS =====
 
 
-function getOAuth2Client() {
-  const oauth2Client = new google.auth.OAuth2(
-    process.env.GOOGLE_OAUTH_CLIENT_ID,     // ✅ Correct Name
-    process.env.GOOGLE_OAUTH_CLIENT_SECRET  // ✅ Correct Name
-  );
-  // Refresh token set karein
-  oauth2Client.setCredentials({ 
-    refresh_token: process.env.GOOGLE_DRIVE_REFRESH_TOKEN // ✅ Correct Name
-  });
-  return oauth2Client;
-}
-
-async function getAccessToken() {
-  const oauth2Client = getOAuth2Client();
-  const { token } = await oauth2Client.getAccessToken();
-  if (!token) throw new Error('Failed to get Google access token');
-  return token;
-}
-
-// POST /api/footage/init-upload
-app.post('/api/footage/init-upload', async (req, res) => {
+// 🚀 SMART HIERARCHY UPLOAD (User -> Project -> Category)
+app.post('/api/drive/smart-upload', upload.single('file'), async (req, res) => {
   try {
-    const { filename, mimeType, fileSize, projectId, userId } = req.body;
-    if (!filename || !mimeType || !userId) {
-      return res.status(400).json({ success: false, message: 'Missing required fields' });
+    const { userName, projectName, fileType } = req.body;
+    const file = req.file;
+
+    // Validation
+    if (!file || !userName || !projectName) {
+      return res.status(400).json({ success: false, message: 'Missing Data: userName, projectName, or file' });
     }
 
-    const token = await getAccessToken();
+    console.log(`📤 Uploading: ${file.originalname} to ${userName}/${projectName}`);
 
-    const metadata = {
-      name: `${Date.now()}_${filename}`,
-      parents: [process.env.DRIVE_FOLDER_ID],
-      mimeType
-    };
+    // .env Check
+    const ROOT_ID = process.env.DRIVE_ROOT_FOLDER_ID;
+    if (!ROOT_ID) return res.status(500).json({ success: false, message: 'Server Error: DRIVE_ROOT_FOLDER_ID missing' });
 
-    const url = 'https://www.googleapis.com/upload/drive/v3/files?uploadType=resumable&fields=id,name';
-    const r = await axios.post(url, metadata, {
-      headers: {
-        Authorization: `Bearer ${token}`,
-        'Content-Type': 'application/json; charset=UTF-8',
-        'X-Upload-Content-Type': mimeType,
-        ...(fileSize ? { 'X-Upload-Content-Length': fileSize } : {})
-      },
-      validateStatus: s => s >= 200 && s < 400
+    // 1. Create Hierarchy
+    const userId = await findOrCreateFolder(userName, ROOT_ID);
+    const projectId = await findOrCreateFolder(projectName, userId);
+    
+    let targetFolder = projectId;
+    if(fileType) targetFolder = await findOrCreateFolder(fileType, projectId);
+
+    // 2. Upload to Drive (Stream)
+    const fileStream = Readable.from(file.buffer);
+    const driveRes = await drive.files.create({
+      resource: { name: file.originalname, parents: [targetFolder] },
+      media: { mimeType: file.mimetype, body: fileStream },
+      fields: 'id, name, webViewLink, webContentLink',
     });
 
-    const sessionUri = r.headers.location;
-    if (!sessionUri) throw new Error('No session URI from Drive');
+    // 3. Set Public
+    await setFilePublic(driveRes.data.id);
 
-    // create Firestore pending doc
-    const docRef = db.collection('footage').doc();
-    const footageData = {
-      id: docRef.id,
-      filename: metadata.name,
-      originalName: filename,
-      mimeType,
-      fileSize: fileSize || null,
-      createdAt: admin.firestore.FieldValue.serverTimestamp(),
-      status: 'uploading',
-      projectId: projectId || null,
-      userId: userId || null
-    };
-    await docRef.set(footageData);
+    // 4. Respond
+    res.json({
+      success: true,
+      fileId: driveRes.data.id,
+      viewLink: driveRes.data.webViewLink,
+      downloadLink: driveRes.data.webContentLink
+    });
 
-    res.json({ success: true, sessionUri, footageId: docRef.id });
-  } catch (err) {
-    console.error('init-upload error:', err?.response?.data || err.message || err);
-    res.status(500).json({ success: false, message: 'Failed to initialize upload' });
+  } catch (error) {
+    console.error('Upload Failed:', error);
+    res.status(500).json({ success: false, error: error.message });
   }
 });
 
-// POST /api/footage/finalize-upload
-app.post('/api/footage/finalize-upload', async (req, res) => {
-  try {
-    const { footageId, driveFileId } = req.body;
-    if (!footageId) return res.status(400).json({ success: false, message: 'Missing footageId' });
-
-    // If client provided driveFileId, use it. Otherwise try to find by filename stored earlier.
-    const oauth2Client = getOAuth2Client();
-    const driveApi = google.drive({ version: 'v3', auth: oauth2Client });
-
-    let fileId = driveFileId || null;
-
-    if (!fileId) {
-      // get doc to find filename inserted earlier
-      const doc = await db.collection('footage').doc(footageId).get();
-      if (!doc.exists) return res.status(404).json({ success: false, message: 'Footage doc not found' });
-      const d = doc.data();
-      // Try to search recent file by name in Drive folder (best-effort)
-      const q = `name='${d.filename}' and '${process.env.DRIVE_FOLDER_ID}' in parents`;
-      const listRes = await driveApi.files.list({ q, fields: 'files(id,name)', pageSize: 5 });
-      if (listRes.data.files && listRes.data.files.length > 0) {
-        fileId = listRes.data.files[0].id;
-      }
-    }
-
-    if (!fileId) {
-      // cannot finalize but mark as pending finalize
-      await db.collection('footage').doc(footageId).update({ status: 'uploaded_needs_finalize', updatedAt: admin.firestore.FieldValue.serverTimestamp() });
-      return res.status(200).json({ success: true, note: 'Upload present but drive file id unknown; admin check needed' });
-    }
-
-    // Set public read permission (anyone with link)
-    try {
-      await driveApi.permissions.create({ fileId, requestBody: { role: 'reader', type: 'anyone' } });
-    } catch (permErr) {
-      console.warn('permission create issue (ignored):', permErr?.message || permErr);
-    }
-
-    // fetch metadata
-    const meta = await driveApi.files.get({ fileId, fields: 'id,name,size,mimeType,webViewLink' });
-
-    // update firestore
-    await db.collection('footage').doc(footageId).update({
-      status: 'received',
-      driveFileId: meta.data.id,
-      driveWebViewLink: meta.data.webViewLink || null,
-      streamLink: `https://drive.google.com/file/d/${meta.data.id}/preview`,
-      size: Number(meta.data.size || 0),
-      receivedAt: admin.firestore.FieldValue.serverTimestamp()
-    });
-
-    res.json({ success: true, fileId: meta.data.id });
-  } catch (err) {
-    console.error('finalize-upload error:', err?.response?.data || err.message || err);
-    res.status(500).json({ success: false, message: 'Failed to finalize upload' });
-  }
-});
-
-// ============ GLOBAL ERROR HANDLER (MULTER + OTHERS) ============
-app.use((err, req, res, next) => {
-  if (err instanceof multer.MulterError) {
-    console.error('Multer error:', err);
-    return res.status(400).json({
-      success: false,
-      message: err.message || 'Upload error (multer)',
-    });
-  }
-
-  console.error('Unhandled error:', err);
-  return res.status(500).json({
-    success: false,
-    message: 'Internal server error',
-  });
-});
-
-
-
-
-
-// ==========================================
-const PORT = process.env.PORT || 3000;
-
-app.listen(PORT, () => {
-  console.log(`✅ Server running on port ${PORT}`);
-  console.log(`\n🚀 Multi-AI API Proxy running at http://localhost:${PORT}`);
-  console.log('📡 Endpoints:');
-  console.log('   GET  /              - Health check');
-  console.log('   POST /api/send-otp  - Send OTP');
-  console.log('   POST /api/verify-otp- Verify OTP');
-  console.log('   POST /api/chat      - Chat endpoint');
-  console.log('\n✅ Ready to receive requests!\n');
-});
 
 // ============ FOOTAGE QUEUE ENDPOINT ============
 app.post('/api/footage/create-queue', async (req, res) => {
@@ -1438,3 +1336,33 @@ app.post('/api/footage/create-queue', async (req, res) => {
   }
 });
 
+// ============ GLOBAL ERROR HANDLER (MULTER + OTHERS) ============
+app.use((err, req, res, next) => {
+  if (err instanceof multer.MulterError) {
+    console.error('Multer error:', err);
+    return res.status(400).json({
+      success: false,
+      message: err.message || 'Upload error (multer)',
+    });
+  }
+
+  console.error('Unhandled error:', err);
+  return res.status(500).json({
+    success: false,
+    message: 'Internal server error',
+  });
+});
+
+// ==========================================
+const PORT = process.env.PORT || 3000;
+
+app.listen(PORT, () => {
+  console.log(`✅ Server running on port ${PORT}`);
+  console.log(`\n🚀 Multi-AI API Proxy running at http://localhost:${PORT}`);
+  console.log('📡 Endpoints:');
+  console.log('   GET  /              - Health check');
+  console.log('   POST /api/send-otp  - Send OTP');
+  console.log('   POST /api/verify-otp- Verify OTP');
+  console.log('   POST /api/chat      - Chat endpoint');
+  console.log('\n✅ Ready to receive requests!\n');
+});

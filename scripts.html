@@ -44,6 +44,8 @@
     
     <script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
 
+    <script src="main.js"></script>
+
     <style>
         /* =========================================
            🔥 THEME: DARK CINEMATIC (Merged)
@@ -703,14 +705,108 @@ He pulls out a crumpled photograph.
     <!-- Hidden Input -->
     <input type="file" id="fileInput" class="hidden" accept=".pdf,.doc,.docx,.txt">
 
-    <!-- JS LOGIC -->
-    <script>
-        // --- 1. STATE MANAGEMENT ---
-        let currentSectionId = null;
-        const FILES_PER_SECTION = 10;
+<script>
+    // ✅ FINAL SCRIPT EDITOR LOGIC (Cloud Sync + Status + Files)
+
+    // --- 1. GLOBAL VARIABLES ---
+    let currentProjectID = null;
+    let currentUser = null;
+    let sectionsData = []; 
+    const FILES_PER_SECTION = 10;
+    let saveTimer; // Timer for auto-save debounce
+    
+    // Status UI Element Create Karo
+    const statusLabel = document.createElement('div');
+    statusLabel.id = 'saveStatus';
+    statusLabel.className = 'fixed bottom-4 right-4 text-xs font-mono font-bold opacity-0 transition-opacity duration-500';
+    document.body.appendChild(statusLabel);
+
+    // --- 2. INITIALIZATION ---
+    document.addEventListener('DOMContentLoaded', async () => {
         
-        // Initial Data Structure (Default 6 Sections)
-        let sectionsData = [
+        // A. Firebase Auth Check (Global from main.js)
+        if(typeof auth !== 'undefined') {
+            auth.onAuthStateChanged(async (user) => {
+                if (user) {
+                    console.log("✅ Editor Connected:", user.email);
+                    currentUser = user;
+                    
+                    // B. Get Project ID
+                    const params = new URLSearchParams(window.location.search);
+                    currentProjectID = params.get('id');
+
+                    if(currentProjectID) {
+                        await loadProjectFromFirestore(currentProjectID);
+                    } else {
+                        alert("No Project ID Found");
+                        window.location.href = 'index.html';
+                    }
+                } else {
+                    window.location.href = 'index.html';
+                }
+            });
+        }
+
+        // C. Editor Auto-Save Listeners
+        const editor = document.getElementById('scriptEditor');
+        if(editor) {
+            editor.addEventListener('input', () => {
+                // Typing karte waqt "Saving..." dikhao
+                showStatus("Saving...", "text-yellow-500");
+                
+                // Purana timer roko aur naya shuru karo (2 sec wait)
+                clearTimeout(saveTimer);
+                saveTimer = setTimeout(() => saveToFirestore(true), 2000); 
+            });
+
+            // Toolbar Highlighting
+            ['keyup', 'mouseup', 'click'].forEach(evt => 
+                editor.addEventListener(evt, updateToolbarState)
+            );
+        }
+    });
+
+    // --- 3. HELPER: SHOW STATUS ---
+    function showStatus(msg, colorClass) {
+        statusLabel.innerText = msg;
+        statusLabel.className = `fixed bottom-4 right-4 text-xs font-mono font-bold ${colorClass} opacity-100`;
+        
+        // Agar "Saved" hai to 3 sec baad hata do
+        if(msg === "Saved") {
+            setTimeout(() => { statusLabel.classList.remove('opacity-100'); statusLabel.classList.add('opacity-0'); }, 3000);
+        }
+    }
+
+    // --- 4. CORE: LOAD DATA ---
+    async function loadProjectFromFirestore(projId) {
+        try {
+            const doc = await db.collection('projects').doc(projId).get();
+
+            if (doc.exists) {
+                const data = doc.data();
+                
+                // Content Set Karo
+                const editor = document.getElementById('scriptEditor');
+                if(editor) editor.innerHTML = data.content || "<p>Start writing...</p>";
+                
+                // Title Set Karo
+                const titleEl = document.getElementById('scriptTitle');
+                if(titleEl) titleEl.textContent = (data.title || "UNTITLED").toUpperCase();
+                
+                // Sections/Files Set Karo
+                sectionsData = data.sections || createDefaultSections();
+                
+                renderSections();
+                console.log("🔥 Script Loaded from Cloud");
+            }
+        } catch (error) {
+            console.error("Load Error:", error);
+            showStatus("Load Error", "text-red-500");
+        }
+    }
+
+    function createDefaultSections() {
+        return [
             { id: 1, name: "Screenplays", files: [] },
             { id: 2, name: "Research", files: [] },
             { id: 3, name: "Character Notes", files: [] },
@@ -718,750 +814,215 @@ He pulls out a crumpled photograph.
             { id: 5, name: "Legal Docs", files: [] },
             { id: 6, name: "Misc", files: [] }
         ];
-
-
-
-
-function renderSections() {
-    // Load from main projects array
-    const projectId = new URLSearchParams(window.location.search).get('id');
-    const project = projects.find(p => p.id === projectId);
-    
-    if (project && project.sections) {
-        sectionsData = project.sections;
     }
-    
-    const grid = document.getElementById('sectionsGrid');
-    if (!grid) return;
-    grid.innerHTML = '';
 
-    sectionsData.forEach(section => {
-        const count = section.files.length;
-        const percent = (count / FILES_PER_SECTION) * 100;
-        const isFull = count >= FILES_PER_SECTION;
-        const ringColor = isFull ? 'ring-full' : 'ring-green';
-        
-        // SVG Dash array logic (circumference ~ 100)
-        const dashArray = `${percent}, 100`;
+    // --- 5. CORE: SAVE TO CLOUD (Real-Time) ---
+    async function saveToFirestore(isAutoSave = false) {
+        if(!currentUser || !currentProjectID) return;
 
-        // Generate File List HTML
-        let filesHtml = '';
-        
-        if(count === 0) {
-            filesHtml = `<div class="h-full flex flex-col items-center justify-center text-gray-600">
-                <svg class="w-8 h-8 mb-2 opacity-20" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 13h6m-3-3v6m5 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path></svg>
-                <span class="text-[10px]">No files yet</span>
-            </div>`;
-        } else {
-            // Reverse to show newest first
-            const reversedFiles = [...section.files].reverse();
-            reversedFiles.forEach(file => {
-                filesHtml += `
-                    <div class="file-item group">
-                        <div class="flex items-center gap-2 truncate w-[70%]">
-                            <svg class="w-3 h-3 text-gray-500 group-hover:text-green-400 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 21h10a2 2 0 002-2V9.414a1 1 0 00-.293-.707l-5.414-5.414A1 1 0 0012.586 2H7a2 2 0 00-2 2v14a2 2 0 002 2z"></path></svg>
-                            <span class="truncate" title="${file.name}">${file.name}</span>
-                        </div>
-                        <span class="text-[9px] text-gray-600 shrink-0">${file.date || 'Just now'}</span>
-                    </div>
-                `;
-            });
-        }
-
-        // Card HTML
-        const card = document.createElement('div');
-        card.className = 'section-card';
-        card.innerHTML = `
-            <div class="flex justify-between items-start mb-2">
-                <div>
-                    <h3 class="text-sm font-bold text-white uppercase tracking-wider">${section.name}</h3>
-                    <p class="text-[10px] text-gray-500">${count} Files</p>
-                </div>
-                <!-- Holographic Ring -->
-                <div class="capacity-wrapper">
-                    <svg class="capacity-svg" viewBox="0 0 36 36">
-                        <path class="capacity-circle-bg" d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831" />
-                        <path class="capacity-circle-fg ${ringColor}" stroke-dasharray="${dashArray}" d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831" />
-                    </svg>
-                    <div class="capacity-text">${count}/${FILES_PER_SECTION}</div>
-                </div>
-            </div>
-            
-            <div class="file-list custom-scrollbar">
-                ${filesHtml}
-            </div>
-
-            <button onclick="triggerUpload(${section.id})" class="card-upload-btn" ${isFull ? 'disabled' : ''}>
-                ${isFull ? '<span class="text-red-400">⚠️ Section Full</span>' : '<span>+ Upload File</span>'}
-            </button>
-        `;
-        grid.appendChild(card);
-    });
-}
-
-// ===== AUTO-PAGE SYSTEM (Google Docs Style) =====
-let pageCount = 1;
-const MAX_PAGE_HEIGHT = 11 * 96; // 11 inches in pixels (96 DPI)
-
-function initAutoPages() {
-    const editor = document.getElementById('scriptEditor');
-    if (!editor) return;
-    
-    
-    // Monitor text input
-    editor.addEventListener('input', debounce(checkPageOverflow, 300));
-    editor.addEventListener('paste', () => setTimeout(checkPageOverflow, 100));
-}
-
-function checkPageOverflow() {
-    const container = document.getElementById('editorContainer');
-    const pages = container.querySelectorAll('.script-page');
-    const lastPage = pages[pages.length - 1];
-    
-    // Check if content exceeds page height
-    if (lastPage.scrollHeight > lastPage.clientHeight) {
-        addNewPage();
-    }
-}
-
-function addNewPage() {
-    pageCount++;
-    const container = document.getElementById('editorContainer');
-    
-    const newPageWrapper = document.createElement('div');
-    newPageWrapper.className = 'script-page-wrapper';
-    newPageWrapper.setAttribute('data-page', pageCount);
-    
-    newPageWrapper.innerHTML = `
-        <div contenteditable="true" class="script-page" data-page-num="${pageCount}">
-            
-        </div>
-        <div class="page-number">Page ${pageCount}</div>
-    `;
-    
-    container.appendChild(newPageWrapper);
-    
-    // Focus new page
-    const newPage = newPageWrapper.querySelector('.script-page');
-    newPage.focus();
-    
-    // Add input listener to new page
-    newPage.addEventListener('input', debounce(checkPageOverflow, 300));
-    
-    console.log(`✅ Added Page ${pageCount}`);
-}
-
-function debounce(func, wait) {
-    let timeout;
-    return function executedFunction(...args) {
-        clearTimeout(timeout);
-        timeout = setTimeout(() => func.apply(this, args), wait);
-    };
-}
-
-// Add Scene Function
-function addNewScene() {
-    const sceneName = prompt('Enter scene name (e.g., INT. BEDROOM - NIGHT):');
-    if (!sceneName) return;
-    
-    const editor = document.getElementById('scriptEditor');
-    if (editor) {
-        // Insert at cursor or end
-        const selection = window.getSelection();
-        if (selection.rangeCount > 0) {
-            const range = selection.getRangeAt(0);
-            const newLine = document.createTextNode(`\n\n${sceneName.toUpperCase()}\n\n`);
-            range.insertNode(newLine);
-        } else {
-            editor.textContent += `\n\n${sceneName.toUpperCase()}\n\n`;
-        }
-        
-        saveEditorContent();
-    }
-}
-
-
-function saveProject() {
-    const projectId = new URLSearchParams(window.location.search).get('id');
-    const project = projects.find(p => p.id === projectId);
-    
-    if (project) {
-        project.sections = sectionsData;
-        localStorage.setItem('imranProjects', JSON.stringify(projects));
-        console.log('✅ Project sections saved');
-    }
-}
-
-
-
-
-        // --- 3. UPLOAD LOGIC ---
-        function triggerUpload(sectionId) {
-            currentSectionId = sectionId;
-            document.getElementById('fileInput').click();
-        }
-
-       const fileInput = document.getElementById('fileInput');
-if (fileInput) {
-    fileInput.addEventListener('change', function(e) {
-       
-
-            const files = Array.from(e.target.files);
-            if(files.length === 0 || !currentSectionId) return;
-
-            // Process first file only for now (to keep logic simple with queue)
-            const file = files[0];
-            
-            // 1. Show Toast
-            addToQueue(`Uploading ${file.name}...`);
-
-            // 2. Simulate Delay & Add File
-            setTimeout(() => {
-                const sectionIndex = sectionsData.findIndex(s => s.id === currentSectionId);
-                if(sectionIndex !== -1 && sectionsData[sectionIndex].files.length < FILES_PER_SECTION) {
-                    
-                    // Add file to data
-                    sectionsData[sectionIndex].files.push({
-                        name: file.name,
-                        date: new Date().toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'})
-                    });
-                    
-                    // Save & Re-render
-                    const projectId = new URLSearchParams(window.location.search).get('id');
-                    if(projectId) localStorage.setItem(`sections_${projectId}`, JSON.stringify(sectionsData));
-                    
-                    renderSections();
-                    addToQueue(`${file.name} Uploaded!`, true);
-                } else {
-                    addToQueue('Error: Section Full', false);
-                }
-                
-                // Reset
-                document.getElementById('fileInput').value = '';
-                currentSectionId = null;
-            }, 1000);
-        });
-}
-        
-
-        // Helper: Queue Toast
-        // Initialize page
-// Line ~460 (save karne se pehle)
-const editorText = document.getElementById('scriptEditor').textContent; // NOT innerHTML
-
-        function addToQueue(msg, success = null) {
-            const q = document.getElementById('uploadQueue');
-            const div = document.createElement('div');
-            let icon = `<div class="w-3 h-3 rounded-full border-2 border-t-transparent border-white animate-spin"></div>`;
-            
-            if(success === true) {
-                div.style.borderLeftColor = '#22c55e'; // Green
-                icon = `<svg class="w-4 h-4 text-green-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path></svg>`;
-            } else if(success === false) {
-                div.style.borderLeftColor = '#ef4444'; // Red
-                icon = `⚠️`;
-            }
-
-            div.className = 'upload-item';
-            div.innerHTML = `${icon} <span>${msg}</span>`;
-            q.appendChild(div);
-            
-            setTimeout(() => {
-                div.style.opacity = '0';
-                setTimeout(() => div.remove(), 300);
-            }, 3000);
-        }
-
-        // --- 4. NAVIGATION & SWITCHER ---
-        function switchMode(mode) {
-            const editorDiv = document.getElementById('modeEditor');
-            const filesDiv = document.getElementById('modeFiles');
-            const btnEditor = document.getElementById('btnEditor');
-            const btnFiles = document.getElementById('btnFiles');
-            const editorAction = document.getElementById('editorActionBtn');
-                if (!editorDiv || !filesDiv || !btnEditor || !btnFiles) return;
-
-
-            if (mode === 'editor') {
-                editorDiv.classList.remove('hidden-mode');
-                filesDiv.classList.add('hidden-mode');
-                btnEditor.classList.add('active');
-                btnFiles.classList.remove('active');
-                editorAction.classList.remove('hidden-mode');
-            } else {
-                editorDiv.classList.add('hidden-mode');
-                filesDiv.classList.remove('hidden-mode');
-                btnFiles.classList.add('active');
-                btnEditor.classList.remove('active');
-                editorAction.classList.add('hidden-mode');
-            }
-        }
-
-        function goBackToHub() {
-            const id = new URLSearchParams(window.location.search).get('id');
-               window.location.href = id ? `project-hub.html?id=${encodeURIComponent(id)}` : 'project-hub.html';
-        }
-        
-    
-
-        // ===== MOBILE MENU FUNCTIONALITY =====
-function toggleMobileMenu() {
-    const overlay = document.getElementById('mobileMenuOverlay');
-    const panel = document.getElementById('mobileMenuPanel');
-    
-    if (overlay && panel) {
-        const isHidden = overlay.classList.contains('hidden');
-        
-        if (isHidden) {
-            // Open menu
-            overlay.classList.remove('hidden');
-            setTimeout(() => {
-                panel.classList.remove('translate-x-full');
-            }, 10);
-            document.body.style.overflow = 'hidden'; // Prevent scroll
-        } else {
-            // Close menu
-            closeMobileMenu();
-        }
-    }
-}
-
-function closeMobileMenu() {
-    const overlay = document.getElementById('mobileMenuOverlay');
-    const panel = document.getElementById('mobileMenuPanel');
-    
-    if (panel) {
-        panel.classList.add('translate-x-full');
-        setTimeout(() => {
-            if (overlay) overlay.classList.add('hidden');
-            document.body.style.overflow = ''; // Restore scroll
-        }, 300);
-    }
-}
-
-// Mobile menu button click
-const mobileMenuBtn = document.getElementById('mobileMenuBtn');
-if (mobileMenuBtn) {
-    mobileMenuBtn.addEventListener('click', toggleMobileMenu);
-}
-
-// Close button click
-const closeMobileMenuBtn = document.getElementById('closeMobileMenu');
-if (closeMobileMenuBtn) {
-    closeMobileMenuBtn.addEventListener('click', closeMobileMenu);
-}
-
-// Close on overlay click
-const mobileMenuOverlay = document.getElementById('mobileMenuOverlay');
-if (mobileMenuOverlay) {
-    mobileMenuOverlay.addEventListener('click', (e) => {
-        if (e.target === mobileMenuOverlay) {
-            closeMobileMenu();
-        }
-    });
-}
-
-// Update mobile mode buttons on switchMode
-const originalSwitchMode = switchMode;
-switchMode = function(mode) {
-    originalSwitchMode(mode);
-    
-    // Update mobile menu buttons
-    const mobileWriterBtn = document.getElementById('mobileWriterBtn');
-    const mobileFilesBtn = document.getElementById('mobileFilesBtn');
-    
-    if (mode === 'editor') {
-        if (mobileWriterBtn) {
-            mobileWriterBtn.classList.remove('bg-white/10', 'text-gray-300');
-            mobileWriterBtn.classList.add('bg-orange-500', 'text-white');
-        }
-        if (mobileFilesBtn) {
-            mobileFilesBtn.classList.remove('bg-orange-500', 'text-white');
-            mobileFilesBtn.classList.add('bg-white/10', 'text-gray-300');
-        }
-    } else {
-        if (mobileFilesBtn) {
-            mobileFilesBtn.classList.remove('bg-white/10', 'text-gray-300');
-            mobileFilesBtn.classList.add('bg-orange-500', 'text-white');
-        }
-        if (mobileWriterBtn) {
-            mobileWriterBtn.classList.remove('bg-orange-500', 'text-white');
-            mobileWriterBtn.classList.add('bg-white/10', 'text-gray-300');
-        }
-    }
-};
-
-// Make closeMobileMenu global
-window.closeMobileMenu = closeMobileMenu;
-
-
-// Add Scene function (if not already defined)
-if (typeof addNewScene !== 'function') {
-    function addNewScene() {
-        const sceneName = prompt('Enter scene name (e.g., INT. BEDROOM - NIGHT):');
-        if (!sceneName) return;
-        
         const editor = document.getElementById('scriptEditor');
-        if (editor) {
-            editor.textContent += `\n\n${sceneName.toUpperCase()}\n\n`;
-            saveEditorContent();
+        const content = editor.innerHTML;
+        const plainText = editor.innerText || "";
+        const title = document.getElementById('scriptTitle').textContent;
+        const wordCount = plainText.split(/\s+/).filter(w => w.length > 0).length;
+
+        // 🔥 Auto-Update "Screenplays" Card Logic
+        if(isAutoSave) {
+            updateMainScriptFileEntry(title);
         }
-        alert('Scene added!');
-    }
-}
 
-    // 👇👇👇 FIX START: Renamed variables to avoid conflict with main.js 👇👇👇
-    
-    // --- 1. GLOBAL VARIABLES (Renamed) ---
-    let myLocalProjects = []; 
-    let activeScriptId = null;
-
-    // --- 2. INITIALIZATION ---
-    document.addEventListener('DOMContentLoaded', () => {
-        // Load Projects
-        loadMyLocalProjects();
-        
-        // Editor Listeners (Auto-save & Toolbar)
-        const editor = document.getElementById('scriptEditor');
-        if(editor) {
-            // Auto-save
-            editor.addEventListener('input', () => {
-                if(activeScriptId) {
-                    const currentProject = myLocalProjects.find(p => p.id === activeScriptId);
-                    if(currentProject) {
-                        currentProject.content = editor.innerHTML;
-                        currentProject.lastModified = Date.now();
-                        saveMyLocalProjects();
-                    }
-                }
+        try {
+            await db.collection('projects').doc(currentProjectID).update({
+                content: content,
+                title: title,
+                words: wordCount, // Word count update
+                sections: sectionsData,
+                lastModified: firebase.firestore.FieldValue.serverTimestamp()
             });
             
-            // Toolbar Button Highlight
-            editor.addEventListener('keyup', updateToolbarState);
-            editor.addEventListener('mouseup', updateToolbarState);
-            editor.addEventListener('click', updateToolbarState);
-        }
-    });
+            showStatus("Saved", "text-green-500"); // ✅ Green Signal
+            
+            // Render wapis mat call karo typing ke beech me, warna cursor hil jayega
+            // Sirf files tab update karo agar sections change huye
+            if(!isAutoSave) renderSections(); 
 
-    // --- 3. SIDEBAR & MENU LOGIC (Fixed) ---
-    
-    // Sidebar Toggle (Right Side)
-    function toggleSidebar() {
-        const sidebar = document.getElementById('mobileSidebar');
-        const overlay = document.getElementById('sidebarOverlay');
+        } catch (error) {
+            console.error("Save failed:", error);
+            showStatus("Sync Error", "text-red-500");
+        }
+    }
+
+    // Helper to update the PDF file entry in cards without refreshing UI
+    function updateMainScriptFileEntry(title) {
+        const timestamp = new Date().toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'});
+        const screenplaySection = sectionsData.find(s => s.name === "Screenplays");
         
-        if (sidebar && overlay) {
-            // Check current state via class 'open'
-            if (sidebar.classList.contains('open')) {
-                sidebar.classList.remove('open'); // Hide
-                overlay.classList.remove('open');
-            } else {
-                sidebar.classList.add('open'); // Show
-                overlay.classList.add('open');
+        if(screenplaySection) {
+            const fileIndex = screenplaySection.files.findIndex(f => f.isMainScript === true);
+            const fileEntry = { name: `${title}.pdf (Draft)`, date: timestamp, isMainScript: true };
+
+            if(fileIndex >= 0) {
+                screenplaySection.files[fileIndex] = fileEntry;
+            } else if(screenplaySection.files.length < FILES_PER_SECTION) {
+                screenplaySection.files.push(fileEntry);
             }
-        } else {
-            console.error("Sidebar elements missing!");
         }
     }
 
-    // AI Sheet Toggle
-    function toggleAISheet() {
-        const sheet = document.getElementById('mobileAISheet');
-        if(sheet) sheet.classList.toggle('open');
-    }
+    // --- 6. RENDER FILES UI ---
+    function renderSections() {
+        const grid = document.getElementById('sectionsGrid');
+        if (!grid) return;
+        grid.innerHTML = '';
 
-    // Mobile Menu Toggle (Writer/Files Switcher)
-    function switchMode(mode) {
-        const editorDiv = document.getElementById('modeEditor');
-        const filesDiv = document.getElementById('modeFiles');
-        
-        // Buttons
-        const btnEditor = document.getElementById('btnEditor');
-        const btnFiles = document.getElementById('btnFiles');
-        const mobileWriter = document.getElementById('mobileWriterBtn');
-        const mobileFiles = document.getElementById('mobileFilesBtn');
-        const aiBtn = document.getElementById('mobileAIBtn');
+        sectionsData.forEach(section => {
+            const count = section.files.length;
+            const percent = (count / FILES_PER_SECTION) * 100;
+            const isFull = count >= FILES_PER_SECTION;
+            const ringColor = isFull ? 'ring-full' : 'ring-green';
+            const dashArray = `${percent}, 100`;
 
-        if (mode === 'editor') {
-            // Show Editor
-            if(editorDiv) editorDiv.classList.remove('hidden-mode');
-            if(filesDiv) filesDiv.classList.add('hidden-mode');
-            
-            // Highlight Buttons
-            if(btnEditor) btnEditor.classList.add('active');
-            if(btnFiles) btnFiles.classList.remove('active');
-            
-            // Show AI Button
-            if(aiBtn) aiBtn.style.display = 'flex';
+            let filesHtml = '';
+            if(count === 0) {
+                filesHtml = `<div class="h-full flex flex-col items-center justify-center text-gray-600"><span class="text-[10px]">No files</span></div>`;
+            } else {
+                [...section.files].reverse().forEach(file => {
+                    const highlight = file.isMainScript ? 'text-orange-400 border-orange-500/30 bg-orange-500/10' : 'text-gray-400 border-white/5 bg-white/5';
+                    const icon = file.isMainScript ? '<i class="fa-solid fa-star text-[10px] mr-1"></i>' : '';
+                    filesHtml += `<div class="file-item ${highlight} p-2 rounded mb-1 border flex justify-between items-center text-xs"><div class="truncate w-[70%]">${icon}${file.name}</div><span class="text-[9px] opacity-60">${file.date}</span></div>`;
+                });
+            }
 
-        } else {
-            // Show Files
-            if(editorDiv) editorDiv.classList.add('hidden-mode');
-            if(filesDiv) filesDiv.classList.remove('hidden-mode');
-            
-            // Highlight Buttons
-            if(btnFiles) btnFiles.classList.add('active');
-            if(btnEditor) btnEditor.classList.remove('active');
-
-            // Hide AI Button
-            if(aiBtn) aiBtn.style.display = 'none';
-        }
-    }
-
-    // --- 4. PROJECT SYSTEM (Fixed 'projects' conflict) ---
-
-    // A. Create New Project
-    function createNewProject() {
-        const title = prompt("Enter Project Name:");
-        if (!title) return;
-
-        const newProject = {
-            id: 'proj_' + Date.now(),
-            title: title,
-            content: `<div><b>${title.toUpperCase()}</b></div><div><br></div><div>Start writing...</div>`,
-            lastModified: Date.now()
-        };
-
-        myLocalProjects.unshift(newProject);
-        saveMyLocalProjects();
-        loadProjectIntoEditor(newProject.id);
-        
-        // Close sidebar if open
-        const sidebar = document.getElementById('mobileSidebar');
-        if(sidebar && sidebar.classList.contains('open')) toggleSidebar();
-    }
-
-    // B. Load Project
-    function loadProjectIntoEditor(id) {
-        const project = myLocalProjects.find(p => p.id === id);
-        if (!project) return;
-
-        activeScriptId = id;
-        
-        // Update UI
-        const editor = document.getElementById('scriptEditor');
-        const title = document.getElementById('scriptTitle');
-        
-        if(editor) editor.innerHTML = project.content;
-        if(title) title.textContent = project.title.toUpperCase();
-        
-        // Refresh List
-        renderProjects();
-        
-        // Close Sidebar on Mobile
-        const sidebar = document.getElementById('mobileSidebar');
-        if(sidebar && sidebar.classList.contains('open')) toggleSidebar();
-    }
-
-    // C. Render List
-    function renderProjects() {
-        const list = document.getElementById('projectList');
-        const searchInput = document.getElementById('projectSearch');
-        const searchTerm = searchInput ? searchInput.value.toLowerCase() : "";
-        
-        if(!list) return;
-        list.innerHTML = '';
-
-        const filtered = myLocalProjects.filter(p => p.title.toLowerCase().includes(searchTerm));
-
-        if(filtered.length === 0) {
-            list.innerHTML = `<div class="text-center text-gray-500 text-xs mt-10">No projects found.<br>Click + to create.</div>`;
-            return;
-        }
-
-        filtered.forEach(p => {
-            const isActive = p.id === activeScriptId;
-            const div = document.createElement('div');
-            
-            div.className = `p-3 rounded-lg border cursor-pointer transition flex items-center justify-between group mb-1 ${isActive ? 'bg-white text-black border-white' : 'bg-white/5 text-gray-300 border-transparent hover:bg-white/10'}`;
-            
-            div.onclick = () => loadProjectIntoEditor(p.id);
-            
-            const date = new Date(p.lastModified).toLocaleDateString();
-
-            div.innerHTML = `
-                <div class="flex items-center gap-3 overflow-hidden">
-                    <i class="fa-regular fa-file-lines ${isActive ? 'text-orange-500' : 'text-gray-500'}"></i>
-                    <div class="truncate">
-                        <div class="font-bold text-xs truncate w-32">${p.title}</div>
-                        <div class="text-[10px] opacity-60">${date}</div>
-                    </div>
+            const card = document.createElement('div');
+            card.className = 'section-card';
+            card.innerHTML = `
+                <div class="flex justify-between items-start mb-2">
+                    <div><h3 class="text-sm font-bold text-white uppercase">${section.name}</h3><p class="text-[10px] text-gray-500">${count} Files</p></div>
+                    <div class="capacity-wrapper"><svg class="capacity-svg" viewBox="0 0 36 36"><path class="capacity-circle-bg" d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831" /><path class="capacity-circle-fg ${ringColor}" stroke-dasharray="${dashArray}" d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831" /></svg><div class="capacity-text">${count}/${FILES_PER_SECTION}</div></div>
                 </div>
+                <div class="file-list custom-scrollbar h-32 overflow-y-auto">${filesHtml}</div>
+                <button onclick="triggerUpload(${section.id})" class="card-upload-btn" ${isFull ? 'disabled' : ''}>+ Upload</button>
             `;
-            list.appendChild(div);
+            grid.appendChild(card);
         });
     }
 
-    // D. Storage (Unique Key)
-    function saveMyLocalProjects() {
-        localStorage.setItem('imran_scripts_fixed', JSON.stringify(myLocalProjects));
-        renderProjects();
-    }
-
-    function loadMyLocalProjects() {
-        const data = localStorage.getItem('imran_scripts_fixed');
-        if (data) {
-            myLocalProjects = JSON.parse(data);
-            if(myLocalProjects.length > 0) loadProjectIntoEditor(myLocalProjects[0].id);
-        } else {
-            renderProjects();
-        }
-    }
-
-    // --- 5. EDITOR TOOLS (FormatDoc) ---
-    function formatDoc(cmd, value = null) {
-        if(event) event.preventDefault(); // Stop focus loss
-        document.execCommand(cmd, false, value);
-        updateToolbarState();
+    // --- 7. UPLOAD LOGIC (Legacy Support for Cards) ---
+    function triggerUpload(sectionId) {
+        // Hum main.js ka global uploader use karenge agar available hai
+        // lekin abhi ke liye local logic rakhte hain jo DB se sync kare
+        const input = document.getElementById('fileInput');
+        if(!input) return;
         
-        const editor = document.getElementById('scriptEditor');
-        if(editor) editor.focus();
-    }
+        // Clean listeners
+        const newInput = input.cloneNode(true);
+        input.parentNode.replaceChild(newInput, input);
+        
+        newInput.onchange = (e) => {
+            const file = e.target.files[0];
+            if(!file) return;
 
-    function updateToolbarState() {
-        const states = ['bold', 'italic', 'underline'];
-        states.forEach(cmd => {
-            const isActive = document.queryCommandState(cmd);
-            const btn = document.querySelector(`button[onclick="formatDoc('${cmd}')"]`);
-            if(btn) isActive ? btn.classList.add('active') : btn.classList.remove('active');
-        });
-    }
-
-    function applyScriptFormat(type) {
-        if(!type) return;
-        document.execCommand('formatBlock', false, 'div');
-        const selection = window.getSelection();
-        if (selection.rangeCount > 0) {
-            const node = selection.anchorNode.parentElement;
-            node.style.cssText = ''; 
+            // UI Feedback
+            addToQueue(`Uploading ${file.name}...`);
             
-            if (type === 'scene') { 
-                node.style.fontWeight = 'bold'; node.style.textTransform = 'uppercase'; node.style.marginTop = '20px'; 
-            } 
-            else if (type === 'character') { 
-                node.style.textAlign = 'center'; node.style.fontWeight = 'bold'; node.style.textTransform = 'uppercase'; node.style.width = '60%'; node.style.margin = '15px auto 0 auto';
-            } 
-            else if (type === 'dialogue') { 
-                node.style.textAlign = 'center'; node.style.width = '70%'; node.style.margin = '0 auto';
-            }
-        }
-        const editor = document.getElementById('scriptEditor');
-        if(editor) editor.focus();
-    }
-    
-  // 👇👇👇 PASTE THIS AT THE BOTTOM OF YOUR JAVASCRIPT 👇👇👇
-
-// --- 1. REAL PDF EXPORT (Using html2pdf) ---
-function exportPDF() {
-    const element = document.getElementById('scriptEditor');
-    const title = document.getElementById('scriptTitle').innerText || 'Script';
-    
-    // PDF Options
-    const opt = {
-        margin:       1,
-        filename:     `${title}.pdf`,
-        image:        { type: 'jpeg', quality: 0.98 },
-        html2canvas:  { scale: 2 },
-        jsPDF:        { unit: 'in', format: 'letter', orientation: 'portrait' }
-    };
-
-    // Button Feedback
-    const btn = document.querySelector('button[onclick="exportPDF()"]');
-    const originalText = btn ? btn.innerHTML : '';
-    if(btn) btn.innerHTML = '<i class="fa-solid fa-spinner animate-spin"></i> Generating...';
-
-    // Generate
-    html2pdf().set(opt).from(element).save().then(() => {
-        if(btn) btn.innerHTML = originalText;
-        alert("PDF Downloaded! 📄");
-    }).catch(err => {
-        console.error(err);
-        alert("PDF generation failed. Check console.");
-        if(btn) btn.innerHTML = originalText;
-    });
-}
-
-// --- 2. REAL AI INTEGRATION (Google Gemini API) ---
-async function callRealAI() {
-    const input = document.getElementById('aiInput');
-    const area = document.getElementById('aiResponseArea'); // Ensure this ID exists in your HTML
-    const userText = input.value.trim();
-    
-    if(!userText) return;
-
-    // 1. Get API Key (Saved in Browser)
-    let apiKey = localStorage.getItem('imran_gemini_key');
-    if(!apiKey) {
-        apiKey = prompt("Enter your Google Gemini API Key (It will be saved locally):");
-        if(!apiKey) return alert("API Key is required for AI to work!");
-        localStorage.setItem('imran_gemini_key', apiKey);
+            setTimeout(() => {
+                const sIdx = sectionsData.findIndex(s => s.id === sectionId);
+                if(sIdx > -1 && sectionsData[sIdx].files.length < FILES_PER_SECTION) {
+                    sectionsData[sIdx].files.push({
+                        name: file.name,
+                        date: new Date().toLocaleTimeString([], {hour:'2-digit', minute:'2-digit'}),
+                        isMainScript: false
+                    });
+                    saveToFirestore(); // Cloud Sync
+                    addToQueue("Done!", true);
+                }
+                newInput.value = "";
+            }, 1000);
+        };
+        newInput.click();
     }
 
-    // 2. Show User Message
-    area.innerHTML += `<div class="text-white mb-2 text-right bg-white/10 p-2 rounded-lg inline-block ml-auto">"${userText}"</div>`;
-    input.value = '';
-    
-    // 3. Show Thinking Animation
-    const thinkingId = 'thinking_' + Date.now();
-    area.innerHTML += `<div id="${thinkingId}" class="text-green-400 mb-2 italic text-left"><i class="fa-solid fa-circle-notch animate-spin"></i> Thinking...</div>`;
-    area.scrollTop = area.scrollHeight;
+    // --- 8. AI & TOOLS ---
+    async function callRealAI() {
+        if(!currentUser) return alert("Login First");
+        const input = document.getElementById('aiInput');
+        const area = document.getElementById('aiResponseArea');
+        const text = input.value.trim();
+        if(!text) return;
 
-    // 4. Context (Full Script Content)
-    const scriptContext = document.getElementById('scriptEditor').innerText;
-
-    // 5. Call Gemini API
-    try {
-        const response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${apiKey}`, {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({
-                contents: [{
-                    parts: [{
-                        text: `You are a professional Screenplay Editor AI. 
-                        Context of the script so far: 
-                        """${scriptContext.substring(0, 10000)}""" 
-                        
-                        User Request: "${userText}"
-                        
-                        Answer briefly and helpfully.` 
-                    }]
-                }]
-            })
-        });
-
-        const data = await response.json();
-        
-        // Remove Thinking
-        document.getElementById(thinkingId).remove();
-
-        if(data.error) {
-            throw new Error(data.error.message);
-        }
-
-        const aiReply = data.candidates[0].content.parts[0].text;
-        
-        // Show AI Reply (Markdown to HTML simple conversion)
-        const formattedReply = aiReply.replace(/\n/g, '<br>').replace(/\*\*(.*?)\*\*/g, '<b>$1</b>');
-
-        area.innerHTML += `
-            <div class="text-gray-300 mb-4 pb-2 border-b border-white/10 text-left">
-                <strong class="text-green-400">AI:</strong><br>
-                ${formattedReply}
-            </div>
-        `;
+        area.innerHTML += `<div class="text-white mb-2 text-right bg-white/10 p-2 rounded-lg inline-block ml-auto">"${text}"</div>`;
+        input.value = '';
+        const thinkingId = 'thinking_' + Date.now();
+        area.innerHTML += `<div id="${thinkingId}" class="text-green-400 mb-2 italic text-left"><i class="fa-solid fa-circle-notch animate-spin"></i> Thinking...</div>`;
         area.scrollTop = area.scrollHeight;
 
-    } catch (error) {
-        document.getElementById(thinkingId).remove();
-        area.innerHTML += `<div class="text-red-400 mb-2">Error: ${error.message} <br> (Check API Key or Internet)</div>`;
-        // Option to reset key if it was wrong
-        if(confirm("Error occurred. Do you want to reset your API Key?")) {
-            localStorage.removeItem('imran_gemini_key');
+        try {
+            const userDoc = await db.collection('users').doc(currentUser.uid).get();
+            let key = null;
+            if(userDoc.exists && userDoc.data().apiKeys?.length > 0) {
+                key = userDoc.data().apiKeys[0]; // First key uthao
+            }
+            if(!key) throw new Error("No API Key found. Add one in Dashboard.");
+
+            const context = document.getElementById('scriptEditor').innerText;
+            const res = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${key}`, {
+                method: 'POST', headers: {'Content-Type': 'application/json'},
+                body: JSON.stringify({ contents: [{ parts: [{ text: `Context: """${context.substring(0,5000)}"""\nUser: "${text}"` }] }] })
+            });
+            
+            const data = await res.json();
+            document.getElementById(thinkingId).remove();
+            if(data.error) throw new Error(data.error.message);
+            
+            const reply = data.candidates[0].content.parts[0].text.replace(/\*\*(.*?)\*\*/g, '<b>$1</b>').replace(/\n/g, '<br>');
+            area.innerHTML += `<div class="text-gray-300 mb-4 pb-2 border-b border-white/10 text-left"><strong class="text-green-400">AI:</strong><br>${reply}</div>`;
+            area.scrollTop = area.scrollHeight;
+
+        } catch(e) {
+            document.getElementById(thinkingId)?.remove();
+            area.innerHTML += `<div class="text-red-400">Error: ${e.message}</div>`;
         }
     }
-}
 
+    // --- 9. UTILS (PDF, Nav) ---
+    function exportPDF() {
+        const el = document.getElementById('scriptEditor');
+        const title = document.getElementById('scriptTitle').innerText;
+        const btn = document.querySelector('button[onclick="exportPDF()"]');
+        const originalText = btn ? btn.innerHTML : '';
+        if(btn) btn.innerHTML = '<i class="fa-solid fa-spinner animate-spin"></i>';
 
+        html2pdf().set({ margin:1, filename:`${title}.pdf`, html2canvas:{scale:2}, jsPDF:{unit:'in', format:'letter'} }).from(el).save().then(() => {
+            if(btn) btn.innerHTML = originalText;
+            alert("PDF Downloaded!");
+        });
+    }
+
+    function toggleSidebar() { document.getElementById('mobileSidebar').classList.toggle('open'); document.getElementById('sidebarOverlay').classList.toggle('open'); }
+    function toggleAISheet() { document.getElementById('mobileAISheet').classList.toggle('open'); }
+    
+    function formatDoc(cmd, val=null) { document.execCommand(cmd, false, val); updateToolbarState(); }
+    
+    function updateToolbarState() {
+        ['bold','italic','underline'].forEach(c => {
+            const active = document.queryCommandState(c);
+            const btn = document.querySelector(`button[onclick="formatDoc('${c}')"]`);
+            if(btn) active ? btn.classList.add('active') : btn.classList.remove('active');
+        });
+    }
+
+    function addToQueue(msg, success) {
+        // (Queue logic same as before, UI only)
+        // ... (Keep your existing queue logic here or use main.js global one)
+    }
+
+    function goBackToHub() { window.location.href = 'index.html'; }
+    function switchMode(mode) {
+        const ed = document.getElementById('modeEditor');
+        const fl = document.getElementById('modeFiles');
+        if(mode === 'editor') { ed.classList.remove('hidden-mode'); fl.classList.add('hidden-mode'); }
+        else { ed.classList.add('hidden-mode'); fl.classList.remove('hidden-mode'); }
+    }
 </script>
 
         <!-- 📱 MOBILE BOTTOM NAVIGATION -->
@@ -1491,9 +1052,7 @@ async function callRealAI() {
             <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path>
             </svg>
-            <span class="text-[10px] font-medium">Export</span>
-        </button>
-    </div>
+        
 
 </body>
 
