@@ -162,34 +162,18 @@
         <div class="max-w-6xl mx-auto px-4 md:px-6 relative">
             
             <!-- Main Card Container -->
-            <div class="relative w-full rounded-[40px] border-t border-white/5">
+            <div class="relative w-full rounded-[40px]">
                 
-                <!-- === THE CURVED GLOWING LINE (SVG) === -->
-                <!-- यह एक कर्व्ड लाइन है जो बीच में चमकती है -->
-                <div class="absolute -top-[1px] left-0 right-0 h-[1px] overflow-visible">
-                    <svg class="absolute top-0 left-1/2 -translate-x-1/2 w-full h-[20px]" viewBox="0 0 100 10" preserveAspectRatio="none">
-                        <!-- The Curve Path -->
-                        <path d="M0 10 Q50 -5 100 10" fill="none" stroke="url(#glowGradient)" stroke-width="0.5" />
-                        
-                        <!-- Gradient Definition for the Glow -->
-                        <defs>
-                            <linearGradient id="glowGradient" x1="0%" y1="0%" x2="100%" y2="0%">
-                                <stop offset="0%" stop-color="transparent" />
-                                <stop offset="30%" stop-color="rgba(255, 255, 255, 0.1)" />
-                                <stop offset="50%" stop-color="rgba(255, 255, 255, 0.9)" /> <!-- Bright Center -->
-                                <stop offset="70%" stop-color="rgba(255, 255, 255, 0.1)" />
-                                <stop offset="100%" stop-color="transparent" />
-                            </linearGradient>
-                        </defs>
-                    </svg>
-                    
-                    <!-- Extra Center Spot Glow (To make the peak shine) -->
-                    <div class="absolute top-[-5px] left-1/2 -translate-x-1/2 w-[100px] h-[10px] bg-white/40 blur-[8px] rounded-full"></div>
-                </div>
-                <!-- ====================================== -->
+                <!-- === SIMPLE STRAIGHT GLOWING LINE (RESEND STYLE) === -->
+                <!-- बस एक सीधी लाइन जो बीच में ज्यादा चमकती है -->
+                <div class="absolute top-0 left-0 right-0 h-[1px] bg-gradient-to-r from-transparent via-white/60 to-transparent"></div>
+                
+                <!-- Optional: Extra subtle glow effect on the line -->
+                <div class="absolute top-[-1px] left-1/2 -translate-x-1/2 w-[40%] h-[2px] bg-white/20 blur-sm"></div>
+                <!-- ================================================== -->
 
-                <!-- Card Background (Clean Fade) -->
-                <div class="absolute inset-0 bg-gradient-to-b from-white/[0.04] via-white/[0.01] to-transparent pointer-events-none h-[120%] rounded-[40px]"></div>
+                <!-- Card Background (Very subtle fade) -->
+                <div class="absolute inset-0 bg-gradient-to-b from-white/[0.03] via-white/[0.01] to-transparent pointer-events-none h-[120%] rounded-[40px]"></div>
 
                 <div class="relative pt-16 pb-12 md:pt-24 md:pb-32 text-center z-10">
                     
