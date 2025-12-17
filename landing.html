@@ -109,17 +109,8 @@
 <section class="relative w-full h-screen bg-[#030303] overflow-hidden">
         
         <style>
-            /* Method 1: Standard Way */
-            spline-viewer::part(logo) {
-                display: none !important;
-                opacity: 0 !important;
-                pointer-events: none !important;
-                visibility: hidden !important;
-            }
-           /* 2. Fix Scroll Issue: Allow vertical scroll even on top of 3D object */
-            #spline-wrapper {
-                touch-action: pan-y; /* Vertical scroll allow karega */
-            }
+            spline-viewer::part(logo) { display: none !important; opacity: 0 !important; }
+            #spline-wrapper { touch-action: pan-y; } /* Scroll Fix */
         </style>
 
         <div id="spline-wrapper" class="absolute top-0 left-0 w-full h-[45vh] z-0 overflow-hidden">
@@ -130,7 +121,7 @@
                 class="w-full h-full scale-105"
             ></spline-viewer>
 
-            <div class="absolute bottom-0 right-0 w-32 h-16 bg-[#030303] z-50 pointer-events-none"></div>
+            <div class="absolute bottom-0 right-0 w-72 h-24 bg-[#030303] z-50 pointer-events-none"></div>
             
             <div class="absolute bottom-0 left-0 w-full h-24 bg-gradient-to-t from-[#030303] to-transparent pointer-events-none"></div>
         </div>
