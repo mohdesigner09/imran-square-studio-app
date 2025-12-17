@@ -238,41 +238,41 @@
 </section>
 
 
+<div class="relative w-full bg-[#030303]">
 
-
- <section id="features" class="w-full bg-[#030303] relative overflow-hidden">
-  
-  <div class="relative w-full h-[35vh] min-h-[280px] md:h-[550px] flex items-center justify-center">
+  <div class="absolute left-0 w-full flex justify-center pointer-events-none z-40 overflow-visible
+              -top-20 h-[300px] 
+              md:-top-40 md:h-[600px]">
     
     <style>
       spline-viewer::part(logo) { display: none !important; opacity: 0 !important; }
     </style>
 
-    <div class="w-full h-full relative z-0">
-      <script type="module" src="https://unpkg.com/@splinetool/viewer@1.12.22/build/spline-viewer.js"></script>
-      
-      <spline-viewer 
-        url="https://prod.spline.design/xsdDmXYJVIuwuTUn/scene.splinecode"
-        class="w-full h-full pointer-events-none"
-      ></spline-viewer>
-
-      <div class="absolute bottom-0 left-0 w-full h-24 md:h-40 bg-gradient-to-t from-[#030303] via-[#030303]/80 to-transparent pointer-events-none z-10"></div>
+    <div class="w-full h-full scale-75 md:scale-100 origin-center">
+        <script type="module" src="https://unpkg.com/@splinetool/viewer@1.12.22/build/spline-viewer.js"></script>
+        <spline-viewer 
+          url="https://prod.spline.design/xsdDmXYJVIuwuTUn/scene.splinecode"
+          class="w-full h-full"
+        ></spline-viewer>
     </div>
+
+    <div class="absolute bottom-0 left-0 w-full h-32 bg-gradient-to-t from-[#030303] via-[#030303]/90 to-transparent"></div>
   </div>
 
-  <div class="relative z-20 -mt-12 md:-mt-20 pb-24 px-6">
+
+  <section id="features" class="relative z-30 pt-64 pb-24 px-6">
     <div class="max-w-6xl mx-auto">
       
       <div class="text-center mb-16">
-        <h2 class="text-3xl md:text-5xl font-semibold tracking-tight mb-4 text-white drop-shadow-2xl">
+        <h2 class="text-3xl md:text-5xl font-semibold tracking-tight mb-4 text-white drop-shadow-2xl relative z-10">
           Everything in your control
         </h2>
-        <p class="text-zinc-400 max-w-2xl mx-auto text-lg">
+        <p class="text-zinc-400 max-w-2xl mx-auto text-lg relative z-10">
           All the features you need to manage your video projects, troubleshoot with detailed logs, and protect your media assets.
         </p>
       </div>
 
-      <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
+      <div class="grid grid-cols-1 md:grid-cols-3 gap-6 relative z-10">
         
         <div class="bg-white/5 border border-white/10 backdrop-blur-sm p-8 rounded-2xl group hover:bg-white/10 transition-colors duration-300">
           <div class="w-10 h-10 rounded-full bg-orange-500/10 flex items-center justify-center mb-6 text-orange-500 group-hover:scale-110 transition-transform duration-300">📊</div>
@@ -294,8 +294,9 @@
 
       </div>
     </div>
-  </div>
-</section>
+  </section>
+
+</div>
 
     <section class="py-24 px-6 bg-[#030303] border-y border-white/5 relative">
         <div class="absolute inset-0 bg-[url('resources/3rd_heavy_curved.jpg')] bg-cover opacity-10 pointer-events-none mix-blend-screen"></div>
