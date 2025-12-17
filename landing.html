@@ -106,57 +106,64 @@
         </div>
     </header>    
 
-<section class="relative w-full h-screen bg-[#030303] overflow-hidden">
-        
-        <style>
-            spline-viewer::part(logo) { display: none !important; opacity: 0 !important; }
-            #spline-wrapper { touch-action: pan-y; } /* Scroll Fix */
-        </style>
-
-        <div id="spline-wrapper" class="absolute top-0 left-0 w-full h-[45vh] z-0 overflow-hidden">
-            <script type="module" src="https://unpkg.com/@splinetool/viewer@1.12.6/build/spline-viewer.js"></script>
+    <section class="w-full bg-[#030303] py-24 border-b border-zinc-900 overflow-hidden">
+        <div class="max-w-5xl mx-auto px-4 md:px-6 relative">
             
-            <spline-viewer 
-                url="https://prod.spline.design/k71e1VJcmIyEHmpQ/scene.splinecode"
-                class="w-full h-full scale-105"
-            ></spline-viewer>
-
-            <div class="absolute bottom-0 right-0 w-72 h-24 bg-[#030303] z-50 pointer-events-none"></div>
-            
-            <div class="absolute bottom-0 left-0 w-full h-24 bg-gradient-to-t from-[#030303] to-transparent pointer-events-none"></div>
-        </div>
-
-      <div class="absolute top-[42vh] left-0 w-full h-[58vh] z-10 flex flex-col items-center justify-start px-6">
-            
-            <div class="text-center animate-fade-up pointer-events-auto max-w-4xl mx-auto">
+            <!-- Resend Style Fading Spotlight Container -->
+            <!-- Note: No 'border' class here. We use gradients for the effect. -->
+            <div class="relative w-full">
                 
-                <h1 class="font-display text-5xl md:text-7xl lg:text-8xl font-medium tracking-tighter leading-[1.05] mb-6 text-white drop-shadow-2xl">
-                    Video management <br>
-                    <span class="text-transparent bg-clip-text bg-gradient-to-b from-zinc-200 to-zinc-500">reimagined.</span>
-                </h1>
+                <!-- 1. The Top Glow Line (Starts bright in center, fades at edges) -->
+                <div class="absolute top-0 left-0 right-0 h-[1px] bg-gradient-to-r from-transparent via-white/20 to-transparent"></div>
+                
+                <!-- 2. The Background Gradient (Bright at top, fades to nothing at bottom) -->
+                <div class="absolute inset-0 bg-gradient-to-b from-white/[0.02] via-white/[0.01] to-transparent pointer-events-none h-[150%]"></div>
 
-                <p class="text-lg md:text-xl text-zinc-400 max-w-2xl mx-auto mb-10 font-normal leading-relaxed tracking-tight">
-                    A simple, elegant interface to manage raw footage. 
-                    Fits right into your workflow without the complexity.
-                </p>
-
-                <div class="flex flex-col sm:flex-row gap-4 justify-center items-center w-full sm:w-auto">
+                <div class="relative pt-12 pb-8 md:py-16 text-center">
                     
-                    <a href="login.html" class="group relative h-14 w-full sm:w-auto min-w-[180px] px-8 rounded-full bg-zinc-900/40 border border-white/10 backdrop-blur-md flex items-center justify-center gap-3 transition-all duration-300 hover:bg-white hover:border-white">
-                        <span class="font-semibold text-zinc-200 group-hover:text-black transition-colors">Get Started</span>
-                        <svg class="w-4 h-4 text-zinc-400 group-hover:text-black transition-colors transform group-hover:translate-x-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 7l5 5m0 0l-5 5m5-5H6"></path>
-                        </svg>
-                    </a>
-                    
-                    <button class="group h-14 w-full sm:w-auto min-w-[180px] px-8 rounded-full border border-transparent hover:border-zinc-800 hover:bg-zinc-900/30 text-zinc-400 hover:text-white transition-all duration-300 font-medium">
-                        Documentation
-                    </button>
+                    <!-- Heading -->
+                    <p class="text-zinc-400 text-sm md:text-lg mb-12 px-4">
+                        Companies of all sizes trust Imran Square
+                    </p>
 
+                    <!-- Grid Layout (Open style, no borders) -->
+                    <div class="grid grid-cols-2 md:grid-cols-4 gap-y-12 gap-x-4 items-center justify-items-center">
+                        
+                        <!-- Item 1 -->
+                        <div class="group flex items-center justify-center w-full">
+                            <h3 class="font-display font-bold text-lg md:text-2xl text-center leading-tight text-white/90 group-hover:text-white transition-colors">
+                                ZERO-BUDGET<br>STARTUPS
+                            </h3>
+                        </div>
+
+                        <!-- Item 2 -->
+                        <div class="group flex items-center justify-center w-full">
+                            <h3 class="font-display font-bold text-lg md:text-2xl text-center leading-tight text-white/90 group-hover:text-white transition-colors">
+                                CONTENT<br>STUDIOS
+                            </h3>
+                        </div>
+
+                        <!-- Item 3 -->
+                        <div class="group flex items-center justify-center w-full">
+                            <h3 class="font-display font-bold text-lg md:text-2xl text-center leading-tight text-white/90 group-hover:text-white transition-colors">
+                                CREATORS
+                            </h3>
+                        </div>
+
+                        <!-- Item 4 -->
+                        <div class="group flex items-center justify-center w-full">
+                            <h3 class="font-display font-bold text-lg md:text-2xl text-center leading-tight text-white/90 group-hover:text-white transition-colors">
+                                ARCHIVES
+                            </h3>
+                        </div>
+
+                    </div>
                 </div>
             </div>
+
         </div>
     </section>
+
 
     <section class="w-full bg-[#030303] py-24 border-b border-zinc-900">
         <div class="max-w-5xl mx-auto px-6">
