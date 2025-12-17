@@ -158,54 +158,71 @@
         </div>
     </section>
 
-      <section class="w-full bg-[#030303] py-24 border-b border-zinc-900 overflow-hidden">
-        <div class="max-w-5xl mx-auto px-4 md:px-6 relative">
+         <section class="w-full bg-[#030303] pt-20 pb-40 border-b border-zinc-900 overflow-hidden">
+        <div class="max-w-6xl mx-auto px-4 md:px-6 relative">
             
-            <!-- Resend Style Fading Spotlight Container -->
-            <!-- Note: No 'border' class here. We use gradients for the effect. -->
-            <div class="relative w-full">
+            <!-- Long Fading Card Container -->
+            <div class="relative w-full rounded-[40px]">
                 
-                <!-- 1. The Top Glow Line (Starts bright in center, fades at edges) -->
-                <div class="absolute top-0 left-0 right-0 h-[1px] bg-gradient-to-r from-transparent via-white/20 to-transparent"></div>
+                <!-- 1. Top Sharp Line (Resend Style) -->
+                <div class="absolute top-0 left-0 right-0 h-[1px] bg-gradient-to-r from-transparent via-white/50 to-transparent z-20"></div>
                 
-                <!-- 2. The Background Gradient (Bright at top, fades to nothing at bottom) -->
-                <div class="absolute inset-0 bg-gradient-to-b from-white/[0.02] via-white/[0.01] to-transparent pointer-events-none h-[150%]"></div>
+                <!-- 2. Main Card Glow (Background) -->
+                <!-- यह ऊपर से दिखता है और नीचे जाते-जाते 70-80% पर गायब हो जाता है -->
+                <div class="absolute inset-0 bg-gradient-to-b from-zinc-800/30 via-zinc-900/10 to-[#030303] h-full pointer-events-none rounded-[40px]"></div>
+                
+                <!-- 3. Middle Spotlight (Center Glow Vibe) -->
+                <div class="absolute -top-[120px] left-1/2 -translate-x-1/2 w-[80%] h-[350px] bg-white/5 blur-[100px] rounded-full pointer-events-none mix-blend-screen"></div>
 
-                <div class="relative pt-12 pb-8 md:py-16 text-center">
+                <div class="relative pt-20 pb-24 md:pt-24 md:pb-32 text-center z-10">
                     
                     <!-- Heading -->
-                    <p class="text-zinc-400 text-sm md:text-lg mb-12 px-4">
+                    <p class="text-zinc-400 text-sm md:text-lg mb-20 px-4 font-medium tracking-wide">
                         Companies of all sizes trust Imran Square
                     </p>
 
-                    <!-- Grid Layout (Open style, no borders) -->
-                    <div class="grid grid-cols-2 md:grid-cols-4 gap-y-12 gap-x-4 items-center justify-items-center">
+                    <!-- Grid Layout: Mobile=2 cols, Desktop=3 cols (Total 6 items) -->
+                    <div class="grid grid-cols-2 md:grid-cols-3 gap-y-20 gap-x-4 items-start justify-items-center">
                         
-                        <!-- Item 1 -->
-                        <div class="group flex items-center justify-center w-full">
-                            <h3 class="font-display font-bold text-lg md:text-2xl text-center leading-tight text-white/90 group-hover:text-white transition-colors">
+                        <!-- 1. ZERO-BUDGET STARTUPS -->
+                        <div class="group flex flex-col items-center justify-center w-full">
+                            <h3 class="font-display font-bold text-lg md:text-2xl text-center leading-tight text-zinc-300 group-hover:text-white group-hover:drop-shadow-[0_0_20px_rgba(255,255,255,0.4)] transition-all duration-500 cursor-default">
                                 ZERO-BUDGET<br>STARTUPS
                             </h3>
                         </div>
 
-                        <!-- Item 2 -->
-                        <div class="group flex items-center justify-center w-full">
-                            <h3 class="font-display font-bold text-lg md:text-2xl text-center leading-tight text-white/90 group-hover:text-white transition-colors">
+                        <!-- 2. CONTENT STUDIOS -->
+                        <div class="group flex flex-col items-center justify-center w-full">
+                            <h3 class="font-display font-bold text-lg md:text-2xl text-center leading-tight text-zinc-300 group-hover:text-white group-hover:drop-shadow-[0_0_20px_rgba(255,255,255,0.4)] transition-all duration-500 cursor-default">
                                 CONTENT<br>STUDIOS
                             </h3>
                         </div>
 
-                        <!-- Item 3 -->
-                        <div class="group flex items-center justify-center w-full">
-                            <h3 class="font-display font-bold text-lg md:text-2xl text-center leading-tight text-white/90 group-hover:text-white transition-colors">
+                        <!-- 3. CREATORS -->
+                        <div class="group flex flex-col items-center justify-center w-full">
+                            <h3 class="font-display font-bold text-lg md:text-2xl text-center leading-tight text-zinc-300 group-hover:text-white group-hover:drop-shadow-[0_0_20px_rgba(255,255,255,0.4)] transition-all duration-500 cursor-default">
                                 CREATORS
                             </h3>
                         </div>
 
-                        <!-- Item 4 -->
-                        <div class="group flex items-center justify-center w-full">
-                            <h3 class="font-display font-bold text-lg md:text-2xl text-center leading-tight text-white/90 group-hover:text-white transition-colors">
+                        <!-- 4. ARCHIVES -->
+                        <div class="group flex flex-col items-center justify-center w-full">
+                            <h3 class="font-display font-bold text-lg md:text-2xl text-center leading-tight text-zinc-300 group-hover:text-white group-hover:drop-shadow-[0_0_20px_rgba(255,255,255,0.4)] transition-all duration-500 cursor-default">
                                 ARCHIVES
+                            </h3>
+                        </div>
+
+                        <!-- 5. FILMMAKERS (New) -->
+                        <div class="group flex flex-col items-center justify-center w-full">
+                            <h3 class="font-display font-bold text-lg md:text-2xl text-center leading-tight text-zinc-300 group-hover:text-white group-hover:drop-shadow-[0_0_20px_rgba(255,255,255,0.4)] transition-all duration-500 cursor-default">
+                                FILMMAKERS
+                            </h3>
+                        </div>
+
+                        <!-- 6. AGENCIES (New) -->
+                        <div class="group flex flex-col items-center justify-center w-full">
+                            <h3 class="font-display font-bold text-lg md:text-2xl text-center leading-tight text-zinc-300 group-hover:text-white group-hover:drop-shadow-[0_0_20px_rgba(255,255,255,0.4)] transition-all duration-500 cursor-default">
+                                AGENCIES
                             </h3>
                         </div>
 
@@ -215,7 +232,6 @@
 
         </div>
     </section>
-
 
 
     <section id="features" class="py-24 px-6 relative overflow-hidden">
