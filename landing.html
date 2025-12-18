@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<html lang="en" class="scroll-smooth">
+<html lang="en">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -121,7 +121,7 @@ html, body {
             #spline-wrapper { touch-action: pan-y; } /* Scroll Fix */
         </style>
 
-        <div id="spline-wrapper" class="absolute top-0 left-0 w-full h-[45vh] z-0 overflow-hidden">
+        <div id="spline-wrapper" class="absolute top-0 left-0 w-full h-[350px] md:h-[45vh] z-0 overflow-hidden will-change-transform">
                         
             <spline-viewer 
                 url="https://prod.spline.design/k71e1VJcmIyEHmpQ/scene.splinecode"
@@ -232,19 +232,19 @@ html, body {
 </div>
 
     <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
-      <div class="bg-zinc-900/30 border border-white/5 backdrop-blur-2xl p-8 rounded-[32px] group hover:border-white/20 transition-all duration-500">
+      <div class="bg-zinc-900/30 border border-white/5 backdrop-blur-md p-8 rounded-[32px] group hover:border-white/20 transition-all duration-500">
         <div class="w-12 h-12 rounded-2xl bg-orange-500/10 flex items-center justify-center mb-8 text-2xl">📊</div>
         <h3 class="text-xl font-semibold text-white mb-4">Intuitive Analytics</h3>
         <p class="text-zinc-500 leading-relaxed font-normal">Track raw footage uploads, admin actions, and user activity with real-time Firestore updates.</p>
       </div>
 
-      <div class="bg-zinc-900/30 border border-white/5 backdrop-blur-2xl p-8 rounded-[32px] group hover:border-white/20 transition-all duration-500">
+      <div class="bg-zinc-900/30 border border-white/5 backdrop-blur-md p-8 rounded-[32px] group hover:border-white/20 transition-all duration-500">
         <div class="w-12 h-12 rounded-2xl bg-blue-500/10 flex items-center justify-center mb-8 text-2xl">👁</div>
         <h3 class="text-xl font-semibold text-white mb-4">Full Visibility</h3>
         <p class="text-zinc-500 leading-relaxed font-normal">Monitor upload progress, file statuses, and project timelines with a clean dashboard.</p>
       </div>
 
-      <div class="bg-zinc-900/30 border border-white/5 backdrop-blur-2xl p-8 rounded-[32px] group hover:border-white/20 transition-all duration-500">
+      <div class="bg-zinc-900/30 border border-white/5 backdrop-blur-md p-8 rounded-[32px] group hover:border-white/20 transition-all duration-500">
         <div class="w-12 h-12 rounded-2xl bg-green-500/10 flex items-center justify-center mb-8 text-2xl">🔐</div>
         <h3 class="text-xl font-semibold text-white mb-4">Domain Auth</h3>
         <p class="text-zinc-500 leading-relaxed font-normal">Secure Google OAuth + Email OTP ensures only authorized users access your projects.</p>
