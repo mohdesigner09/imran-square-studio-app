@@ -113,12 +113,13 @@ html, body {
             </div>
         </div>
     </header>    
+
+    
 <section class="relative w-full h-screen bg-[#030303] overflow-hidden">
     
     <style>
-        /* Safety Lock: Internal CSS se logo hide karne ki koshish */
         spline-viewer::part(logo) { display: none !important; opacity: 0 !important; }
-        #spline-wrapper { touch-action: pan-y; } /* Scroll Fix */
+        #spline-wrapper { touch-action: pan-y; } 
     </style>
 
     <div id="spline-wrapper" class="absolute top-0 left-0 w-full h-[350px] md:h-[45vh] z-0 overflow-hidden will-change-transform">
@@ -126,10 +127,10 @@ html, body {
         <spline-viewer 
             url="https://prod.spline.design/k71e1VJcmIyEHmpQ/scene.splinecode"
             style="
-                width: 120%;
-                height: 120%;
-                margin-left: -10%;
-                margin-top: -5%;
+                width: 125%;
+                height: 125%;
+                margin-left: -12.5%;
+                margin-top: 0%;
                 display: block;
                 position: relative;
             "
@@ -153,7 +154,6 @@ html, body {
             </p>
 
             <div class="flex flex-col sm:flex-row gap-4 justify-center items-center w-full sm:w-auto">
-                
                 <a href="login.html" class="group relative h-14 w-full sm:w-auto min-w-[180px] px-8 rounded-full bg-zinc-900/40 border border-white/10 backdrop-blur-md flex items-center justify-center gap-3 transition-all duration-300 hover:bg-white hover:border-white">
                     <span class="font-semibold text-zinc-200 group-hover:text-black transition-colors">Get Started</span>
                     <svg class="w-4 h-4 text-zinc-400 group-hover:text-black transition-colors transform group-hover:translate-x-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -164,7 +164,6 @@ html, body {
                 <button class="group h-14 w-full sm:w-auto min-w-[180px] px-8 rounded-full border border-transparent hover:border-zinc-800 hover:bg-zinc-900/30 text-zinc-400 hover:text-white transition-all duration-300 font-medium">
                     Documentation
                 </button>
-
             </div>
         </div>
     </div>
