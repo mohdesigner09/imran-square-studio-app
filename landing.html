@@ -191,14 +191,20 @@ html, body {
     </div>
   </div>
 </section>
-
-<section class="w-full bg-[#030303] overflow-hidden">
-  <!-- Mobile priority height -->
-  <div class="w-full h-[85vh] md:h-[700px]">
+<section class="w-full bg-transparent">
+  
+  <!-- Spline window (NOT full screen) -->
+  <div class="relative w-full h-[40vh] overflow-hidden">
     <spline-viewer
       url="https://prod.spline.design/042A9164sTyJKwqZ/scene.splinecode" 
-      style="width:100%; height:100%; display:block;"
+     style="
+        width:100%;
+        height:100%;
+        display:block;
+        background: transparent;
+      "
     ></spline-viewer>
+
   </div>
 </section>
 
