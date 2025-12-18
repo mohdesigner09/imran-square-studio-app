@@ -197,14 +197,11 @@ html, body {
   <div class="relative w-full h-[400px] md:h-[600px] flex items-center justify-center pointer-events-none">
     
     <style>
-      /* Hide Logo completely */
-      spline-viewer::part(logo) { display: none !important; opacity: 0 !important; }
-      /* Kill any internal scrollbars inside the viewer */
-      spline-viewer { overflow: hidden !important; touch-action: none; } 
+      spline-viewer::part(logo) { display: none !important; opacity: 0 !important; visibility: hidden !important; }
     </style>
 
-    <div class="w-full h-full flex items-center justify-center scale-[1.4] md:scale-[1.2] origin-center">
-               <spline-viewer 
+    <div class="w-full h-full flex items-center justify-center scale-100 origin-center">
+        <spline-viewer 
           url="https://prod.spline.design/xsdDmXYJVIuwuTUn/scene.splinecode"
           class="w-full h-full"
         ></spline-viewer>
