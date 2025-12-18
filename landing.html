@@ -30,6 +30,9 @@
         }
     </script>
 
+
+<script type="module" src="https://unpkg.com/@splinetool/viewer@1.9.59/build/spline-viewer.js"></script>
+
     <style>
         body { background-color: #000; color: #ededed; overflow-x: hidden; }
         
@@ -79,11 +82,11 @@
         .code-plain { color: #f8f8f2; }   /* White */
 
 html, body {
-  max-width: 100%;
-  overflow-x: hidden; /* Isse left-right move hona band ho jayega */
-  position: relative;
-}
- 
+            max-width: 100%;
+            overflow-x: hidden; /* Ye page ko left-right hilne se rokega */
+        }
+        /* Spline Logo Hider */
+        spline-viewer::part(logo) { display: none !important; opacity: 0 !important; }
     </style>
 </head>
 
@@ -119,8 +122,7 @@ html, body {
         </style>
 
         <div id="spline-wrapper" class="absolute top-0 left-0 w-full h-[45vh] z-0 overflow-hidden">
-            <script type="module" src="https://unpkg.com/@splinetool/viewer@1.12.6/build/spline-viewer.js"></script>
-            
+                        
             <spline-viewer 
                 url="https://prod.spline.design/k71e1VJcmIyEHmpQ/scene.splinecode"
                 class="w-full h-full scale-105"
@@ -202,8 +204,7 @@ html, body {
     </style>
 
     <div class="w-full h-full flex items-center justify-center scale-[1.4] md:scale-[1.2] origin-center">
-        <script type="module" src="https://unpkg.com/@splinetool/viewer@1.12.22/build/spline-viewer.js"></script>
-        <spline-viewer 
+               <spline-viewer 
           url="https://prod.spline.design/xsdDmXYJVIuwuTUn/scene.splinecode"
           class="w-full h-full"
         ></spline-viewer>
