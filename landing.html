@@ -190,23 +190,27 @@ html, body {
   </div>
 </section>
 
-<div class="relative w-full bg-[#030303] overflow-x-hidden">
+<div class="relative w-full bg-[#030303] overflow-hidden flex justify-center z-20">
   
-  <div class="relative w-full flex justify-center items-center pointer-events-none overflow-visible h-[300px] md:h-[500px]">
+  <div class="relative w-full h-[400px] md:h-[600px] flex items-center justify-center pointer-events-none">
+    
     <style>
+      /* Hide Logo completely */
       spline-viewer::part(logo) { display: none !important; opacity: 0 !important; }
-      spline-viewer { overflow: visible !important; } 
+      /* Kill any internal scrollbars inside the viewer */
+      spline-viewer { overflow: hidden !important; touch-action: none; } 
     </style>
 
-    <div class="absolute w-[130vw] md:w-[100vw] h-[600px] md:h-[900px] flex items-center justify-center">
+    <div class="w-full h-full flex items-center justify-center scale-[1.4] md:scale-[1.2] origin-center">
         <script type="module" src="https://unpkg.com/@splinetool/viewer@1.12.22/build/spline-viewer.js"></script>
         <spline-viewer 
           url="https://prod.spline.design/xsdDmXYJVIuwuTUn/scene.splinecode"
-          class="w-full h-full scale-[0.6] md:scale-95 origin-center"
+          class="w-full h-full"
         ></spline-viewer>
-        
-        <div class="absolute bottom-10 right-0 w-full h-32 bg-gradient-to-t from-[#030303] to-transparent z-50"></div>
     </div>
+
+    <div class="absolute bottom-0 left-0 w-full h-24 bg-gradient-to-t from-[#030303] to-transparent z-10"></div>
+    
   </div>
 </div>
 
