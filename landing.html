@@ -196,15 +196,7 @@ html, body {
   <div class="relative w-full h-[40vh] overflow-hidden">
     
     <style>
-      /* Ye specifically Spline ke internal logo part ko target karta hai */
-      spline-viewer::part(logo) { 
-        display: none !important;       /* Dikhna band */
-        opacity: 0 !important;          /* Transparent */
-        visibility: hidden !important;  /* Invisible */
-        height: 0 !important;           /* Size zero */
-        width: 0 !important;            /* Width zero */
-        pointer-events: none !important; /* Clickable bhi nahi */
-      }
+      spline-viewer::part(logo) { display: none !important; opacity: 0 !important; visibility: hidden !important; }
     </style>
 
     <div class="absolute inset-0 bg-[#030303] z-0"></div>
@@ -221,7 +213,7 @@ html, body {
       "
     ></spline-viewer>
 
-    <div class="absolute bottom-0 right-0 w-[120px] h-[50px] bg-[#030303] z-50 pointer-events-none"></div>
+    <div class="absolute bottom-0 right-0 w-[200px] h-[80px] bg-[#030303] z-[100] pointer-events-none"></div>
 
   </div>
 </section>
