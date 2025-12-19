@@ -1249,40 +1249,32 @@ app.get('/api/get-announcement', async (req, res) => {
 
 
 // ===== DRIVE RESUMABLE UPLOAD ENDPOINTS =====
-
-
-// ==========================================
-// 🚀 DIRECT RESUMABLE UPLOAD (10GB+ SUPPORT)
-// ==========================================
-
-// 1. START UPLOAD (Get Direct Google Link)
+// 1. START UPLOAD (Smart Version - Returns ID immediately)
 app.post('/api/drive/init-upload', async (req, res) => {
   try {
     const { userName, projectName, fileName, fileType, fileSize } = req.body;
 
-    console.log(`🚀 Init Direct Upload: ${fileName} (${(fileSize/1024/1024).toFixed(2)} MB)`);
+    console.log(`🚀 Init Direct Upload: ${fileName}`);
 
-    // 1. Access Token Nikalo
+    // Access Token
     const tokenResponse = await oauth2Client.getAccessToken();
     const accessToken = tokenResponse.token;
 
-    // 2. Folder Structure Banao
+    // Folder Structure
     const ROOT_ID = process.env.DRIVE_FOLDER_ID;
     const userId = await findOrCreateFolder(userName, ROOT_ID);
     const projectsFolderId = await findOrCreateFolder("Projects", userId);
     const projectSpecificId = await findOrCreateFolder(projectName, projectsFolderId);
-    
-    // Raw Footage Folder
     const targetFolder = await findOrCreateFolder("Raw Footage", projectSpecificId);
 
-    // 3. Google se "Resumable Session URI" maango
-    // Hum server se file nahi bhej rahe, bas link mang rahe hain
+    // Metadata
     const metadata = {
       name: fileName,
       mimeType: fileType,
       parents: [targetFolder]
     };
 
+    // Google se Link Mango
     const response = await axios.post(
       'https://www.googleapis.com/upload/drive/v3/files?uploadType=resumable',
       metadata,
@@ -1290,16 +1282,17 @@ app.post('/api/drive/init-upload', async (req, res) => {
         headers: {
           'Authorization': `Bearer ${accessToken}`,
           'X-Upload-Content-Type': fileType,
-          'X-Upload-Content-Length': fileSize,
           'Content-Type': 'application/json; charset=UTF-8'
         }
       }
     );
 
-    // Ye wo link hai jahan client seedha upload karega
+    // 🔥 MAGIC LINE: ID yahi mil jati hai!
+    const fileId = response.data.id; 
     const uploadUrl = response.headers.location;
 
-    res.json({ success: true, uploadUrl });
+    // Client ko ID abhi bhej do
+    res.json({ success: true, uploadUrl, fileId });
 
   } catch (error) {
     console.error('❌ Init Upload Error:', error.message);

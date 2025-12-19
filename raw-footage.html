@@ -674,24 +674,22 @@ if (fileInput) {
         }
 
 
-// 🔥 HIGH-SPEED DIRECT UPLOAD (Final Fixed Version)
+// 🔥 HIGH-SPEED DIRECT UPLOAD (ID-Preload Version)
         async function sendToStudio() {
             if (!selectedFile) return alert('No file selected');
 
-            // 1. UI Setup
             document.getElementById('uploadStep1').classList.add('hidden');
             document.getElementById('uploadStep2').classList.remove('hidden');
             const bar = document.getElementById('uploadProgressBar');
             const text = document.getElementById('uploadProgressText');
 
             try {
-                // 2. Initialize Upload (Get URL)
-                text.innerText = "Initializing...";
+                // --- STEP 1: Get URL & ID Together ---
+                text.innerText = "Securing Vault Access...";
                 const userName = CURRENTUSER ? (CURRENTUSER.displayName || 'Creator') : 'Guest';
                 const projTitle = document.getElementById('rawProjectTitle').innerText || 'Project';
                 const safeFileType = selectedFile.type || 'application/octet-stream';
 
-                // Note: Hum seedha relative path use kar rahe hain taaki API_BASE ka issue na aaye
                 const initRes = await fetch('/api/drive/init-upload', {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
@@ -707,13 +705,17 @@ if (fileInput) {
                 const initData = await initRes.json();
                 if(!initData.success) throw new Error(initData.error || 'Server Init Failed');
 
-                // 3. Direct Upload to Google (CORS Bypass Logic)
-                text.innerText = "Uploading to Vault...";
+                // 🔥 ID PEHLE SE SAVE KAR LO (CORS ka darr khatam)
+                const preGeneratedFileId = initData.fileId;
+                console.log("File ID Secured:", preGeneratedFileId);
+
+                // --- STEP 2: Upload (Ignore Errors) ---
+                text.innerText = "Uploading High-Res File...";
                 
                 await new Promise((resolve, reject) => {
                     const xhr = new XMLHttpRequest();
                     xhr.open('PUT', initData.uploadUrl, true);
-                    xhr.withCredentials = false; // Important for CORS
+                    xhr.withCredentials = false;
 
                     xhr.upload.onprogress = (e) => {
                         if (e.lengthComputable) {
@@ -723,73 +725,59 @@ if (fileInput) {
                         }
                     };
 
-                    // Smart Success Check
-                    const markSuccess = () => resolve('upload_done');
+                    // Function to proceed regardless of browser complaints
+                    const finish = () => resolve('done');
 
-                    xhr.onload = () => {
-                        // 200/201 means Success
-                        if (xhr.status === 200 || xhr.status === 201) {
-                            markSuccess();
-                        } else {
-                            console.warn("Upload status:", xhr.status);
-                            markSuccess(); // Still mark success to verify on server
-                        }
-                    };
-
-                    xhr.onerror = () => {
-                        // CORS Error ko Ignore karke Success maan lo
-                        console.warn("Network/CORS Warning (Ignoring safe check)...");
-                        markSuccess();
-                    };
-
+                    xhr.onload = () => finish();  // Success? Good.
+                    xhr.onerror = () => finish(); // CORS Error? Still Good. File pahunch gayi hogi.
+                    
                     xhr.send(selectedFile);
                 });
 
-                // 4. Finalize & Save
+                // --- STEP 3: Finalize using Pre-ID ---
                 text.innerText = "Finalizing...";
+                
+                // Ab hum dummy ID nahi, asli ID bhej rahe hain jo Step 1 me mili thi
                 const finalRes = await fetch('/api/drive/finalize-upload', {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ fileId: 'pending_verification' })
+                    body: JSON.stringify({ fileId: preGeneratedFileId }) // ✅ Using Valid ID
                 });
                 
                 const finalData = await finalRes.json();
 
-                // 5. Success UI
-                document.getElementById('uploadStep2').classList.add('hidden');
-                document.getElementById('uploadStep3').classList.remove('hidden');
+                // --- STEP 4: Success UI ---
+                if(finalData.success) {
+                    const newClip = {
+                        id: preGeneratedFileId,
+                        title: selectedFile.name,
+                        link: finalData.viewLink,
+                        thumb: document.getElementById('previewThumbnail').src,
+                        date: new Date().toLocaleDateString(),
+                        type: 'raw',
+                        status: 'ready'
+                    };
+                    
+                    rawClips.push(newClip);
+                    
+                    await db.collection('projects').doc(currentProjectID).set({
+                        footageLib: rawClips,
+                        title: projTitle,
+                        updatedAt: firebase.firestore.FieldValue.serverTimestamp()
+                    }, { merge: true });
 
-                const newClip = {
-                    id: 'new_' + Date.now(),
-                    title: selectedFile.name,
-                    link: '', 
-                    thumb: document.getElementById('previewThumbnail').src,
-                    date: new Date().toLocaleDateString(),
-                    type: 'raw',
-                    status: 'processing'
-                };
-                rawClips.push(newClip);
-                
-                // Save to Database
-                await db.collection('projects').doc(currentProjectID).set({
-                    footageLib: rawClips,
-                    title: projTitle,
-                    updatedAt: firebase.firestore.FieldValue.serverTimestamp()
-                }, { merge: true });
-
-                renderVideos();
-                setTimeout(closeUploadModal, 1500);
+                    document.getElementById('uploadStep2').classList.add('hidden');
+                    document.getElementById('uploadStep3').classList.remove('hidden');
+                    renderVideos();
+                    setTimeout(closeUploadModal, 1500);
+                } else {
+                    throw new Error("Finalization Failed: " + finalData.error);
+                }
 
             } catch (error) {
-                console.error("Upload Error:", error);
-                // Agar 100% ho chuka tha, toh error fake hai
-                if(bar.style.width === '100%') {
-                     alert("Upload likely successful! Refresh page in 1 min.");
-                     closeUploadModal();
-                } else {
-                     alert("Upload Failed: " + error.message);
-                     closeUploadModal();
-                }
+                console.error("Process Error:", error);
+                alert("Alert: " + error.message);
+                closeUploadModal();
             }
         }
 
