@@ -673,86 +673,92 @@ if (fileInput) {
             selectedFile = null;
         }
 
-       // 🔥 THE MAIN UPLOAD FUNCTION (CRASH PROOF VERSION)
+       // 🔥 HIGH-SPEED DIRECT UPLOAD FUNCTION (Final Version)
         async function sendToStudio() {
             if (!selectedFile) return alert('No file selected');
 
-            // UI Switch to Progress
             document.getElementById('uploadStep1').classList.add('hidden');
             document.getElementById('uploadStep2').classList.remove('hidden');
-
             const bar = document.getElementById('uploadProgressBar');
             const text = document.getElementById('uploadProgressText');
-            
-            // Fake Progress Animation (Visual Only)
-            let progress = 0;
-            const timer = setInterval(() => {
-                if(progress < 90) progress += 5;
-                bar.style.width = progress + '%';
-                text.innerText = `Uploading... ${progress}%`;
-            }, 500);
 
             try {
-                // Prepare Data
-                const formData = new FormData();
-                formData.append('file', selectedFile);
-                
-                // Metadata for Drive Folder Structure
+                // --- STEP 1: Get Upload URL ---
+                text.innerText = "Connecting to Vault...";
                 const userName = CURRENTUSER ? (CURRENTUSER.displayName || 'Creator') : 'Guest';
                 const projTitle = document.getElementById('rawProjectTitle').innerText || 'Project';
-                
-                formData.append('userName', userName);
-                formData.append('projectName', projTitle);
-                formData.append('fileType', 'Raw Footage'); // Folder Name
 
-                // 🚀 Call Server API
-                const res = await fetch(`${API_BASE}/api/drive/smart-upload`, {
+                const initRes = await fetch(`${API_BASE}/api/drive/init-upload`, {
                     method: 'POST',
-                    body: formData
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        userName, projectName: projTitle,
+                        fileName: selectedFile.name,
+                        fileType: selectedFile.type,
+                        fileSize: selectedFile.size
+                    })
+                });
+                const initData = await initRes.json();
+                if(!initData.success) throw new Error(initData.error || 'Server Init Failed');
+
+                // --- STEP 2: Direct Upload to Google ---
+                const fileId = await new Promise((resolve, reject) => {
+                    const xhr = new XMLHttpRequest();
+                    xhr.open('PUT', initData.uploadUrl, true);
+                    xhr.setRequestHeader('Content-Type', selectedFile.type);
+
+                    xhr.upload.onprogress = (e) => {
+                        if (e.lengthComputable) {
+                            const p = (e.loaded / e.total) * 100;
+                            bar.style.width = p + '%';
+                            text.innerText = `Sending: ${p.toFixed(1)}%`;
+                        }
+                    };
+                    xhr.onload = () => {
+                        if (xhr.status === 200 || xhr.status === 201) {
+                            const resp = JSON.parse(xhr.responseText);
+                            resolve(resp.id); // Google ID return karta hai
+                        } else reject(new Error(`Upload Error: ${xhr.status}`));
+                    };
+                    xhr.onerror = () => reject(new Error("Network Failure"));
+                    xhr.send(selectedFile);
                 });
 
-                const data = await res.json();
-                
-                clearInterval(timer);
-                bar.style.width = '100%';
+                // --- STEP 3: Finalize (Make Public & Save DB) ---
+                text.innerText = "Finalizing...";
+                const finalRes = await fetch(`${API_BASE}/api/drive/finalize-upload`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ fileId })
+                });
+                const finalData = await finalRes.json();
 
-                if(data.success) {
-                    // Success UI
-                    document.getElementById('uploadStep2').classList.add('hidden');
-                    document.getElementById('uploadStep3').classList.remove('hidden');
-
-                    // Add to Local List
+                // --- STEP 4: Update UI & Database ---
+                if(finalData.success) {
                     const newClip = {
-                        id: data.fileId,
+                        id: finalData.fileId,
                         title: selectedFile.name,
-                        link: data.viewLink,
+                        link: finalData.viewLink,
                         thumb: document.getElementById('previewThumbnail').src,
                         date: new Date().toLocaleDateString(),
                         type: 'raw'
                     };
-                    
                     rawClips.push(newClip);
 
-                    // 🔥 FIX: 'update' hata kar 'set' + 'merge' use kiya hai.
-                    // Ab agar project 'p1' nahi bhi hoga, toh ye naya bana dega. Error nahi aayega.
+                    // Firestore Save
                     await db.collection('projects').doc(currentProjectID).set({
                         footageLib: rawClips,
                         title: projTitle,
                         updatedAt: firebase.firestore.FieldValue.serverTimestamp()
                     }, { merge: true });
 
+                    document.getElementById('uploadStep2').classList.add('hidden');
+                    document.getElementById('uploadStep3').classList.remove('hidden');
                     renderVideos();
-
-                    // Close Modal after 1.5s
                     setTimeout(closeUploadModal, 1500);
-
-                } else {
-                    // Error Handling
-                    throw new Error(data.message || data.error || 'Server Problem (Unknown Error)');
                 }
 
             } catch (error) {
-                clearInterval(timer);
                 console.error(error);
                 alert("Upload Failed: " + error.message);
                 closeUploadModal();

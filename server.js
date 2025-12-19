@@ -1251,51 +1251,86 @@ app.get('/api/get-announcement', async (req, res) => {
 // ===== DRIVE RESUMABLE UPLOAD ENDPOINTS =====
 
 
-// 🚀 SMART HIERARCHY UPLOAD (User -> Project -> Category)
-app.post('/api/drive/smart-upload', upload.single('file'), async (req, res) => {
+// ==========================================
+// 🚀 DIRECT RESUMABLE UPLOAD (10GB+ SUPPORT)
+// ==========================================
+
+// 1. START UPLOAD (Get Direct Google Link)
+app.post('/api/drive/init-upload', async (req, res) => {
   try {
-    const { userName, projectName, fileType } = req.body;
-    const file = req.file;
+    const { userName, projectName, fileName, fileType, fileSize } = req.body;
 
-    // Validation
-    if (!file || !userName || !projectName) {
-      return res.status(400).json({ success: false, message: 'Missing Data: userName, projectName, or file' });
-    }
+    console.log(`🚀 Init Direct Upload: ${fileName} (${(fileSize/1024/1024).toFixed(2)} MB)`);
 
-    console.log(`📤 Uploading: ${file.originalname} to ${userName}/${projectName}`);
+    // 1. Access Token Nikalo
+    const tokenResponse = await oauth2Client.getAccessToken();
+    const accessToken = tokenResponse.token;
 
-    // .env Check
+    // 2. Folder Structure Banao
     const ROOT_ID = process.env.DRIVE_FOLDER_ID;
-    if (!ROOT_ID) return res.status(500).json({ success: false, message: 'Server Error: DRIVE_FOLDER_ID missing' });
-
-    // 1. Create Hierarchy
     const userId = await findOrCreateFolder(userName, ROOT_ID);
-    const projectId = await findOrCreateFolder(projectName, userId);
+    const projectsFolderId = await findOrCreateFolder("Projects", userId);
+    const projectSpecificId = await findOrCreateFolder(projectName, projectsFolderId);
     
-    let targetFolder = projectId;
-    if(fileType) targetFolder = await findOrCreateFolder(fileType, projectId);
+    // Raw Footage Folder
+    const targetFolder = await findOrCreateFolder("Raw Footage", projectSpecificId);
 
-    // 2. Upload to Drive (Stream)
-    const fileStream = Readable.from(file.buffer);
-    const driveRes = await drive.files.create({
-      resource: { name: file.originalname, parents: [targetFolder] },
-      media: { mimeType: file.mimetype, body: fileStream },
-      fields: 'id, name, webViewLink, webContentLink',
+    // 3. Google se "Resumable Session URI" maango
+    // Hum server se file nahi bhej rahe, bas link mang rahe hain
+    const metadata = {
+      name: fileName,
+      mimeType: fileType,
+      parents: [targetFolder]
+    };
+
+    const response = await axios.post(
+      'https://www.googleapis.com/upload/drive/v3/files?uploadType=resumable',
+      metadata,
+      {
+        headers: {
+          'Authorization': `Bearer ${accessToken}`,
+          'X-Upload-Content-Type': fileType,
+          'X-Upload-Content-Length': fileSize,
+          'Content-Type': 'application/json; charset=UTF-8'
+        }
+      }
+    );
+
+    // Ye wo link hai jahan client seedha upload karega
+    const uploadUrl = response.headers.location;
+
+    res.json({ success: true, uploadUrl });
+
+  } catch (error) {
+    console.error('❌ Init Upload Error:', error.message);
+    res.status(500).json({ success: false, error: error.message });
+  }
+});
+
+// 2. FINALIZE UPLOAD (Set Public & Return Links)
+app.post('/api/drive/finalize-upload', async (req, res) => {
+  try {
+    const { fileId } = req.body;
+    console.log(`✅ Finalizing File: ${fileId}`);
+
+    // 1. File ko Public karo
+    await setFilePublic(fileId);
+
+    // 2. Links nikalo
+    const fileRes = await drive.files.get({
+      fileId,
+      fields: 'webViewLink, webContentLink',
     });
 
-    // 3. Set Public
-    await setFilePublic(driveRes.data.id);
-
-    // 4. Respond
     res.json({
       success: true,
-      fileId: driveRes.data.id,
-      viewLink: driveRes.data.webViewLink,
-      downloadLink: driveRes.data.webContentLink
+      fileId: fileId,
+      viewLink: fileRes.data.webViewLink,
+      downloadLink: fileRes.data.webContentLink
     });
 
   } catch (error) {
-    console.error('Upload Failed:', error);
+    console.error('❌ Finalize Error:', error.message);
     res.status(500).json({ success: false, error: error.message });
   }
 });
