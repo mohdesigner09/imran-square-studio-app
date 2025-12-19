@@ -595,34 +595,46 @@
         // File Selection Listener
         const fileInput = document.getElementById('footageFileInput');
         if(fileInput) {
-            fileInput.addEventListener('change', (e) => {
-                const file = e.target.files[0];
-                if (!file) return;
-                selectedFile = file;
-                
-                // Show Preview Modal
-                openUploadModal();
-                
-                // Preview Details Set
-                document.getElementById('previewFileName').textContent = file.name;
-                document.getElementById('previewFileSize').textContent = (file.size / (1024 * 1024)).toFixed(2) + ' MB';
-                
-                // Generate Thumb (Optional, browser load bachane ke liye skip kar sakte hain)
-                // Lekin UI ke liye achha hai
-                const video = document.createElement('video');
-                video.preload = 'metadata';
-                video.src = URL.createObjectURL(file);
-                video.onloadeddata = () => {
-                    video.currentTime = 1;
-                };
-                video.onseeked = () => {
-                    const canvas = document.createElement('canvas');
-                    canvas.width = 320; canvas.height = 180;
-                    const ctx = canvas.getContext('2d');
-                    ctx.drawImage(video, 0, 0, 320, 180);
-                    document.getElementById('previewThumbnail').src = canvas.toDataURL();
-                };
-            });
+        // --- 3. UPLOAD LOGIC (FIXED) ---
+
+// File Selection Listener
+const fileInput = document.getElementById('footageFileInput');
+if (fileInput) {
+    fileInput.addEventListener('change', (e) => {
+        const file = e.target.files[0];
+        if (!file) return;
+        selectedFile = file;
+
+        // 1. Modal open confirm karo
+        openUploadModal();
+
+        // 2. 🔥 FIX: Preview Box ko Visible karo (Ye line missing thi)
+        document.getElementById('filePreview').classList.remove('hidden'); 
+        
+        // (Optional) Upload wale dashed box ko chupa sakte ho taaki sirf preview dikhe
+        // document.querySelector('#uploadStep1 > div[onclick]').classList.add('hidden');
+
+        // 3. Details Set karo
+        document.getElementById('previewFileName').textContent = file.name;
+        document.getElementById('previewFileSize').textContent = (file.size / (1024 * 1024)).toFixed(2) + ' MB';
+
+        // 4. Thumbnail Generation
+        const video = document.createElement('video');
+        video.preload = 'metadata';
+        video.src = URL.createObjectURL(file);
+        video.onloadeddata = () => {
+            video.currentTime = 1;
+        };
+        video.onseeked = () => {
+            const canvas = document.createElement('canvas');
+            canvas.width = 320;
+            canvas.height = 180;
+            const ctx = canvas.getContext('2d');
+            ctx.drawImage(video, 0, 0, 320, 180);
+            document.getElementById('previewThumbnail').src = canvas.toDataURL();
+        };
+    });
+}
         }
 
         function openUploadModal() {
