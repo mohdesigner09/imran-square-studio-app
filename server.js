@@ -1249,35 +1249,49 @@ app.get('/api/get-announcement', async (req, res) => {
 
 
 // ===== DRIVE RESUMABLE UPLOAD ENDPOINTS =====
-// 1. START UPLOAD (Smart Version - Returns ID immediately)
+// ==========================================
+// 🚀 DIRECT UPLOAD v2 (Placeholder Strategy - 100% ID Guarantee)
+// ==========================================
+
 app.post('/api/drive/init-upload', async (req, res) => {
   try {
     const { userName, projectName, fileName, fileType, fileSize } = req.body;
+    console.log(`🚀 Starting Secure Upload: ${fileName}`);
 
-    console.log(`🚀 Init Direct Upload: ${fileName}`);
-
-    // Access Token
-    const tokenResponse = await oauth2Client.getAccessToken();
-    const accessToken = tokenResponse.token;
-
-    // Folder Structure
+    // 1. Folder Setup
     const ROOT_ID = process.env.DRIVE_FOLDER_ID;
     const userId = await findOrCreateFolder(userName, ROOT_ID);
     const projectsFolderId = await findOrCreateFolder("Projects", userId);
     const projectSpecificId = await findOrCreateFolder(projectName, projectsFolderId);
     const targetFolder = await findOrCreateFolder("Raw Footage", projectSpecificId);
 
-    // Metadata
-    const metadata = {
+    // 2. 🔥 STEP A: Create "Placeholder" File First (Gets ID instantly)
+    // Hum abhi content nahi bhej rahe, sirf file ka "dabba" bana rahe hain.
+    const fileMetadata = {
       name: fileName,
-      mimeType: fileType,
-      parents: [targetFolder]
+      parents: [targetFolder],
+      mimeType: fileType // Correct MimeType set kar rahe hain
     };
 
-    // Google se Link Mango
-    const response = await axios.post(
-      'https://www.googleapis.com/upload/drive/v3/files?uploadType=resumable',
-      metadata,
+    const placeholder = await drive.files.create({
+      resource: fileMetadata,
+      fields: 'id, webViewLink, webContentLink',
+    });
+
+    const fileId = placeholder.data.id;
+    console.log(`✅ Placeholder Created. ID: ${fileId}`);
+
+    // 3. Make Public immediately (Baad me tension nahi)
+    await setFilePublic(fileId);
+
+    // 4. 🔥 STEP B: Generate Upload Link for THIS specific ID
+    // Ab hum is existing ID par content upload karne ka link mangenge (PATCH method)
+    const tokenResponse = await oauth2Client.getAccessToken();
+    const accessToken = tokenResponse.token;
+
+    const uploadRes = await axios.patch(
+      `https://www.googleapis.com/upload/drive/v3/files/${fileId}?uploadType=resumable`,
+      {}, // Empty body
       {
         headers: {
           'Authorization': `Bearer ${accessToken}`,
@@ -1287,15 +1301,17 @@ app.post('/api/drive/init-upload', async (req, res) => {
       }
     );
 
-    // 🔥 MAGIC LINE: ID yahi mil jati hai!
-    const fileId = response.data.id; 
-    const uploadUrl = response.headers.location;
+    const uploadUrl = uploadRes.headers.location;
 
-    // Client ko ID abhi bhej do
-    res.json({ success: true, uploadUrl, fileId });
+    // 5. Send Both to Client
+    res.json({ 
+      success: true, 
+      uploadUrl: uploadUrl, 
+      fileId: fileId // Ab ye kabhi undefined nahi hoga
+    });
 
   } catch (error) {
-    console.error('❌ Init Upload Error:', error.message);
+    console.error('❌ Init Error:', error.response?.data || error.message);
     res.status(500).json({ success: false, error: error.message });
   }
 });
