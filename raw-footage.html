@@ -472,7 +472,7 @@
         // --- 1. INIT (Load from Cloud) ---
         document.addEventListener('DOMContentLoaded', async () => {
             if(!currentProjectID) {
-                window.location.href = 'project-hub.html';
+              //  window.location.href = 'project-hub.html';
                 return;
             }
 
@@ -483,7 +483,8 @@
                         console.log("✅ Cloud Connected");
                         await loadProjectData();
                     } else {
-                        window.location.href = 'index.html';
+                        console.error("❌ User LOGGED OUT! (Redirect blocked for debug)");
+                     //   window.location.href = 'index.html';
                     }
                 });
             }
