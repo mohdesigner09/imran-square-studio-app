@@ -96,23 +96,32 @@ try {
 
 const db = admin.firestore();
 
-// ✅ PASTE THIS RIGHT AFTER: const db = admin.firestore();
+// ======================================================
+// ✅ FINAL DRIVE OAUTH2 SETUP (Matched with your Keys)
+// ======================================================
 
-// ✅ IS NAYE CODE KO PASTE KARO
-// 1. DRIVE OAUTH2 SETUP (Personal 2TB Drive Access)
-// Ye code tumhare Render Variables (CLIENT_ID, SECRET, REFRESH_TOKEN) ko use karega
+// 1. OAuth Client Init (Tumhare naye variable names ke saath)
 const oauth2Client = new google.auth.OAuth2(
-  process.env.GOOGLE_CLIENT_ID,
-  process.env.GOOGLE_CLIENT_SECRET,
+  process.env.GOOGLE_OAUTH_CLIENT_ID,     // Tumne ye naam rakha hai
+  process.env.GOOGLE_OAUTH_CLIENT_SECRET, // Tumne ye naam rakha hai
   "https://developers.google.com/oauthplayground"
 );
 
-// Token set karo taaki server login rahe
+// 2. Refresh Token Check & Set
+const REFRESH_TOKEN = process.env.GOOGLE_DRIVE_REFRESH_TOKEN;
+
+if (!REFRESH_TOKEN) {
+  console.error("❌ ERROR: 'GOOGLE_DRIVE_REFRESH_TOKEN' nahi mila! Render Check karo.");
+} else {
+  console.log("✅ Drive Access Connected!");
+}
+
+// Token jodd do taaki server login rahe
 oauth2Client.setCredentials({
-  refresh_token: process.env.GOOGLE_REFRESH_TOKEN
+  refresh_token: REFRESH_TOKEN
 });
 
-// Drive connect karo
+// 3. Drive Object Create karo
 const drive = google.drive({ version: 'v3', auth: oauth2Client });
 
 
