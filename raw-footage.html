@@ -470,6 +470,7 @@
         let currentType = 'shorts';
 
  // 🛠️ REFRESH-PROOF LOADING & AUTH FIX
+       // 🛠️ REFRESH-PROOF LOADING & AUTH FIX
         document.addEventListener('DOMContentLoaded', async () => {
             if(!currentProjectID) return;
 
@@ -477,17 +478,12 @@
             const localUser = JSON.parse(localStorage.getItem('user')); 
 
             if(localUser) {
-                console.log("✅ Session Found via LocalStorage:", localUser.email);
+                console.log("✅ Session Found:", localUser.email);
                 await loadProjectData();
             } else {
-                // Agar local session nahi hai, to Firebase ka wait karo
                 auth.onAuthStateChanged(async (user) => {
-                    if(user) {
-                        console.log("✅ User Verified via Firebase");
-                        await loadProjectData();
-                    } else {
-                        console.warn("⌛ No active session found.");
-                    }
+                    if(user) await loadProjectData();
+                    else console.warn("⌛ No active session found.");
                 });
             }
         });
