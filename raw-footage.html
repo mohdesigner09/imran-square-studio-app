@@ -461,78 +461,106 @@
 
     <script src="main.js"></script>
 
-    <script>
-    
+  <script>
         let currentProjectID = new URLSearchParams(window.location.search).get('id') || 'demo-project';
         let rawClips = [];
         let selectedFile = null;
         let isEditMode = false;
         let currentFilter = 'all';
+        let currentType = 'shorts';
 
-      // 🛠️ FIX 1: REFRESH-PROOF DATA LOADING
+        // --- 1. INIT (Refresh-Proof Loading) ---
         document.addEventListener('DOMContentLoaded', async () => {
             if(!currentProjectID) return;
 
-            // Firebase ke nakhre chodo, localStorage se user uthao
+            // Firebase Auth ka wait karne ke bajaye localStorage se session pakad lo
             const localUser = JSON.parse(localStorage.getItem('user')); 
 
             if(localUser) {
                 console.log("✅ Session Active for:", localUser.email);
-                // Bina deri kiye data load karo
                 await loadProjectData();
             } else {
-                console.warn("⚠️ No user session found. Redirect blocked for debug.");
-                // Agar session nahi hai, tabhi index par bhejo (optional)
-                // window.location.href = 'index.html';
+                console.warn("⌛ Waiting for auth session...");
+                // Fallback for Firebase
+                if(typeof auth !== 'undefined') {
+                    auth.onAuthStateChanged(async (user) => {
+                        if(user) await loadProjectData();
+                    });
+                }
             }
         });
 
         async function loadProjectData() {
             try {
-                // Firestore se data lao
                 const doc = await db.collection('projects').doc(currentProjectID).get();
                 if(doc.exists) {
                     const data = doc.data();
                     const titleEl = document.getElementById('rawProjectTitle');
                     if(titleEl) titleEl.textContent = (data.title || 'Untitled').toUpperCase();
-
                     rawClips = data.footageLib || [];
                     renderVideos();
-                    console.log("📊 Data Loaded:", rawClips.length, "clips found.");
                 }
             } catch(e) {
                 console.error("Load Error:", e);
             }
         }
 
-        // 🛠️ FIX 2: VIDEO PLAYER (401 & REfused to Connect Fix)
-        function openTheater(link, title) {
-            const modal = document.getElementById('theaterModal');
-            const container = document.getElementById('playerContainer');
-            
-            if(modal && container) {
-                document.getElementById('playerTitle').innerText = title;
-
-                // Google Drive Link ko Embed-Friendly (/preview) banao
-                let embedLink = link;
-                if (link.includes('drive.google.com')) {
-                    const fileId = link.match(/[-\w]{25,}/);
-                    if (fileId) {
-                        embedLink = `https://drive.google.com/file/d/${fileId[0]}/preview`;
-                    }
-                }
-
-                // Iframe logic (Allow attributes zaroori hain)
-                container.innerHTML = `<iframe src="${embedLink}" class="w-full h-full border-0" allow="autoplay; fullscreen" allowfullscreen></iframe>`;
-                
-                modal.classList.remove('hidden');
-                setTimeout(() => modal.style.opacity = '1', 10);
-            } else {
-                window.open(link, '_blank');
-            }
+        // --- 2. UI HELPERS ---
+        function openUploadModal() {
+            document.getElementById('uploadFootageModal').classList.remove('hidden');
+            document.getElementById('uploadStep1').classList.remove('hidden');
+            document.getElementById('uploadStep2').classList.add('hidden');
+            document.getElementById('uploadStep3').classList.add('hidden');
+            document.getElementById('filePreview').classList.add('hidden');
         }
 
-        // 🔥 UPLOAD FUNCTION (Wahi rahega jo pichle message me diya tha, bas verify karo finalize hata diya hai)
+        function closeUploadModal() {
+            document.getElementById('uploadFootageModal').classList.add('hidden');
+            selectedFile = null;
+        }
+
+        function switchType(type, btn) {
+            currentType = type;
+            document.querySelectorAll('.type-btn').forEach(b => b.classList.remove('active'));
+            btn.classList.add('active');
+            
+            const shortGrid = document.getElementById('gridShorts');
+            const longGrid = document.getElementById('gridLongs');
+            if(type === 'shorts') {
+                shortGrid.classList.remove('hidden-grid', 'hidden');
+                longGrid.classList.add('hidden-grid', 'hidden');
+            } else {
+                longGrid.classList.remove('hidden-grid', 'hidden');
+                shortGrid.classList.add('hidden-grid', 'hidden');
+            }
+            renderVideos();
+        }
+
+        // --- 3. UPLOAD LOGIC ---
+        const fileInput = document.getElementById('footageFileInput');
+        if (fileInput) {
+            fileInput.addEventListener('change', (e) => {
+                const file = e.target.files[0];
+                if (!file) return;
+                selectedFile = file;
+                document.getElementById('filePreview').classList.remove('hidden'); 
+                document.getElementById('previewFileName').textContent = file.name;
+                document.getElementById('previewFileSize').textContent = (file.size / (1024 * 1024)).toFixed(2) + ' MB';
+
+                // Thumbnail
+                const video = document.createElement('video');
+                video.preload = 'metadata';
+                video.src = URL.createObjectURL(file);
+                video.onloadeddata = () => video.currentTime = 1;
+                video.onseeked = () => {
+                    const canvas = document.createElement('canvas');
+                    canvas.width = 320; canvas.height = 180;
+                    canvas.getContext('2d').drawImage(video, 0, 0, 320, 180);
+                    document.getElementById('previewThumbnail').src = canvas.toDataURL();
+                };
+            });
+        }
+
         async function sendToStudio() {
             if (!selectedFile) return alert('No file selected');
             document.getElementById('uploadStep1').classList.add('hidden');
@@ -543,7 +571,7 @@
             try {
                 text.innerText = "Initializing High-Speed Link...";
                 const localUser = JSON.parse(localStorage.getItem('user'));
-                const userName = localUser ? (localUser.username || localUser.firstName || 'Creator') : 'Guest';
+                const userName = localUser ? (localUser.username || localUser.firstName) : 'Guest';
                 const projTitle = document.getElementById('rawProjectTitle').innerText || 'Project';
 
                 const initRes = await fetch('/api/drive/init-upload', {
@@ -552,12 +580,11 @@
                     body: JSON.stringify({
                         userName, projectName: projTitle,
                         fileName: selectedFile.name,
-                        fileType: selectedFile.type,
-                        fileSize: selectedFile.size
+                        fileType: selectedFile.type
                     })
                 });
                 const initData = await initRes.json();
-                if(!initData.success) throw new Error(initData.error || 'Server Init Failed');
+                if(!initData.success) throw new Error(initData.error || 'Init Failed');
 
                 // Step 2: Direct Upload
                 await new Promise((resolve) => {
@@ -569,18 +596,18 @@
                         text.innerText = `Sending: ${p.toFixed(1)}%`;
                     };
                     xhr.onload = () => resolve();
-                    xhr.onerror = () => resolve(); // CORS ignore
+                    xhr.onerror = () => resolve(); // Ignore CORS
                     xhr.send(selectedFile);
                 });
 
-                // Step 3: Save to DB (Directly use initData links)
+                // Step 3: Save to DB
                 const newClip = {
                     id: initData.fileId,
                     title: selectedFile.name,
                     link: initData.viewLink,
                     thumb: document.getElementById('previewThumbnail').src,
                     date: new Date().toLocaleDateString(),
-                    type: 'raw'
+                    type: currentType
                 };
                 rawClips.push(newClip);
 
@@ -594,11 +621,66 @@
                 document.getElementById('uploadStep3').classList.remove('hidden');
                 renderVideos();
                 setTimeout(closeUploadModal, 1500);
-
             } catch (error) {
-                alert("Upload Process Error: " + error.message);
+                alert("Upload Error: " + error.message);
                 closeUploadModal();
             }
         }
 
+        // --- 4. RENDER & PLAYER ---
+        function renderVideos() {
+            const gridShorts = document.getElementById('gridShorts');
+            const gridLongs = document.getElementById('gridLongs');
+            gridShorts.innerHTML = ''; gridLongs.innerHTML = '';
+
+            rawClips.forEach((vid, idx) => {
+                const div = document.createElement('div');
+                div.className = `group relative bg-gray-900 rounded-lg overflow-hidden border border-white/10 hover:border-orange-500/50 transition ${vid.type === 'shorts' ? 'aspect-[9/16]' : 'aspect-video'}`;
+                div.innerHTML = `
+                    <div onclick="openTheater('${vid.link}', '${vid.title}')" class="w-full h-full cursor-pointer relative" style="background-image: url('${vid.thumb}'); background-size: cover;">
+                        <div class="absolute inset-0 bg-black/40 flex items-center justify-center opacity-0 group-hover:opacity-100 transition">
+                            <svg class="w-10 h-10 text-white" fill="currentColor" viewBox="0 0 20 20"><path d="M6.3 2.841A1.5 1.5 0 004 4.11V15.89a1.5 1.5 0 002.3 1.269l9.333-5.89a1.5 1.5 0 000-2.538L6.3 2.841z"/></svg>
+                        </div>
+                        <div class="absolute bottom-0 p-2 w-full bg-black/60">
+                            <h4 class="text-white text-[10px] truncate">${vid.title}</h4>
+                            <button onclick="event.stopPropagation(); deleteClip(${idx})" class="text-red-500 text-[10px] mt-1">Delete</button>
+                        </div>
+                    </div>`;
+                if(vid.type === 'shorts') gridShorts.appendChild(div);
+                else gridLongs.appendChild(div);
+            });
+        }
+
+        function openTheater(link, title) {
+            const modal = document.getElementById('theaterModal');
+            const container = document.getElementById('playerContainer');
+            if(modal && container) {
+                document.getElementById('playerTitle').innerText = title;
+                let embedLink = link.includes('/view') ? link.replace(/\/view.*/, '/preview') : link;
+                container.innerHTML = `<iframe src="${embedLink}" class="w-full h-full border-0" allow="autoplay; fullscreen" allowfullscreen></iframe>`;
+                modal.classList.remove('hidden');
+                setTimeout(() => modal.style.opacity = '1', 10);
+            }
+        }
+
+        function closeTheater() {
+            const modal = document.getElementById('theaterModal');
+            modal.style.opacity = '0';
+            setTimeout(() => {
+                modal.classList.add('hidden');
+                document.getElementById('playerContainer').innerHTML = '';
+            }, 300);
+        }
+
+        async function deleteClip(idx) {
+            if(!confirm("Delete this footage?")) return;
+            rawClips.splice(idx, 1);
+            await db.collection('projects').doc(currentProjectID).update({ footageLib: rawClips });
+            renderVideos();
+        }
+
+        function goBackToHub() {
+            const projectId = new URLSearchParams(window.location.search).get('id');
+            window.location.href = projectId ? `project-hub.html?id=${projectId}` : 'index.html';
+        }
     </script>
