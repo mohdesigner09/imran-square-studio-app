@@ -1249,69 +1249,62 @@ app.get('/api/get-announcement', async (req, res) => {
 
 
 // ===== DRIVE RESUMABLE UPLOAD ENDPOINTS =====
-// ==========================================
-// 🚀 DIRECT UPLOAD v2 (Placeholder Strategy - 100% ID Guarantee)
-// ==========================================
-
+// 🚀 DIRECT UPLOAD v3 (Instant Links - No Finalize Needed)
 app.post('/api/drive/init-upload', async (req, res) => {
   try {
-    const { userName, projectName, fileName, fileType, fileSize } = req.body;
-    console.log(`🚀 Starting Secure Upload: ${fileName}`);
-
-    // 1. Folder Setup
+    const { userName, projectName, fileName, fileType } = req.body;
+    
+    // 1. Folder Setup (Wahi purana logic)
     const ROOT_ID = process.env.DRIVE_FOLDER_ID;
     const userId = await findOrCreateFolder(userName, ROOT_ID);
     const projectsFolderId = await findOrCreateFolder("Projects", userId);
     const projectSpecificId = await findOrCreateFolder(projectName, projectsFolderId);
     const targetFolder = await findOrCreateFolder("Raw Footage", projectSpecificId);
 
-    // 2. 🔥 STEP A: Create "Placeholder" File First (Gets ID instantly)
-    // Hum abhi content nahi bhej rahe, sirf file ka "dabba" bana rahe hain.
+    // 2. Placeholder Create karo (ID + Links maango)
     const fileMetadata = {
       name: fileName,
       parents: [targetFolder],
-      mimeType: fileType // Correct MimeType set kar rahe hain
+      mimeType: fileType
     };
 
     const placeholder = await drive.files.create({
       resource: fileMetadata,
-      fields: 'id, webViewLink, webContentLink',
+      fields: 'id, webViewLink, webContentLink', // 🔥 Links yahi maang liye
     });
 
     const fileId = placeholder.data.id;
-    console.log(`✅ Placeholder Created. ID: ${fileId}`);
+    const viewLink = placeholder.data.webViewLink;
+    const downloadLink = placeholder.data.webContentLink;
 
-    // 3. Make Public immediately (Baad me tension nahi)
+    // 3. Public Permission set karo
     await setFilePublic(fileId);
 
-    // 4. 🔥 STEP B: Generate Upload Link for THIS specific ID
-    // Ab hum is existing ID par content upload karne ka link mangenge (PATCH method)
+    // 4. Upload Link Generate karo
     const tokenResponse = await oauth2Client.getAccessToken();
-    const accessToken = tokenResponse.token;
-
     const uploadRes = await axios.patch(
       `https://www.googleapis.com/upload/drive/v3/files/${fileId}?uploadType=resumable`,
-      {}, // Empty body
+      {},
       {
         headers: {
-          'Authorization': `Bearer ${accessToken}`,
+          'Authorization': `Bearer ${tokenResponse.token}`,
           'X-Upload-Content-Type': fileType,
           'Content-Type': 'application/json; charset=UTF-8'
         }
       }
     );
 
-    const uploadUrl = uploadRes.headers.location;
-
-    // 5. Send Both to Client
+    // 5. Sab kuch Client ko bhej do (Taaki wo wapas server na aaye)
     res.json({ 
       success: true, 
-      uploadUrl: uploadUrl, 
-      fileId: fileId // Ab ye kabhi undefined nahi hoga
+      uploadUrl: uploadRes.headers.location, 
+      fileId: fileId,
+      viewLink: viewLink,          // ✅ Link Abhi Bhej Diya
+      downloadLink: downloadLink
     });
 
   } catch (error) {
-    console.error('❌ Init Error:', error.response?.data || error.message);
+    console.error('❌ Init Error:', error.message);
     res.status(500).json({ success: false, error: error.message });
   }
 });

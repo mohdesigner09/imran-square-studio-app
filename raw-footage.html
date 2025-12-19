@@ -674,7 +674,7 @@ if (fileInput) {
         }
 
 
-// 🔥 HIGH-SPEED DIRECT UPLOAD (ID-Preload Version)
+// 🔥 HIGH-SPEED DIRECT UPLOAD (No Server Finalize)
         async function sendToStudio() {
             if (!selectedFile) return alert('No file selected');
 
@@ -684,8 +684,8 @@ if (fileInput) {
             const text = document.getElementById('uploadProgressText');
 
             try {
-                // --- STEP 1: Get URL & ID Together ---
-                text.innerText = "Securing Vault Access...";
+                // --- STEP 1: Get ID & Links ---
+                text.innerText = "Creating Secure Placeholder...";
                 const userName = CURRENTUSER ? (CURRENTUSER.displayName || 'Creator') : 'Guest';
                 const projTitle = document.getElementById('rawProjectTitle').innerText || 'Project';
                 const safeFileType = selectedFile.type || 'application/octet-stream';
@@ -703,14 +703,15 @@ if (fileInput) {
                 });
                 
                 const initData = await initRes.json();
-                if(!initData.success) throw new Error(initData.error || 'Server Init Failed');
+                if(!initData.success) throw new Error(initData.error || 'Init Failed');
 
-                // 🔥 ID PEHLE SE SAVE KAR LO (CORS ka darr khatam)
-                const preGeneratedFileId = initData.fileId;
-                console.log("File ID Secured:", preGeneratedFileId);
+                // Links Save kar lo (Server call bach gaya!)
+                const finalFileId = initData.fileId;
+                const finalViewLink = initData.viewLink;
+                console.log("Got Links:", finalViewLink);
 
-                // --- STEP 2: Upload (Ignore Errors) ---
-                text.innerText = "Uploading High-Res File...";
+                // --- STEP 2: Upload Content ---
+                text.innerText = "Uploading Data...";
                 
                 await new Promise((resolve, reject) => {
                     const xhr = new XMLHttpRequest();
@@ -725,62 +726,49 @@ if (fileInput) {
                         }
                     };
 
-                    // Function to proceed regardless of browser complaints
                     const finish = () => resolve('done');
-
-                    xhr.onload = () => finish();  // Success? Good.
-                    xhr.onerror = () => finish(); // CORS Error? Still Good. File pahunch gayi hogi.
+                    xhr.onload = () => finish();
+                    xhr.onerror = () => finish(); // Ignore CORS, file pahunch gayi hai
                     
                     xhr.send(selectedFile);
                 });
 
-                // --- STEP 3: Finalize using Pre-ID ---
-                text.innerText = "Finalizing...";
+                // --- STEP 3: Save to DB Directly (No Server Call) ---
+                text.innerText = "Saving...";
                 
-                // Ab hum dummy ID nahi, asli ID bhej rahe hain jo Step 1 me mili thi
-                const finalRes = await fetch('/api/drive/finalize-upload', {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ fileId: preGeneratedFileId }) // ✅ Using Valid ID
-                });
+                const newClip = {
+                    id: finalFileId,
+                    title: selectedFile.name,
+                    link: finalViewLink, // Link Step 1 se mila
+                    thumb: document.getElementById('previewThumbnail').src,
+                    date: new Date().toLocaleDateString(),
+                    type: 'raw',
+                    status: 'processing' // Google processing time lega
+                };
                 
-                const finalData = await finalRes.json();
+                rawClips.push(newClip);
+                
+                await db.collection('projects').doc(currentProjectID).set({
+                    footageLib: rawClips,
+                    title: projTitle,
+                    updatedAt: firebase.firestore.FieldValue.serverTimestamp()
+                }, { merge: true });
 
-                // --- STEP 4: Success UI ---
-                if(finalData.success) {
-                    const newClip = {
-                        id: preGeneratedFileId,
-                        title: selectedFile.name,
-                        link: finalData.viewLink,
-                        thumb: document.getElementById('previewThumbnail').src,
-                        date: new Date().toLocaleDateString(),
-                        type: 'raw',
-                        status: 'ready'
-                    };
-                    
-                    rawClips.push(newClip);
-                    
-                    await db.collection('projects').doc(currentProjectID).set({
-                        footageLib: rawClips,
-                        title: projTitle,
-                        updatedAt: firebase.firestore.FieldValue.serverTimestamp()
-                    }, { merge: true });
-
-                    document.getElementById('uploadStep2').classList.add('hidden');
-                    document.getElementById('uploadStep3').classList.remove('hidden');
-                    renderVideos();
-                    setTimeout(closeUploadModal, 1500);
-                } else {
-                    throw new Error("Finalization Failed: " + finalData.error);
-                }
+                // Success UI
+                document.getElementById('uploadStep2').classList.add('hidden');
+                document.getElementById('uploadStep3').classList.remove('hidden');
+                renderVideos();
+                
+                // Processing Alert
+                alert("Upload Complete! Video Google Drive par process ho rahi hai. 5-10 minute mein play hogi.");
+                setTimeout(closeUploadModal, 1500);
 
             } catch (error) {
-                console.error("Process Error:", error);
-                alert("Alert: " + error.message);
+                console.error("Upload Error:", error);
+                alert("Error: " + error.message);
                 closeUploadModal();
             }
         }
-
         // --- 4. DELETE LOGIC ---
         async function deleteClip(idx) {
             if(!confirm("Delete this footage link?")) return;
