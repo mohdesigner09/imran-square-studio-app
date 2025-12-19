@@ -463,7 +463,7 @@
 
     <script>
     
-        let currentProjectID = new URLSearchParams(window.location.search).get('id');
+        let currentProjectID = new URLSearchParams(window.location.search).get('id') || 'demo-project';
         let rawClips = [];
         let selectedFile = null;
         let isEditMode = false;
@@ -673,7 +673,7 @@ if (fileInput) {
             selectedFile = null;
         }
 
-        // 🔥 THE MAIN UPLOAD FUNCTION
+       // 🔥 THE MAIN UPLOAD FUNCTION (CRASH PROOF VERSION)
         async function sendToStudio() {
             if (!selectedFile) return alert('No file selected');
 
@@ -715,34 +715,41 @@ if (fileInput) {
                 
                 clearInterval(timer);
                 bar.style.width = '100%';
-if(data.success) {
-    // Success UI
-    document.getElementById('uploadStep2').classList.add('hidden');
-    document.getElementById('uploadStep3').classList.remove('hidden');
 
-    // ... (Baaki success logic same rahega) ...
-    // Add to Local List
-    const newClip = {
-        id: data.fileId,
-        title: selectedFile.name,
-        link: data.viewLink,
-        thumb: document.getElementById('previewThumbnail').src,
-        date: new Date().toLocaleDateString(),
-        type: 'raw'
-    };
-    rawClips.push(newClip);
-    
-    // Firestore update logic... (same as before)
-    await db.collection('projects').doc(currentProjectID).update({
-        footageLib: rawClips
-    });
-    renderVideos();
-    setTimeout(closeUploadModal, 1500);
+                if(data.success) {
+                    // Success UI
+                    document.getElementById('uploadStep2').classList.add('hidden');
+                    document.getElementById('uploadStep3').classList.remove('hidden');
 
-} else {
-    // ✅ FIX: Ab ye "error" aur "message" dono check karega
-    throw new Error(data.message || data.error || 'Server Problem (Unknown Error)');
-}
+                    // Add to Local List
+                    const newClip = {
+                        id: data.fileId,
+                        title: selectedFile.name,
+                        link: data.viewLink,
+                        thumb: document.getElementById('previewThumbnail').src,
+                        date: new Date().toLocaleDateString(),
+                        type: 'raw'
+                    };
+                    
+                    rawClips.push(newClip);
+
+                    // 🔥 FIX: 'update' hata kar 'set' + 'merge' use kiya hai.
+                    // Ab agar project 'p1' nahi bhi hoga, toh ye naya bana dega. Error nahi aayega.
+                    await db.collection('projects').doc(currentProjectID).set({
+                        footageLib: rawClips,
+                        title: projTitle,
+                        updatedAt: firebase.firestore.FieldValue.serverTimestamp()
+                    }, { merge: true });
+
+                    renderVideos();
+
+                    // Close Modal after 1.5s
+                    setTimeout(closeUploadModal, 1500);
+
+                } else {
+                    // Error Handling
+                    throw new Error(data.message || data.error || 'Server Problem (Unknown Error)');
+                }
 
             } catch (error) {
                 clearInterval(timer);
@@ -761,9 +768,13 @@ if(data.success) {
 
             // Cloud Update
             try {
-                await db.collection('projects').doc(currentProjectID).update({
-                    footageLib: rawClips
-                });
+                // 🔥 Update Firestore Database (Crash Proof Fix)
+// Agar 'p1' project nahi mila, to ye naya bana dega (set + merge)
+await db.collection('projects').doc(currentProjectID).set({
+    footageLib: rawClips,
+    title: document.getElementById('rawProjectTitle').innerText || 'Untitled Project', // Title bhi save kar lete hain
+    updatedAt: firebase.firestore.FieldValue.serverTimestamp()
+}, { merge: true });
             } catch(e) {
                 console.error("Delete failed:", e);
                 alert("Could not sync delete to cloud.");
