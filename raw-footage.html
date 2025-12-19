@@ -781,17 +781,29 @@ await db.collection('projects').doc(currentProjectID).set({
             }
         }
 
-        // --- 5. THEATER / PLAYER ---
+      
+       // --- 5. THEATER / PLAYER (FIXED FOR STREAMING) ---
         function openTheater(link, title) {
             const modal = document.getElementById('theaterModal');
             const container = document.getElementById('playerContainer');
             
             if(modal && container) {
                 document.getElementById('playerTitle').innerText = title;
-                container.innerHTML = `<iframe src="${link}" class="w-full h-full border-0" allow="autoplay"></iframe>`;
+
+                // 🔥 SMART FIX: Link ko Embed-Friendly banao
+                // Agar link "view" wala hai, to usay "preview" me badal do
+                let embedLink = link;
+                if (link.includes('drive.google.com') && link.includes('/view')) {
+                    embedLink = link.replace(/\/view.*/, '/preview');
+                }
+
+                // Iframe set karo
+                container.innerHTML = `<iframe src="${embedLink}" class="w-full h-full border-0" allow="autoplay" allowfullscreen></iframe>`;
+                
                 modal.classList.remove('hidden');
                 setTimeout(() => modal.style.opacity = '1', 10);
             } else {
+                // Agar modal nahi mila to naye tab me khol do
                 window.open(link, '_blank');
             }
         }
