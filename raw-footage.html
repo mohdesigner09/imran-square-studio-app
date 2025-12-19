@@ -471,23 +471,26 @@
 
         // --- 1. INIT (Load from Cloud) ---
         document.addEventListener('DOMContentLoaded', async () => {
-            if(!currentProjectID) {
-              //  window.location.href = 'project-hub.html';
-                return;
-            }
+            if(!currentProjectID) return;
 
-            // Wait for Firebase Auth
-            if(typeof auth !== 'undefined') {
-                auth.onAuthStateChanged(async (user) => {
-                    if(user) {
-                        console.log("✅ Cloud Connected");
-                        await loadProjectData();
-                    } else {
-                        console.error("❌ User LOGGED OUT! (Redirect blocked for debug)");
-                     //   window.location.href = 'index.html';
-                    }
-                });
-            }
+            // Firebase Auth State ka wait karo
+            auth.onAuthStateChanged(async (user) => {
+                if(user) {
+                    console.log("✅ User Verified:", user.email);
+                    await loadProjectData();
+                } else {
+                    // Turant redirect mat karo, shayad login ho raha ho
+                    console.warn("⌛ Waiting for auth session...");
+                    
+                    // 5 second baad bhi user nahi mila to hi error dikhao
+                    setTimeout(() => {
+                        if(!auth.currentUser) {
+                            console.error("❌ Auth Failed. Please login again.");
+                            // window.location.href = 'index.html';
+                        }
+                    }, 5000);
+                }
+            });
         });
 
         async function loadProjectData() {
@@ -792,7 +795,7 @@ await db.collection('projects').doc(currentProjectID).set({
         }
 
       
-       // --- 5. THEATER / PLAYER (FIXED FOR STREAMING) ---
+// --- 5. THEATER / PLAYER (ULTIMATE FIX) ---
         function openTheater(link, title) {
             const modal = document.getElementById('theaterModal');
             const container = document.getElementById('playerContainer');
@@ -800,20 +803,24 @@ await db.collection('projects').doc(currentProjectID).set({
             if(modal && container) {
                 document.getElementById('playerTitle').innerText = title;
 
-                // 🔥 SMART FIX: Link ko Embed-Friendly banao
-                // Agar link "view" wala hai, to usay "preview" me badal do
+                // 🔥 LINK TRANSFORMATION (View to Preview)
                 let embedLink = link;
-                if (link.includes('drive.google.com') && link.includes('/view')) {
-                    embedLink = link.replace(/\/view.*/, '/preview');
+                if (link.includes('drive.google.com')) {
+                    if (link.includes('/view')) {
+                        embedLink = link.replace(/\/view.*/, '/preview');
+                    } else if (!link.includes('/preview')) {
+                        // Agar koi aur format ho to ID nikal kar preview banao
+                        const fileId = link.match(/[-\w]{25,}/);
+                        if (fileId) embedLink = `https://drive.google.com/file/d/${fileId[0]}/preview`;
+                    }
                 }
 
-                // Iframe set karo
-                container.innerHTML = `<iframe src="${embedLink}" class="w-full h-full border-0" allow="autoplay" allowfullscreen></iframe>`;
+                // Iframe set karo (allowfullscreen zaroori hai)
+                container.innerHTML = `<iframe src="${embedLink}" class="w-full h-full border-0" allow="autoplay; fullscreen" allowfullscreen></iframe>`;
                 
                 modal.classList.remove('hidden');
                 setTimeout(() => modal.style.opacity = '1', 10);
             } else {
-                // Agar modal nahi mila to naye tab me khol do
                 window.open(link, '_blank');
             }
         }
