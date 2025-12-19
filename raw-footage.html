@@ -469,23 +469,103 @@
         let currentFilter = 'all';
         let currentType = 'shorts';
 
-      // 🛠️ REFRESH-PROOF LOADING
+ // 🛠️ REFRESH-PROOF LOADING & AUTH FIX
         document.addEventListener('DOMContentLoaded', async () => {
             if(!currentProjectID) return;
 
-            // Firebase ke bajaye local session check karo
+            // Firebase ke bajaye local session check karo pehle (Instant)
             const localUser = JSON.parse(localStorage.getItem('user')); 
 
             if(localUser) {
-                console.log("✅ Session Found:", localUser.email);
+                console.log("✅ Session Found via LocalStorage:", localUser.email);
                 await loadProjectData();
             } else {
-                // Agar session nahi hai, to hi Firebase try karo
+                // Agar local session nahi hai, to Firebase ka wait karo
                 auth.onAuthStateChanged(async (user) => {
-                    if(user) await loadProjectData();
+                    if(user) {
+                        console.log("✅ User Verified via Firebase");
+                        await loadProjectData();
+                    } else {
+                        console.warn("⌛ No active session found.");
+                    }
                 });
             }
         });
+
+        // 🛠️ BULLETPROOF UPLOAD FUNCTION
+        async function sendToStudio() {
+            if (!selectedFile) return alert('No file selected');
+
+            document.getElementById('uploadStep1').classList.add('hidden');
+            document.getElementById('uploadStep2').classList.remove('hidden');
+            const bar = document.getElementById('uploadProgressBar');
+            const text = document.getElementById('uploadProgressText');
+
+            try {
+                text.innerText = "Connecting to Vault...";
+                const localUser = JSON.parse(localStorage.getItem('user'));
+                const userName = localUser ? (localUser.username || localUser.firstName || 'Creator') : 'Guest';
+                const projTitle = document.getElementById('rawProjectTitle').innerText || 'Project';
+
+                // API call (Calling the new route we added in Step 1)
+                const initRes = await fetch('/api/drive/init-upload', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        userName, 
+                        projectName: projTitle,
+                        fileName: selectedFile.name,
+                        fileType: selectedFile.type
+                    })
+                });
+                
+                const initData = await initRes.json();
+                if(!initData.success) throw new Error(initData.error || 'Server rejected request');
+
+                // STEP 2: Direct Upload (High Speed - No Server Load)
+                text.innerText = "Sending Data Directly to Drive...";
+                await new Promise((resolve) => {
+                    const xhr = new XMLHttpRequest();
+                    xhr.open('PUT', initData.uploadUrl, true);
+                    xhr.upload.onprogress = (e) => {
+                        const p = (e.loaded / e.total) * 100;
+                        bar.style.width = p + '%';
+                        text.innerText = `Uploading: ${p.toFixed(1)}%`;
+                    };
+                    xhr.onload = () => resolve();
+                    xhr.onerror = () => resolve(); // Ignore CORS browser warnings
+                    xhr.send(selectedFile);
+                });
+
+                // STEP 3: Update Firestore DB
+                text.innerText = "Saving to Project Library...";
+                const newClip = {
+                    id: initData.fileId,
+                    title: selectedFile.name,
+                    link: initData.viewLink,
+                    thumb: document.getElementById('previewThumbnail').src,
+                    date: new Date().toLocaleDateString(),
+                    type: currentType || 'shorts'
+                };
+                rawClips.push(newClip);
+
+                await db.collection('projects').doc(currentProjectID).set({
+                    footageLib: rawClips,
+                    title: projTitle,
+                    updatedAt: firebase.firestore.FieldValue.serverTimestamp()
+                }, { merge: true });
+
+                document.getElementById('uploadStep2').classList.add('hidden');
+                document.getElementById('uploadStep3').classList.remove('hidden');
+                renderVideos();
+                setTimeout(closeUploadModal, 1500);
+
+            } catch (error) {
+                console.error("Upload Error:", error);
+                alert("Upload Failed: " + error.message);
+                closeUploadModal();
+            }
+        }
 
         async function loadProjectData() {
             try {
@@ -558,78 +638,7 @@
             });
         }
 
-// 🛠️ BULLETPROOF UPLOAD FUNCTION
-        async function sendToStudio() {
-            if (!selectedFile) return alert('No file selected');
 
-            document.getElementById('uploadStep1').classList.add('hidden');
-            document.getElementById('uploadStep2').classList.remove('hidden');
-            const bar = document.getElementById('uploadProgressBar');
-            const text = document.getElementById('uploadProgressText');
-
-            try {
-                text.innerText = "Securing Connection...";
-                const localUser = JSON.parse(localStorage.getItem('user'));
-                const userName = localUser ? (localUser.username || 'Creator') : 'Guest';
-                const projTitle = document.getElementById('rawProjectTitle').innerText || 'Project';
-
-                // API call (Using relative path to avoid 404/500 errors)
-                const initRes = await fetch('/api/drive/init-upload', {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({
-                        userName, projectName: projTitle,
-                        fileName: selectedFile.name,
-                        fileType: selectedFile.type
-                    })
-                });
-                
-                const initData = await initRes.json();
-                if(!initData.success) throw new Error(initData.error || 'Server rejected');
-
-                // STEP 2: Direct Upload (Ignore CORS)
-                text.innerText = "Directly Sending to Drive...";
-                await new Promise((resolve) => {
-                    const xhr = new XMLHttpRequest();
-                    xhr.open('PUT', initData.uploadUrl, true);
-                    xhr.upload.onprogress = (e) => {
-                        const p = (e.loaded / e.total) * 100;
-                        bar.style.width = p + '%';
-                        text.innerText = `Uploading: ${p.toFixed(1)}%`;
-                    };
-                    xhr.onload = () => resolve();
-                    xhr.onerror = () => resolve(); // Google is tricky, we treat error as success
-                    xhr.send(selectedFile);
-                });
-
-                // STEP 3: Update Firebase DB
-                text.innerText = "Updating Library...";
-                const newClip = {
-                    id: initData.fileId,
-                    title: selectedFile.name,
-                    link: initData.viewLink,
-                    thumb: document.getElementById('previewThumbnail').src,
-                    date: new Date().toLocaleDateString(),
-                    type: currentType || 'shorts'
-                };
-                rawClips.push(newClip);
-
-                await db.collection('projects').doc(currentProjectID).set({
-                    footageLib: rawClips,
-                    title: projTitle,
-                    updatedAt: firebase.firestore.FieldValue.serverTimestamp()
-                }, { merge: true });
-
-                document.getElementById('uploadStep2').classList.add('hidden');
-                document.getElementById('uploadStep3').classList.remove('hidden');
-                renderVideos();
-                setTimeout(closeUploadModal, 1500);
-
-            } catch (error) {
-                alert("Upload Failed: " + error.message);
-                closeUploadModal();
-            }
-        }
 
         // --- 4. RENDER & PLAYER ---
         function renderVideos() {

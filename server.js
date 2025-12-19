@@ -544,12 +544,13 @@ app.post('/api/account/upload-avatar', upload.single('avatar'), async (req, res)
   }
 });
 
+
 // 🚀 DIRECT RESUMABLE UPLOAD (High-Speed Logic)
 app.post('/api/drive/init-upload', async (req, res) => {
   try {
     const { userName, projectName, fileName, fileType } = req.body;
     
-    // 1. Hierarchy Banao
+    // 1. Hierarchy Check/Create
     const ROOT_ID = process.env.DRIVE_FOLDER_ID;
     const userId = await findOrCreateFolder(userName, ROOT_ID);
     const projectsFolderId = await findOrCreateFolder("Projects", userId);
@@ -582,7 +583,7 @@ app.post('/api/drive/init-upload', async (req, res) => {
       }
     );
 
-    // 5. Success! Link bhej do
+    // 5. Success! Sab kuch Client ko bhej do
     res.json({ 
       success: true, 
       uploadUrl: uploadRes.headers.location, 
@@ -1297,58 +1298,6 @@ app.get('/api/get-announcement', async (req, res) => {
     } catch(e) { return res.json({ success: false }); }
 });
 
-
-
-
-// ===== DRIVE RESUMABLE UPLOAD ENDPOINTS =====
-
-app.post('/api/drive/init-upload', async (req, res) => {
-  try {
-    const { userName, projectName, fileName, fileType } = req.body;
-    const ROOT_ID = process.env.DRIVE_FOLDER_ID;
-    
-    // Folder Logic
-    const userId = await findOrCreateFolder(userName, ROOT_ID);
-    const projectsFolderId = await findOrCreateFolder("Projects", userId);
-    const projectSpecificId = await findOrCreateFolder(projectName, projectsFolderId);
-    const targetFolder = await findOrCreateFolder("Raw Footage", projectSpecificId);
-
-    // 1. Placeholder File (Instant ID & Link)
-    const placeholder = await drive.files.create({
-      resource: { name: fileName, parents: [targetFolder], mimeType: fileType },
-      fields: 'id, webViewLink',
-    });
-
-    const fileId = placeholder.data.id;
-    const viewLink = placeholder.data.webViewLink;
-
-    // 2. Public Permission
-    await setFilePublic(fileId);
-
-    // 3. Resumable URL maango
-    const tokenResponse = await oauth2Client.getAccessToken();
-    const uploadRes = await axios.post(
-      `https://www.googleapis.com/upload/drive/v3/files/${fileId}?uploadType=resumable`,
-      {},
-      {
-        headers: {
-          'Authorization': `Bearer ${tokenResponse.token}`,
-          'X-Upload-Content-Type': fileType
-        }
-      }
-    );
-
-    res.json({ 
-      success: true, 
-      uploadUrl: uploadRes.headers.location, 
-      fileId, 
-      viewLink 
-    });
-
-  } catch (error) {
-    res.status(500).json({ success: false, error: error.message });
-  }
-});
 // 2. FINALIZE UPLOAD (Set Public & Return Links)
 app.post('/api/drive/finalize-upload', async (req, res) => {
   try {
