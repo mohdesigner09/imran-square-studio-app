@@ -432,10 +432,33 @@
 
 
 
- <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-auth-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-firestore-compat.js"></script>
     
+    <script>
+        const firebaseConfig = {
+            apiKey: "AIzaSyA_D3AuwSzHKgs5svcwRoP0St2Nc-delF8",
+            authDomain: "iimransquare.firebaseapp.com",
+            projectId: "iimransquare",
+            storageBucket: "iimransquare.firebasestorage.app",
+            messagingSenderId: "431645042472",
+            appId: "1:431645042472:web:87e7cea4659d6a0564121d",
+            measurementId: "G-Z0EN14J4XM"
+        };
+
+        // Firebase start karo
+        if (!firebase.apps.length) {
+            firebase.initializeApp(firebaseConfig);
+        }
+        
+        // 'db' aur 'auth' ko global banao taaki baaki files use kar sakein
+        const db = firebase.firestore();
+        const auth = firebase.auth();
+        window.db = db;     // Make sure it's global
+        window.auth = auth; // Make sure it's global
+    </script>
+
     <script src="main.js"></script>
 
     <script>
