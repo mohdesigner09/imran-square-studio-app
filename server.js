@@ -98,24 +98,23 @@ const db = admin.firestore();
 
 // ✅ PASTE THIS RIGHT AFTER: const db = admin.firestore();
 
-// 1. DRIVE SERVICE ACCOUNT SETUP (Render Friendly)
-// const DRIVE_KEY_PATH = path.join(__dirname, 'drive-service-account.json'); // <-- Ye purana rasta band
+// ✅ IS NAYE CODE KO PASTE KARO
+// 1. DRIVE OAUTH2 SETUP (Personal 2TB Drive Access)
+// Ye code tumhare Render Variables (CLIENT_ID, SECRET, REFRESH_TOKEN) ko use karega
+const oauth2Client = new google.auth.OAuth2(
+  process.env.GOOGLE_CLIENT_ID,
+  process.env.GOOGLE_CLIENT_SECRET,
+  "https://developers.google.com/oauthplayground"
+);
 
-let driveCredentials;
-try {
-  // Render ke "Environment Variable" se key uthao
-  driveCredentials = JSON.parse(process.env.DRIVE_SERVICE_ACCOUNT_JSON);
-} catch (error) {
-  console.error("❌ Drive Credentials ERROR: .env me DRIVE_SERVICE_ACCOUNT_JSON check karo");
-}
-
-const driveAuth = new google.auth.GoogleAuth({
-  credentials: driveCredentials, // <-- 'keyFile' ki jagah ab 'credentials' use hoga
-  scopes: ['https://www.googleapis.com/auth/drive'],
+// Token set karo taaki server login rahe
+oauth2Client.setCredentials({
+  refresh_token: process.env.GOOGLE_REFRESH_TOKEN
 });
 
-// Main Drive Object
-const drive = google.drive({ version: 'v3', auth: driveAuth });
+// Drive connect karo
+const drive = google.drive({ version: 'v3', auth: oauth2Client });
+
 
 // 3. HELPER FUNCTIONS (Folder Logic)
 async function findOrCreateFolder(folderName, parentId) {
