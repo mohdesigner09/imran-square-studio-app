@@ -691,37 +691,34 @@ if (fileInput) {
                 
                 clearInterval(timer);
                 bar.style.width = '100%';
+if(data.success) {
+    // Success UI
+    document.getElementById('uploadStep2').classList.add('hidden');
+    document.getElementById('uploadStep3').classList.remove('hidden');
 
-                if(data.success) {
-                    // Success UI
-                    document.getElementById('uploadStep2').classList.add('hidden');
-                    document.getElementById('uploadStep3').classList.remove('hidden');
+    // ... (Baaki success logic same rahega) ...
+    // Add to Local List
+    const newClip = {
+        id: data.fileId,
+        title: selectedFile.name,
+        link: data.viewLink,
+        thumb: document.getElementById('previewThumbnail').src,
+        date: new Date().toLocaleDateString(),
+        type: 'raw'
+    };
+    rawClips.push(newClip);
+    
+    // Firestore update logic... (same as before)
+    await db.collection('projects').doc(currentProjectID).update({
+        footageLib: rawClips
+    });
+    renderVideos();
+    setTimeout(closeUploadModal, 1500);
 
-                    // Add to Local List
-                    const newClip = {
-                        id: data.fileId,
-                        title: selectedFile.name,
-                        link: data.viewLink, // Drive Link
-                        thumb: document.getElementById('previewThumbnail').src,
-                        date: new Date().toLocaleDateString(),
-                        type: 'raw'
-                    };
-                    
-                    rawClips.push(newClip);
-
-                    // 🔥 Update Firestore Database
-                    await db.collection('projects').doc(currentProjectID).update({
-                        footageLib: rawClips
-                    });
-
-                    renderVideos();
-
-                    // Close Modal after 1.5s
-                    setTimeout(closeUploadModal, 1500);
-
-                } else {
-                    throw new Error(data.message || 'Upload failed');
-                }
+} else {
+    // ✅ FIX: Ab ye "error" aur "message" dono check karega
+    throw new Error(data.message || data.error || 'Server Problem (Unknown Error)');
+}
 
             } catch (error) {
                 clearInterval(timer);
