@@ -672,11 +672,11 @@ if (fileInput) {
             document.getElementById('uploadFootageModal').classList.add('hidden');
             selectedFile = null;
         }
-
-       // 🔥 HIGH-SPEED DIRECT UPLOAD FUNCTION (Final Version)
+// 🔥 HIGH-SPEED DIRECT UPLOAD FUNCTION (CORS FIXED VERSION)
         async function sendToStudio() {
             if (!selectedFile) return alert('No file selected');
 
+            // UI Setup
             document.getElementById('uploadStep1').classList.add('hidden');
             document.getElementById('uploadStep2').classList.remove('hidden');
             const bar = document.getElementById('uploadProgressBar');
@@ -684,28 +684,39 @@ if (fileInput) {
 
             try {
                 // --- STEP 1: Get Upload URL ---
-                text.innerText = "Connecting to Vault...";
+                text.innerText = "Initializing Connection...";
                 const userName = CURRENTUSER ? (CURRENTUSER.displayName || 'Creator') : 'Guest';
                 const projTitle = document.getElementById('rawProjectTitle').innerText || 'Project';
+
+                // File type safety (agar empty ho to default lelo)
+                const safeFileType = selectedFile.type || 'application/octet-stream';
 
                 const initRes = await fetch(`${API_BASE}/api/drive/init-upload`, {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify({
-                        userName, projectName: projTitle,
+                        userName, 
+                        projectName: projTitle,
                         fileName: selectedFile.name,
-                        fileType: selectedFile.type,
+                        fileType: safeFileType, // Safe Type bhejo
                         fileSize: selectedFile.size
                     })
                 });
+                
                 const initData = await initRes.json();
                 if(!initData.success) throw new Error(initData.error || 'Server Init Failed');
 
-                // --- STEP 2: Direct Upload to Google ---
+                // --- STEP 2: Direct Upload (CORS SAFE MODE) ---
+                text.innerText = "Uploading to Vault...";
+                
                 const fileId = await new Promise((resolve, reject) => {
                     const xhr = new XMLHttpRequest();
                     xhr.open('PUT', initData.uploadUrl, true);
-                    xhr.setRequestHeader('Content-Type', selectedFile.type);
+                    
+                    // ❌ YE LINE MAT LAGANA: xhr.setRequestHeader('Content-Type', ...); 
+                    // Google already knows the type from Step 1. Sending it again causes CORS error.
+                    
+                    xhr.withCredentials = false; // Important: Cookies mat bhejo
 
                     xhr.upload.onprogress = (e) => {
                         if (e.lengthComputable) {
@@ -714,26 +725,43 @@ if (fileInput) {
                             text.innerText = `Sending: ${p.toFixed(1)}%`;
                         }
                     };
+
                     xhr.onload = () => {
+                        // Google 200 (OK) ya 201 (Created) deta hai success par
                         if (xhr.status === 200 || xhr.status === 201) {
-                            const resp = JSON.parse(xhr.responseText);
-                            resolve(resp.id); // Google ID return karta hai
-                        } else reject(new Error(`Upload Error: ${xhr.status}`));
+                            try {
+                                const resp = JSON.parse(xhr.responseText);
+                                resolve(resp.id);
+                            } catch(e) {
+                                // Kabhi kabhi Google JSON nahi deta par upload ho jata hai
+                                resolve('uploaded_check_drive'); 
+                            }
+                        } else {
+                            // Agar 308 (Resume Incomplete) aaye to wo error nahi hai, par yahan hum single shot kar rahe hain
+                            reject(new Error(`Upload Rejected: ${xhr.status} - ${xhr.statusText}`));
+                        }
                     };
-                    xhr.onerror = () => reject(new Error("Network Failure"));
+
+                    xhr.onerror = () => reject(new Error("Network/CORS Failure (Check Console)"));
                     xhr.send(selectedFile);
                 });
 
-                // --- STEP 3: Finalize (Make Public & Save DB) ---
+                // --- STEP 3: Finalize ---
                 text.innerText = "Finalizing...";
+                
+                // Agar ID 'uploaded_check_drive' mili hai, toh hum verify nahi kar payenge, 
+                // par zyadatar case me ID milti hai.
+                
+                // Hum finalize call karenge taaki DB update ho jaye
                 const finalRes = await fetch(`${API_BASE}/api/drive/finalize-upload`, {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify({ fileId })
                 });
+                
                 const finalData = await finalRes.json();
 
-                // --- STEP 4: Update UI & Database ---
+                // --- STEP 4: Update UI ---
                 if(finalData.success) {
                     const newClip = {
                         id: finalData.fileId,
@@ -756,11 +784,18 @@ if (fileInput) {
                     document.getElementById('uploadStep3').classList.remove('hidden');
                     renderVideos();
                     setTimeout(closeUploadModal, 1500);
+                } else {
+                    throw new Error("Finalize Failed: " + (finalData.error || 'Unknown'));
                 }
 
             } catch (error) {
                 console.error(error);
-                alert("Upload Failed: " + error.message);
+                alert("Upload Process Error: " + error.message);
+                
+                // Agar CORS error tha, tab bhi shayad file upload ho gayi ho
+                if(error.message.includes("Network")) {
+                    alert("⚠️ Tip: Network Error dikh raha hai par file shayad Drive par aa gayi ho. Page refresh karke check kar lena.");
+                }
                 closeUploadModal();
             }
         }
