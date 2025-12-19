@@ -544,6 +544,58 @@ app.post('/api/account/upload-avatar', upload.single('avatar'), async (req, res)
   }
 });
 
+// 🚀 DIRECT RESUMABLE UPLOAD (High-Speed Logic)
+app.post('/api/drive/init-upload', async (req, res) => {
+  try {
+    const { userName, projectName, fileName, fileType } = req.body;
+    
+    // 1. Hierarchy Banao
+    const ROOT_ID = process.env.DRIVE_FOLDER_ID;
+    const userId = await findOrCreateFolder(userName, ROOT_ID);
+    const projectsFolderId = await findOrCreateFolder("Projects", userId);
+    const projectSpecificId = await findOrCreateFolder(projectName, projectsFolderId);
+    const targetFolder = await findOrCreateFolder("Raw Footage", projectSpecificId);
+
+    // 2. Placeholder File banao (Gets ID instantly)
+    const placeholder = await drive.files.create({
+      resource: { name: fileName, parents: [targetFolder], mimeType: fileType },
+      fields: 'id, webViewLink',
+    });
+
+    const fileId = placeholder.data.id;
+    const viewLink = placeholder.data.webViewLink;
+
+    // 3. Public Permission set karo
+    await setFilePublic(fileId);
+
+    // 4. Google se Resumable Upload Link maango
+    const tokenResponse = await oauth2Client.getAccessToken();
+    const uploadRes = await axios.post(
+      `https://www.googleapis.com/upload/drive/v3/files/${fileId}?uploadType=resumable`,
+      {},
+      {
+        headers: {
+          'Authorization': `Bearer ${tokenResponse.token}`,
+          'X-Upload-Content-Type': fileType,
+          'Content-Type': 'application/json; charset=UTF-8'
+        }
+      }
+    );
+
+    // 5. Success! Link bhej do
+    res.json({ 
+      success: true, 
+      uploadUrl: uploadRes.headers.location, 
+      fileId: fileId,
+      viewLink: viewLink 
+    });
+
+  } catch (error) {
+    console.error('❌ Init Error:', error.message);
+    res.status(500).json({ success: false, error: error.message });
+  }
+});
+
 // ========================
 // RAW FOOTAGE UPLOAD → GOOGLE DRIVE + FIRESTORE
 // ========================
