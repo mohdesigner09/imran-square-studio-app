@@ -98,11 +98,19 @@ const db = admin.firestore();
 
 // ✅ PASTE THIS RIGHT AFTER: const db = admin.firestore();
 
-// 1. DRIVE SERVICE ACCOUNT SETUP (Stable)
-const DRIVE_KEY_PATH = path.join(__dirname, 'drive-service-account.json');
+// 1. DRIVE SERVICE ACCOUNT SETUP (Render Friendly)
+// const DRIVE_KEY_PATH = path.join(__dirname, 'drive-service-account.json'); // <-- Ye purana rasta band
+
+let driveCredentials;
+try {
+  // Render ke "Environment Variable" se key uthao
+  driveCredentials = JSON.parse(process.env.DRIVE_SERVICE_ACCOUNT_JSON);
+} catch (error) {
+  console.error("❌ Drive Credentials ERROR: .env me DRIVE_SERVICE_ACCOUNT_JSON check karo");
+}
 
 const driveAuth = new google.auth.GoogleAuth({
-  keyFile: DRIVE_KEY_PATH,
+  credentials: driveCredentials, // <-- 'keyFile' ki jagah ab 'credentials' use hoga
   scopes: ['https://www.googleapis.com/auth/drive'],
 });
 
