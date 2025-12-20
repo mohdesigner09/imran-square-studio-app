@@ -12,7 +12,7 @@ import { fileURLToPath } from 'url';
 import { readFileSync } from 'fs';
 import bcrypt from 'bcryptjs'; // ✅ Fixed: Bcryptjs used
 import { Readable } from 'stream';
-export default router;
+
 // ===== 2. CONFIGURATION =====
 dotenv.config();
 
@@ -20,14 +20,12 @@ dotenv.config();
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
-import driveRoutes from './routes/drive.js';
 
 // ===== 3. APP INITIALIZATION =====
 const app = express();
 app.use(express.json());
 const router = express.Router();
 
-app.use('/api/drive', driveRoutes);
 
 const ADMIN_EMAIL = 'mohdesigner09@gmail.com';
 
@@ -1336,11 +1334,6 @@ app.use((err, req, res, next) => {
   });
 });
 
-// ==========================================
-const PORT = process.env.PORT || 10000;
-app.listen(PORT, () => {
-    console.log(`Server running on port ${PORT}`);
-});
 
 // 🚀 DIRECT RESUMABLE UPLOAD (High-Speed Logic)
 app.post('/api/drive/init-upload', async (req, res) => {
