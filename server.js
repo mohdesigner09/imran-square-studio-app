@@ -1397,7 +1397,7 @@ app.post('/api/drive/init-upload', async (req, res) => {
         await setFilePublic(fileId);
 
         // 8. Get Upload URL
-        const uploadRes = await axios.post(
+        const uploadRes = await axios.patch(
           `https://www.googleapis.com/upload/drive/v3/files/${fileId}?uploadType=resumable`,
           {},
           {
