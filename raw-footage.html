@@ -463,11 +463,10 @@
         window.auth = auth; // Make sure it's global
     </script>
 
-    <script src="main.js"></script>
-
+   
 <script>
     // ========================================
-    // 🔥 CONFIGURATION
+    // 🔥 EMERGENCY SCRIPT (NO REDIRECT MODE)
     // ========================================
     let currentProjectID = new URLSearchParams(window.location.search).get('id') || 'demo-project';
     let rawClips = [];
@@ -475,59 +474,40 @@
     let currentUser = null;
     let isAuthReady = false;
 
-    // ========================================
-    // 🔥 AUTH CHECK (RELAXED & PATIENT MODE)
-    // ========================================
-    document.addEventListener('DOMContentLoaded', async () => {
-        console.log("🚀 Page Loaded - Checking Auth...");
+    console.log("🛑 EMERGENCY MODE ACTIVE: Redirects are DISABLED.");
 
-        // STEP 1: Check LocalStorage (Sirf Data lene ke liye)
+    document.addEventListener('DOMContentLoaded', async () => {
+        
+        // 1. LocalStorage Check
         const storedUser = localStorage.getItem('user');
         if (storedUser) {
             try {
                 currentUser = JSON.parse(storedUser);
-                isAuthReady = true;
-                console.log("✅ LocalStorage User Found:", currentUser.email);
-                // Data mil gaya, turant load shuru karo
-                loadProjectData(); 
-            } catch (e) {
-                console.warn("⚠️ LocalStorage corrupt");
-            }
-        } 
-        // ⚠️ NOTE: Yahan 'else' me redirect HATA DIYA hai. 
-        // Hum Firebase ka wait karenge.
+                console.log("✅ User Found (Local):", currentUser.email);
+                loadProjectData();
+            } catch (e) {}
+        }
 
-        // STEP 2: Check Firebase (The Final Authority)
+        // 2. Firebase Check
         if (typeof firebase !== 'undefined' && firebase.auth) {
             firebase.auth().onAuthStateChanged(async (user) => {
                 if (user) {
-                    // --- USER LOGGED IN ---
-                    console.log("🔥 Firebase Verified:", user.email);
-                    
+                    console.log("🔥 Firebase User Found:", user.email);
                     currentUser = {
                         uid: user.uid,
                         email: user.email,
                         displayName: user.displayName || user.email.split('@')[0],
                         photoURL: user.photoURL
                     };
-                    
-                    // Future ke liye save karo
                     localStorage.setItem('user', JSON.stringify(currentUser));
                     
-                    // Agar abhi tak project load nahi hua to ab karo
-                    if (!rawClips.length) { 
-                        await loadProjectData();
-                    }
+                    if(rawClips.length === 0) loadProjectData();
 
                 } else {
-                    // --- USER LOGGED OUT ---
-                    console.warn("🚫 Firebase says: No User.");
-                    
-                    // AB hum check karenge. Agar LocalStorage bhi khali hai, TABHI nikalo.
-                    if (!localStorage.getItem('user')) {
-                        console.error("❌ No credentials found. Redirecting to Login...");
-                        window.location.href = 'login.html'; 
-                    }
+                    console.warn("⚠️ Firebase says: NO USER.");
+                    console.log("🛑 Main tumhe kick karne wala tha, par maine khud ko rok liya.");
+                    // Yahan pehle 'window.location.href' tha, maine HATA DIYA hai.
+                    // Ab ye page se hil nahi sakta.
                 }
             });
         }
@@ -538,81 +518,44 @@
     // ========================================
     async function loadProjectData() {
         if (!currentProjectID) return;
-
-        // DB Check
         const dbRef = window.db || (firebase && firebase.firestore && firebase.firestore());
-        if (!dbRef) return; 
+        if (!dbRef) return;
 
         try {
             const doc = await dbRef.collection('projects').doc(currentProjectID).get();
             if (doc.exists) {
                 const data = doc.data();
-                const titleEl = document.getElementById('rawProjectTitle');
-                if (titleEl) titleEl.textContent = (data.title || 'Untitled').toUpperCase();
-                
+                document.getElementById('rawProjectTitle').innerText = (data.title || 'Untitled').toUpperCase();
                 rawClips = data.footageLib || [];
-                
-                // UI Refresh
                 if (typeof renderVideos === 'function') renderVideos();
-                console.log("✅ Project Data Loaded");
             }
-        } catch (e) {
-            console.error("Load Error:", e);
-        }
+        } catch (e) { console.error("Load Error:", e); }
     }
 
     // ========================================
-    // 🔥 FILE PREVIEW
-    // ========================================
-    const previewInput = document.getElementById('footageFileInput') || document.getElementById('fileInput');
-    if (previewInput) {
-        previewInput.addEventListener('change', (e) => {
-            const file = e.target.files[0];
-            if (!file) return;
-            selectedFile = file;
-            
-            const previewDiv = document.getElementById('filePreview');
-            if(previewDiv) previewDiv.classList.remove('hidden');
-            
-            document.getElementById('previewFileName').textContent = file.name;
-            document.getElementById('previewFileSize').textContent = (file.size / (1024 * 1024)).toFixed(2) + ' MB';
-            
-            const video = document.createElement('video');
-            video.src = URL.createObjectURL(file);
-            video.currentTime = 1;
-            video.onseeked = () => {
-                const canvas = document.createElement('canvas');
-                canvas.width = 320; canvas.height = 180;
-                canvas.getContext('2d').drawImage(video, 0, 0, 320, 180);
-                const thumb = document.getElementById('previewThumbnail');
-                if(thumb) thumb.src = canvas.toDataURL();
-            };
-        });
-    }
-
-    // ========================================
-    // 🔥 MASTER UPLOAD (Drive + Database Sync)
+    // 🔥 MASTER UPLOAD (Admin Storage)
     // ========================================
     async function sendToStudio() {
+        // ID Check (Both variants)
         const fileInput = document.getElementById('fileInput') || document.getElementById('footageFileInput'); 
-        if (!fileInput || !fileInput.files[0]) return alert("Please select a file!");
+        
+        if (!fileInput || !fileInput.files[0]) return alert("File select to karo bhai!");
+        
+        // Agar user nahi hai, to Guest ban jao (Redirect mat karo)
+        const uName = currentUser ? currentUser.email : "Guest_Emergency_User";
         
         const file = fileInput.files[0];
         const statusText = document.getElementById('text') || { innerText: '' }; 
         statusText.innerText = "Step 1: Connecting...";
 
         try {
-            // User Check (Relaxed)
-            const uName = currentUser ? currentUser.email : "Unknown_User";
-            const pName = document.getElementById('rawProjectTitle').innerText || "Project";
-
-            // 1. Init Upload
+            // Init Upload
             const response = await fetch('/api/drive/init-upload', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({
                     userName: uName, 
-                    projectName: pName,
+                    projectName: "Raw_Footage",
                     fileName: file.name,
                     fileType: file.type
                 })
@@ -621,7 +564,7 @@
             const data = await response.json();
             if (!data.success) throw new Error(data.error);
 
-            // 2. Direct Upload
+            // Direct Upload
             statusText.innerText = "Step 2: Uploading...";
             const xhr = new XMLHttpRequest();
             xhr.open("PUT", data.uploadUrl, true);
@@ -634,9 +577,9 @@
 
             xhr.onload = async () => {
                 if (xhr.status === 200 || xhr.status === 201 || xhr.status === 308) {
-                    statusText.innerText = "✅ Saving to App...";
+                    statusText.innerText = "✅ Saving...";
                     
-                    // 3. Database Update
+                    // DB Update
                     const newVideoData = {
                         title: file.name,
                         link: data.viewLink,
@@ -652,127 +595,56 @@
                         await dbRef.collection('projects').doc(currentProjectID).update({
                             footageLib: firebase.firestore.FieldValue.arrayUnion(newVideoData)
                         });
-                        
-                        // Instant UI Update
                         rawClips.push(newVideoData);
                         renderVideos();
-                        
-                        statusText.innerText = "🎉 Upload Complete!";
-                        alert("Uploaded Successfully!");
+                        statusText.innerText = "Success!";
+                        alert("Ho gaya Upload! Bina Login ke bhi.");
                         if(typeof closeUploadModal === 'function') closeUploadModal();
-                    } catch (dbError) {
-                        console.error("DB Error", dbError);
-                        statusText.innerText = "⚠️ Uploaded, but DB Sync Failed";
-                    }
+                    } catch (e) { console.error(e); }
                 } else {
-                    statusText.innerText = "❌ Failed: " + xhr.status;
+                    statusText.innerText = "Failed: " + xhr.status;
                 }
             };
             xhr.send(file);
         } catch (error) {
-            console.error(error);
-            statusText.innerText = "❌ Error: " + error.message;
+            alert("Error: " + error.message);
         }
     }
 
-    // ========================================
-    // 🔥 UI HELPERS
-    // ========================================
+    // UI Helpers (Required to prevent errors)
     function openUploadModal() {
         document.getElementById('uploadFootageModal').classList.remove('hidden');
         document.getElementById('uploadStep1').classList.remove('hidden');
         document.getElementById('uploadStep2').classList.add('hidden');
-        document.getElementById('uploadStep3').classList.add('hidden');
-        if(document.getElementById('filePreview')) document.getElementById('filePreview').classList.add('hidden');
+        document.getElementById('filePreview').classList.add('hidden');
     }
-
-    function closeUploadModal() {
-        document.getElementById('uploadFootageModal').classList.add('hidden');
-        selectedFile = null;
-    }
-
-    function switchType(type, btn) {
-        currentType = type;
-        document.querySelectorAll('.type-btn').forEach(b => b.classList.remove('active'));
-        btn.classList.add('active');
-        const shortGrid = document.getElementById('gridShorts');
-        const longGrid = document.getElementById('gridLongs');
-        if (type === 'shorts') {
-            shortGrid.classList.remove('hidden-grid', 'hidden');
-            longGrid.classList.add('hidden-grid', 'hidden');
-        } else {
-            longGrid.classList.remove('hidden-grid', 'hidden');
-            shortGrid.classList.add('hidden-grid', 'hidden');
-        }
-        renderVideos();
-    }
-
-    function renderVideos() {
-        const gridShorts = document.getElementById('gridShorts');
-        const gridLongs = document.getElementById('gridLongs');
-        if (!gridShorts || !gridLongs) return;
-        
-        gridShorts.innerHTML = '';
-        gridLongs.innerHTML = '';
-
-        if (rawClips.length === 0) {
-            gridShorts.innerHTML = '<div class="col-span-full text-center text-gray-500 py-10">No videos yet</div>';
-            return;
-        }
-
-        rawClips.forEach((vid, idx) => {
-            const div = document.createElement('div');
-            div.className = `group relative bg-gray-900 rounded-lg overflow-hidden border border-white/10 hover:border-orange-500/50 transition ${vid.type === 'shorts' ? 'aspect-[9/16]' : 'aspect-video'}`;
-            div.innerHTML = `
-                <div onclick="openTheater('${vid.link}', '${vid.title}')" class="w-full h-full cursor-pointer relative" style="background-image: url('${vid.thumb || 'img/video-placeholder.png'}'); background-size: cover; background-position: center;">
-                    <div class="absolute inset-0 bg-black/40 flex items-center justify-center opacity-0 group-hover:opacity-100 transition">
-                        <svg class="w-10 h-10 text-white" fill="currentColor" viewBox="0 0 20 20"><path d="M6.3 2.841A1.5 1.5 0 004 4.11V15.89a1.5 1.5 0 002.3 1.269l9.333-5.89a1.5 1.5 0 000-2.538L6.3 2.841z"/></svg>
-                    </div>
-                    <div class="absolute bottom-0 p-2 w-full bg-black/60">
-                        <h4 class="text-white text-[10px] truncate">${vid.title}</h4>
-                        <button onclick="event.stopPropagation(); deleteClip(${idx})" class="text-red-500 text-[10px] mt-1">Delete</button>
-                    </div>
-                </div>`;
-            
-            if (vid.type === 'shorts') gridShorts.appendChild(div);
-            else gridLongs.appendChild(div);
+    function closeUploadModal() { document.getElementById('uploadFootageModal').classList.add('hidden'); }
+    
+    // Preview Logic
+    const pInput = document.getElementById('footageFileInput') || document.getElementById('fileInput');
+    if(pInput) {
+        pInput.addEventListener('change', (e) => {
+            const f = e.target.files[0];
+            if(f) {
+                document.getElementById('filePreview').classList.remove('hidden');
+                document.getElementById('previewFileName').textContent = f.name;
+            }
         });
     }
 
-    function openTheater(link, title) {
-        const modal = document.getElementById('theaterModal');
-        if (!modal) return;
-        document.getElementById('playerTitle').innerText = title;
-        let embedLink = link.includes('/view') ? link.replace(/\/view.*/, '/preview') : link;
-        document.getElementById('playerContainer').innerHTML = `<iframe src="${embedLink}" class="w-full h-full border-0" allow="autoplay; fullscreen" allowfullscreen></iframe>`;
-        modal.classList.remove('hidden');
-        setTimeout(() => modal.style.opacity = '1', 10);
-    }
-
-    function closeTheater() {
-        const modal = document.getElementById('theaterModal');
-        if (!modal) return;
-        modal.style.opacity = '0';
-        setTimeout(() => {
-            modal.classList.add('hidden');
-            document.getElementById('playerContainer').innerHTML = '';
-        }, 300);
-    }
-
-    async function deleteClip(idx) {
-        if (!confirm("Delete this clip?")) return;
-        rawClips.splice(idx, 1);
-        try {
-            const dbRef = window.db || firebase.firestore();
-            await dbRef.collection('projects').doc(currentProjectID).update({ footageLib: rawClips });
-            renderVideos();
-        } catch(e) {
-            console.error("Delete failed:", e);
-        }
-    }
-
-    function goBackToHub() {
-        window.location.href = currentProjectID ? `project-hub.html?id=${currentProjectID}` : 'index.html';
+    // Render Logic
+    function renderVideos() {
+        const gridShorts = document.getElementById('gridShorts');
+        const gridLongs = document.getElementById('gridLongs');
+        if(!gridShorts) return;
+        gridShorts.innerHTML = ''; gridLongs.innerHTML = '';
+        
+        if(!rawClips.length) { gridShorts.innerHTML = 'No Videos'; return; }
+        
+        rawClips.forEach(vid => {
+            const html = `<div class="p-2 bg-gray-800 text-white mb-2 border">${vid.title} <br> <a href="${vid.link}" target="_blank" class="text-blue-400">View</a></div>`;
+            gridLongs.insertAdjacentHTML('beforeend', html);
+        });
     }
 </script>
 </body>
