@@ -1404,7 +1404,8 @@ app.post('/api/drive/init-upload', async (req, res) => {
             headers: {
               'Authorization': `Bearer ${tokenResponse.token}`,
               'X-Upload-Content-Type': fileType,
-              'Content-Type': 'application/json; charset=UTF-8'
+              'Content-Type': 'application/json; charset=UTF-8',
+              'Origin': 'https://imran-square-studio.onrender.com'
             }
           }
         );

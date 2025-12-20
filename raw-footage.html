@@ -492,80 +492,86 @@
             }
         });
 
-        // 🛠️ BULLETPROOF UPLOAD FUNCTION
-        async function sendToStudio() {
-            if (!selectedFile) return alert('No file selected');
+ // Is function ko replace karo raw-footage.html mein
+async function sendToStudio() {
+    const fileInput = document.getElementById('fileInput');
+    const file = fileInput.files[0];
+    
+    if (!file) return alert("Please select a file!");
 
-            document.getElementById('uploadStep1').classList.add('hidden');
-            document.getElementById('uploadStep2').classList.remove('hidden');
-            const bar = document.getElementById('uploadProgressBar');
-            const text = document.getElementById('uploadProgressText');
+    const statusText = document.getElementById('text'); // Status dikhane ke liye
+    statusText.innerText = "Initializing Upload...";
 
-            try {
-                text.innerText = "Securing Connection...";
-                const localUser = JSON.parse(localStorage.getItem('user'));
-                const userName = localUser ? (localUser.username || localUser.firstName || 'Creator') : 'Guest';
-                const projTitle = document.getElementById('rawProjectTitle').innerText || 'Project';
+    try {
+        // 1. Backend se Link Maango
+        const initResponse = await fetch('/api/drive/init-upload', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+                userName: "Imran_User", // Ya jo bhi variable ho
+                projectName: "Raw_Footage",
+                fileName: file.name,
+                fileType: file.type
+            })
+        });
 
-                // API call (Ab server par ye route mil jayega)
-                const initRes = await fetch('/api/drive/init-upload', {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({
-                        userName, 
-                        projectName: projTitle,
-                        fileName: selectedFile.name,
-                        fileType: selectedFile.type
-                    })
-                });
-                
-                const initData = await initRes.json();
-                if(!initData.success) throw new Error(initData.error || 'Server rejected');
+        const initData = await initResponse.json();
 
-                // Step 2: Direct Upload (Ignore CORS error at 100%)
-                text.innerText = "Sending Data Directly to Drive...";
-                await new Promise((resolve) => {
-                    const xhr = new XMLHttpRequest();
-                    xhr.open('PUT', initData.uploadUrl, true);
-                    xhr.upload.onprogress = (e) => {
-                        const p = (e.loaded / e.total) * 100;
-                        bar.style.width = p + '%';
-                        text.innerText = `Uploading: ${p.toFixed(1)}%`;
-                    };
-                    xhr.onload = () => resolve();
-                    xhr.onerror = () => resolve(); 
-                    xhr.send(selectedFile);
-                });
-
-                // Step 3: Save to DB
-                text.innerText = "Updating Library...";
-                const newClip = {
-                    id: initData.fileId,
-                    title: selectedFile.name,
-                    link: initData.viewLink,
-                    thumb: document.getElementById('previewThumbnail').src,
-                    date: new Date().toLocaleDateString(),
-                    type: currentType || 'shorts'
-                };
-                rawClips.push(newClip);
-
-                await db.collection('projects').doc(currentProjectID).set({
-                    footageLib: rawClips,
-                    title: projTitle,
-                    updatedAt: firebase.firestore.FieldValue.serverTimestamp()
-                }, { merge: true });
-
-                document.getElementById('uploadStep2').classList.add('hidden');
-                document.getElementById('uploadStep3').classList.remove('hidden');
-                renderVideos();
-                setTimeout(closeUploadModal, 1500);
-
-            } catch (error) {
-                alert("Upload Failed: " + error.message);
-                closeUploadModal();
-            }
+        if (!initData.success) {
+            throw new Error(initData.error || "Init Failed");
         }
 
+        const uploadUrl = initData.uploadUrl;
+        console.log("Got Upload URL:", uploadUrl);
+        statusText.innerText = "Uploading to Drive (0%)...";
+
+        // 2. 🚀 THE REAL UPLOAD (CORS FIX HERE)
+        // Note: Hum yahan koi 'Authorization' header nahi bhej rahe.
+        // Kyunki 'uploadUrl' ke andar hi token chupa hua hai.
+        
+        const xhr = new XMLHttpRequest();
+        xhr.open("PUT", uploadUrl, true);
+        xhr.setRequestHeader("Content-Type", file.type); // Sirf ye header allow hai
+
+        // Progress Bar Update
+        xhr.upload.onprogress = (e) => {
+            if (e.lengthComputable) {
+                const percent = ((e.loaded / e.total) * 100).toFixed(0);
+                statusText.innerText = `Uploading... ${percent}%`;
+            }
+        };
+
+        xhr.onload = async () => {
+            if (xhr.status === 200 || xhr.status === 201) {
+                console.log("Upload Complete!");
+                statusText.innerText = "✅ Upload Successful!";
+                
+                // Finalize call (Optional, bas link dikhane ke liye)
+                await fetch('/api/drive/finalize-upload', {
+                    method: 'POST',
+                    headers: {'Content-Type': 'application/json'},
+                    body: JSON.stringify({ fileId: initData.fileId })
+                });
+                
+                alert("Upload Done! Check Drive.");
+            } else {
+                console.error("Upload Failed:", xhr.responseText);
+                statusText.innerText = "❌ Upload Failed (CORS/Net)";
+            }
+        };
+
+        xhr.onerror = () => {
+            console.error("Network Error during upload");
+            statusText.innerText = "❌ Network Error (CORS)";
+        };
+
+        xhr.send(file); // 👈 File bhej do!
+
+    } catch (error) {
+        console.error("Error:", error);
+        statusText.innerText = "❌ Error: " + error.message;
+    }
+}
         async function loadProjectData() {
             try {
                 const doc = await db.collection('projects').doc(currentProjectID).get();
