@@ -1390,6 +1390,8 @@ app.post('/api/drive/init-upload', async (req, res) => {
   }
 });
 
+// ===== SERVER START =====
+const PORT = process.env.PORT || 10000;
 app.listen(PORT, () => {
   console.log(`✅ Server running on port ${PORT}`);
   console.log(`\n🚀 Multi-AI API Proxy running at http://localhost:${PORT}`);
