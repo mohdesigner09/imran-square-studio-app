@@ -580,21 +580,25 @@
         });
     }
 
-    // ========================================
-    // 🔥 DIRECT-TO-DRIVE UPLOAD (Free Tier)
-    // ========================================
-// JavaScript (Frontend Script)
+   // JavaScript (Frontend Script)
+// ========================================
+// 🔥 DIRECT-TO-DRIVE UPLOAD (Updated Version)
+// ========================================
 async function sendToStudio() {
-    // 1. ID Match Check
-    const fileInput = document.getElementById('fileInput'); 
+    // 1. Robust ID Match Check (Dono IDs try karega)
+    // Ye 'fileInput' ya 'footageFileInput' jo bhi mile use pakad lega
+    const fileInput = document.getElementById('fileInput') || document.getElementById('footageFileInput'); 
+    
     if (!fileInput || !fileInput.files[0]) {
-        return alert("Please select a file first! (Check ID='fileInput')");
+        return alert("Please select a file first! (Input not found)");
     }
     
     const file = fileInput.files[0];
-    const statusText = document.getElementById('text');
+    // Status text element dhundo (agar 'text' nahi mila to console me dikhayega)
+    const statusText = document.getElementById('text') || { innerText: '' }; 
     
     statusText.innerText = "Step 1: Preparing Drive Link...";
+    console.log(`Starting upload for: ${file.name}`);
 
     try {
         // Step A: Backend se Link Maango
@@ -612,7 +616,7 @@ async function sendToStudio() {
         const data = await response.json();
         
         if (!data.success) {
-            throw new Error(data.error || "Backend Failed");
+            throw new Error(data.error || "Backend Failed at Init");
         }
 
         // Step B: Direct Upload (CORS SAFE)
@@ -622,7 +626,7 @@ async function sendToStudio() {
         const xhr = new XMLHttpRequest();
         xhr.open("PUT", data.uploadUrl, true); // PUT Method Zaroori hai
         
-        // ⚠️ CORS FIX: Authorization header MAT bhejna yahan!
+        // ⚠️ CORS FIX: Authorization header MAT bhejna!
         // Sirf Content-Type bhejo
         xhr.setRequestHeader("Content-Type", file.type);
 
@@ -633,10 +637,29 @@ async function sendToStudio() {
             }
         };
 
-        xhr.onload = () => {
+        xhr.onload = async () => {
+            // Google Drive returns 200, 201, or 308 (Resume Incomplete)
             if (xhr.status === 200 || xhr.status === 201 || xhr.status === 308) {
-                statusText.innerText = "✅ Upload Complete!";
+                statusText.innerText = "✅ Upload Complete! Finalizing...";
+                
+                // Step C: Finalize (Optional: Server ko batao upload khatam)
+                try {
+                    await fetch('/api/drive/finalize-upload', {
+                        method: 'POST',
+                        headers: {'Content-Type': 'application/json'},
+                        body: JSON.stringify({ fileId: data.fileId })
+                    });
+                    console.log("File Finalized on Server");
+                } catch(err) {
+                    console.warn("Finalize warning (Upload is safe):", err);
+                }
+
+                statusText.innerText = "🎉 Success! Check Drive.";
                 alert("File Uploaded Successfully!");
+                
+                // Modal band kar sakte ho agar chaho
+                if(typeof closeUploadModal === 'function') closeUploadModal();
+                
             } else {
                 statusText.innerText = "❌ Upload Failed: " + xhr.status;
                 console.error("Google Drive Error:", xhr.responseText);
@@ -644,7 +667,8 @@ async function sendToStudio() {
         };
 
         xhr.onerror = () => {
-            statusText.innerText = "❌ Network Error (Check Console)";
+            console.error("XHR Network Error");
+            statusText.innerText = "❌ Network Error (CORS Check needed)";
         };
 
         xhr.send(file); // File bhejo
@@ -755,3 +779,6 @@ async function sendToStudio() {
         window.location.href = currentProjectID ? `project-hub.html?id=${currentProjectID}` : 'index.html';
     }
 </script>
+
+</body>
+</html>
