@@ -843,6 +843,14 @@ document.addEventListener('DOMContentLoaded', function () {
 
 });
 
+// ✅ ADD THIS AT THE TOP OF YOUR LOGIN SCRIPT (After Firebase init)
+firebase.auth().setPersistence(firebase.auth.Auth.Persistence.LOCAL)
+  .then(() => {
+    console.log("✅ Auth persistence enabled");
+  })
+  .catch((error) => {
+    console.error("❌ Persistence error:", error);
+  });
 
 </script>
 </body>

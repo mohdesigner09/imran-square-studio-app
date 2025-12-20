@@ -461,109 +461,85 @@
 
     <script src="main.js"></script>
 
-  <script>
+ <script>
     // ========================================
-    // 🔥 GLOBAL VARIABLES
+    // 🔥 CONFIGURATION
     // ========================================
     let currentProjectID = new URLSearchParams(window.location.search).get('id') || 'demo-project';
     let rawClips = [];
     let selectedFile = null;
-    let isEditMode = false;
-    let currentFilter = 'all';
-    let currentType = 'shorts';
     let currentUser = null;
-    let isAuthReady = false; // ✅ NEW: Track if auth is ready
+    let isAuthReady = false;
 
     // ========================================
-    // 🔥 CHECK LOCAL STORAGE FIRST (Instant)
+    // 🔥 AUTH CHECK (No Auto-Redirect)
     // ========================================
-    function loadUserFromLocalStorage() {
+    document.addEventListener('DOMContentLoaded', async () => {
+        console.log("🚀 Page Loaded");
+
+        // Method 1: Check localStorage first (Instant)
         const storedUser = localStorage.getItem('user');
         if (storedUser) {
             try {
                 currentUser = JSON.parse(storedUser);
-                console.log("✅ User Loaded from LocalStorage:", currentUser.email);
-                return true;
+                isAuthReady = true;
+                console.log("✅ User from LocalStorage:", currentUser.email);
+                await loadProjectData();
             } catch (e) {
-                console.error("❌ Failed to parse stored user");
+                console.error("❌ LocalStorage parse error");
             }
         }
-        return false;
-    }
 
-    // ========================================
-    // 🔥 FIREBASE AUTH CHECK (Async Backup)
-    // ========================================
-    document.addEventListener('DOMContentLoaded', async () => {
-        console.log("🚀 Page Loaded, Checking Auth...");
-
-        // Method 1: Quick check from localStorage
-        const hasLocalUser = loadUserFromLocalStorage();
-        
-        if (hasLocalUser) {
-            isAuthReady = true;
-            await loadProjectData();
-        }
-
-        // Method 2: Firebase Auth verification (Async)
+        // Method 2: Firebase Auth (Async backup)
         if (typeof firebase !== 'undefined' && firebase.auth) {
-            auth.onAuthStateChanged(async (user) => {
+            firebase.auth().onAuthStateChanged(async (user) => {
                 if (user) {
-                    console.log("✅ Firebase Auth Verified:", user.email);
+                    console.log("✅ Firebase Auth Active:", user.email);
                     
-                    // Create user object
                     currentUser = {
                         uid: user.uid,
                         email: user.email,
-                        displayName: user.displayName,
+                        displayName: user.displayName || user.email.split('@')[0],
                         photoURL: user.photoURL
                     };
                     
-                    // Save to localStorage for next time
                     localStorage.setItem('user', JSON.stringify(currentUser));
-                    
                     isAuthReady = true;
                     
-                    // Load project data if not already loaded
-                    if (!hasLocalUser) {
+                    if (!storedUser) {
                         await loadProjectData();
                     }
                 } else {
-                    console.error("❌ No Firebase Auth Session");
-                    isAuthReady = false;
+                    console.warn("⚠️ No Firebase session");
                     
-                    // Redirect to login after 2 seconds
-                    setTimeout(() => {
-                        alert("Session expired. Please login again.");
-                        window.location.href = 'login.html';
-                    }, 2000);
+                    // ✅ FIXED: Only redirect if localStorage also empty
+                    if (!storedUser) {
+                        console.error("❌ No stored user found");
+                        setTimeout(() => {
+                            if (confirm("Session expired. Redirect to login?")) {
+                                window.location.href = 'login.html';
+                            }
+                        }, 1000);
+                    }
                 }
             });
-        } else {
-            console.error("❌ Firebase SDK not loaded!");
         }
     });
 
     // ========================================
-    // 🔥 LOAD PROJECT DATA
+    // 🔥 LOAD PROJECT
     // ========================================
     async function loadProjectData() {
-        if (!currentProjectID) {
-            console.warn("⚠️ No Project ID");
-            return;
-        }
+        if (!currentProjectID) return;
 
         try {
             const doc = await db.collection('projects').doc(currentProjectID).get();
             if (doc.exists) {
                 const data = doc.data();
-                const titleEl = document.getElementById('rawProjectTitle');
-                if (titleEl) titleEl.textContent = (data.title || 'Untitled').toUpperCase();
+                document.getElementById('rawProjectTitle').textContent = (data.title || 'Untitled').toUpperCase();
                 rawClips = data.footageLib || [];
                 renderVideos();
-                console.log("✅ Project Data Loaded");
-            } else {
-                console.warn("⚠️ Project not found");
+                console.log("✅ Project Loaded");
             }
         } catch (e) {
             console.error("❌ Load Error:", e);
@@ -571,7 +547,7 @@
     }
 
     // ========================================
-    // 🔥 FILE INPUT LISTENER
+    // 🔥 FILE PREVIEW
     // ========================================
     const fileInput = document.getElementById('footageFileInput');
     if (fileInput) {
@@ -580,13 +556,11 @@
             if (!file) return;
             
             selectedFile = file;
-            
-            // Show preview
             document.getElementById('filePreview').classList.remove('hidden');
             document.getElementById('previewFileName').textContent = file.name;
             document.getElementById('previewFileSize').textContent = (file.size / (1024 * 1024)).toFixed(2) + ' MB';
 
-            // Generate thumbnail
+            // Thumbnail
             const video = document.createElement('video');
             video.preload = 'metadata';
             video.src = URL.createObjectURL(file);
@@ -603,37 +577,23 @@
     }
 
     // ========================================
-    // 🔥 UPLOAD FUNCTION (WITH AUTH CHECK)
+    // 🔥 DIRECT-TO-DRIVE UPLOAD (Free Tier)
     // ========================================
     async function sendToStudio() {
         console.log("🎬 Upload Started");
-        console.log("Auth Ready:", isAuthReady);
-        console.log("Current User:", currentUser);
 
-        // ✅ CRITICAL: Check auth status
         if (!isAuthReady || !currentUser) {
-            alert("⏳ Please wait, checking authentication...");
-            console.error("❌ Auth not ready or user is null");
-            
-            // Try to reload user from localStorage one more time
-            if (loadUserFromLocalStorage()) {
-                console.log("✅ Recovered user from localStorage");
-                isAuthReady = true;
-            } else {
-                alert("❌ You are not logged in. Redirecting to login...");
-                window.location.href = 'login.html';
-                return;
-            }
-        }
-
-        const file = selectedFile || document.getElementById('footageFileInput').files[0];
-        
-        if (!file) {
-            alert("Please select a file!");
+            alert("⏳ Authentication in progress. Please wait and try again.");
             return;
         }
 
-        // Show progress UI
+        const file = selectedFile || document.getElementById('footageFileInput').files[0];
+        if (!file) {
+            alert("No file selected!");
+            return;
+        }
+
+        // UI: Show progress
         document.getElementById('uploadStep1').classList.add('hidden');
         document.getElementById('uploadStep2').classList.remove('hidden');
 
@@ -641,82 +601,78 @@
         const text = document.getElementById('uploadProgressText');
 
         try {
-            // Step 1: Initialize upload
+            // ============================================
+            // STEP 1: Get Resumable Upload URL from Server
+            // ============================================
             text.innerText = "Initializing...";
-            bar.style.width = '10%';
-            
-            const userName = currentUser.displayName || currentUser.email || "Guest";
-            const projectName = document.getElementById('rawProjectTitle')?.innerText || "Project";
-            
-            console.log("📤 Sending init request:", { userName, projectName, fileName: file.name });
+            bar.style.width = '5%';
             
             const initResponse = await fetch('/api/drive/init-upload', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({
-                    userName: userName,
-                    projectName: projectName,
+                    userName: currentUser.displayName,
+                    projectName: document.getElementById('rawProjectTitle')?.innerText || "Project",
                     fileName: file.name,
                     fileType: file.type
                 })
             });
 
             if (!initResponse.ok) {
-                const errorText = await initResponse.text();
-                throw new Error(`Server error: ${initResponse.status} - ${errorText}`);
+                throw new Error(`Server error: ${initResponse.status}`);
             }
 
             const initData = await initResponse.json();
-            console.log("📥 Init Response:", initData);
-
+            
             if (!initData.success) {
-                throw new Error(initData.error || "Initialization failed");
+                throw new Error(initData.error || "Init failed");
             }
 
-            const uploadUrl = initData.uploadUrl;
-            console.log("✅ Got Upload URL");
-            bar.style.width = '20%';
+            console.log("✅ Got resumable URI");
+            bar.style.width = '10%';
 
-            // Step 2: Upload to Google Drive
+            // ============================================
+            // STEP 2: Direct Upload to Google Drive
+            // (Bypasses server to avoid Render timeout)
+            // ============================================
             text.innerText = "Uploading to Drive...";
 
             await new Promise((resolve, reject) => {
                 const xhr = new XMLHttpRequest();
-                xhr.open("PUT", uploadUrl, true);
+                
+                // 🔥 CRITICAL: PUT request to Google's resumable URI
+                xhr.open("PUT", initData.uploadUrl, true);
                 xhr.setRequestHeader("Content-Type", file.type);
 
+                // Progress tracking
                 xhr.upload.onprogress = (e) => {
                     if (e.lengthComputable) {
                         const percent = Math.floor((e.loaded / e.total) * 100);
-                        const adjustedPercent = 20 + (percent * 0.75); // 20-95%
-                        bar.style.width = adjustedPercent + '%';
+                        bar.style.width = (10 + percent * 0.85) + '%';
                         text.innerText = `Uploading... ${percent}%`;
                     }
                 };
 
                 xhr.onload = () => {
                     if (xhr.status === 200 || xhr.status === 201) {
-                        console.log("✅ Upload Complete to Drive!");
-                        bar.style.width = '95%';
+                        console.log("✅ Upload complete!");
                         resolve();
                     } else {
-                        console.error("❌ Upload failed:", xhr.status, xhr.responseText);
-                        reject(new Error(`Upload failed: ${xhr.status}`));
+                        reject(new Error(`Drive error: ${xhr.status}`));
                     }
                 };
 
-                xhr.onerror = () => {
-                    console.error("❌ Network error during upload");
-                    reject(new Error("Network error during upload"));
-                };
+                xhr.onerror = () => reject(new Error("Network error"));
 
-                console.log("🚀 Sending file to Drive...");
                 xhr.send(file);
             });
 
-            // Step 3: Save to Firestore
-            text.innerText = "Saving to database...";
-            bar.style.width = '100%';
+            bar.style.width = '95%';
+
+            // ============================================
+            // STEP 3: Save Metadata to Firestore
+            // ============================================
+            text.innerText = "Saving metadata...";
             
             const newClip = {
                 id: initData.fileId,
@@ -732,40 +688,38 @@
             await db.collection('projects').doc(currentProjectID).update({
                 footageLib: rawClips
             });
+
+            bar.style.width = '100%';
+            console.log("✅ Complete!");
             
-            console.log("✅ Saved to Firestore");
             renderVideos();
 
-            // Show success
+            // Show success screen
             document.getElementById('uploadStep2').classList.add('hidden');
             document.getElementById('uploadStep3').classList.remove('hidden');
 
-            // Close modal after 2 seconds
             setTimeout(() => {
                 closeUploadModal();
                 selectedFile = null;
             }, 2000);
 
         } catch (error) {
-            console.error("❌ Upload Error:", error);
-            alert("Upload Failed: " + error.message);
+            console.error("❌ Upload failed:", error);
+            alert("Upload failed: " + error.message);
             
-            // Reset modal
             document.getElementById('uploadStep2').classList.add('hidden');
             document.getElementById('uploadStep1').classList.remove('hidden');
         }
     }
 
     // ========================================
-    // 🔥 UI FUNCTIONS
+    // 🔥 UI HELPERS
     // ========================================
     function openUploadModal() {
-        // Check auth before opening modal
-        if (!isAuthReady || !currentUser) {
-            alert("Please wait, authenticating...");
+        if (!isAuthReady) {
+            alert("Please wait for authentication...");
             return;
         }
-        
         document.getElementById('uploadFootageModal').classList.remove('hidden');
         document.getElementById('uploadStep1').classList.remove('hidden');
         document.getElementById('uploadStep2').classList.add('hidden');
@@ -796,13 +750,6 @@
         renderVideos();
     }
 
-    function filterBy(filter, btn) {
-        currentFilter = filter;
-        document.querySelectorAll('.filter-pill').forEach(b => b.classList.remove('active'));
-        btn.classList.add('active');
-        renderVideos();
-    }
-
     function renderVideos() {
         const gridShorts = document.getElementById('gridShorts');
         const gridLongs = document.getElementById('gridLongs');
@@ -812,8 +759,7 @@
         gridLongs.innerHTML = '';
 
         if (rawClips.length === 0) {
-            const emptyMsg = '<div class="col-span-full text-center text-gray-500 py-10">No videos yet. Upload your first clip!</div>';
-            gridShorts.innerHTML = emptyMsg;
+            gridShorts.innerHTML = '<div class="col-span-full text-center text-gray-500 py-10">No videos yet</div>';
             return;
         }
 
@@ -838,14 +784,12 @@
 
     function openTheater(link, title) {
         const modal = document.getElementById('theaterModal');
-        const container = document.getElementById('playerContainer');
-        if (modal && container) {
-            document.getElementById('playerTitle').innerText = title;
-            let embedLink = link.includes('/view') ? link.replace(/\/view.*/, '/preview') : link;
-            container.innerHTML = `<iframe src="${embedLink}" class="w-full h-full border-0" allow="autoplay; fullscreen" allowfullscreen></iframe>`;
-            modal.classList.remove('hidden');
-            setTimeout(() => modal.style.opacity = '1', 10);
-        }
+        if (!modal) return;
+        document.getElementById('playerTitle').innerText = title;
+        let embedLink = link.includes('/view') ? link.replace(/\/view.*/, '/preview') : link;
+        document.getElementById('playerContainer').innerHTML = `<iframe src="${embedLink}" class="w-full h-full border-0" allow="autoplay; fullscreen" allowfullscreen></iframe>`;
+        modal.classList.remove('hidden');
+        setTimeout(() => modal.style.opacity = '1', 10);
     }
 
     function closeTheater() {
@@ -859,14 +803,13 @@
     }
 
     async function deleteClip(idx) {
-        if (!confirm("Delete this footage?")) return;
+        if (!confirm("Delete?")) return;
         rawClips.splice(idx, 1);
         await db.collection('projects').doc(currentProjectID).update({ footageLib: rawClips });
         renderVideos();
     }
 
     function goBackToHub() {
-        const projectId = new URLSearchParams(window.location.search).get('id');
-        window.location.href = projectId ? `project-hub.html?id=${projectId}` : 'index.html';
+        window.location.href = currentProjectID ? `project-hub.html?id=${currentProjectID}` : 'index.html';
     }
 </script>
