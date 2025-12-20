@@ -546,7 +546,6 @@ app.post('/api/account/upload-avatar', upload.single('avatar'), async (req, res)
 
 
 // 🚀 DIRECT RESUMABLE UPLOAD (High-Speed Logic)
-// 🚀 DIRECT RESUMABLE UPLOAD (High-Speed Logic)
 app.post('/api/drive/init-upload', async (req, res) => {
   try {
     const { userName, projectName, fileName, fileType } = req.body;
@@ -597,7 +596,6 @@ app.post('/api/drive/init-upload', async (req, res) => {
     res.status(500).json({ success: false, error: error.message });
   }
 });
-
 // ========================
 // RAW FOOTAGE UPLOAD → GOOGLE DRIVE + FIRESTORE
 // ========================

@@ -470,7 +470,6 @@
         let currentType = 'shorts';
 
  // 🛠️ REFRESH-PROOF LOADING & AUTH FIX
-       // 🛠️ REFRESH-PROOF LOADING & AUTH FIX
         document.addEventListener('DOMContentLoaded', async () => {
             if(!currentProjectID) return;
 
@@ -478,12 +477,18 @@
             const localUser = JSON.parse(localStorage.getItem('user')); 
 
             if(localUser) {
-                console.log("✅ Session Found:", localUser.email);
+                console.log("✅ Session Found via LocalStorage:", localUser.email);
+                // User mil gaya, data load karo
                 await loadProjectData();
             } else {
+                // Agar local session nahi hai, to Firebase ka wait karo
                 auth.onAuthStateChanged(async (user) => {
-                    if(user) await loadProjectData();
-                    else console.warn("⌛ No active session found.");
+                    if(user) {
+                        console.log("✅ User Verified via Firebase");
+                        await loadProjectData();
+                    } else {
+                        console.warn("⌛ No active session found.");
+                    }
                 });
             }
         });
@@ -498,8 +503,9 @@
             const text = document.getElementById('uploadProgressText');
 
             try {
-                text.innerText = "Connecting to Vault...";
+                text.innerText = "Securing Connection...";
                 const localUser = JSON.parse(localStorage.getItem('user'));
+                // Use fallback to 'Guest' if localUser is missing
                 const userName = localUser ? (localUser.username || localUser.firstName || 'Creator') : 'Guest';
                 const projTitle = document.getElementById('rawProjectTitle').innerText || 'Project';
 
