@@ -476,53 +476,58 @@
     let isAuthReady = false;
 
     // ========================================
-    // 🔥 AUTH CHECK (STRICT & FAST)
+    // 🔥 AUTH CHECK (RELAXED & PATIENT MODE)
     // ========================================
     document.addEventListener('DOMContentLoaded', async () => {
-        console.log("🚀 Page Loaded");
+        console.log("🚀 Page Loaded - Checking Auth...");
 
-        // STEP 1: Check LocalStorage (Instant)
+        // STEP 1: Check LocalStorage (Sirf Data lene ke liye)
         const storedUser = localStorage.getItem('user');
         if (storedUser) {
             try {
                 currentUser = JSON.parse(storedUser);
                 isAuthReady = true;
-                console.log("✅ LocalStorage User:", currentUser.email);
-                // Turant Project Load shuru karo
-                await loadProjectData();
+                console.log("✅ LocalStorage User Found:", currentUser.email);
+                // Data mil gaya, turant load shuru karo
+                loadProjectData(); 
             } catch (e) {
-                console.warn("⚠️ LocalStorage reset");
-                localStorage.removeItem('user');
+                console.warn("⚠️ LocalStorage corrupt");
             }
-        } else {
-            // Agar LocalStorage khali hai, to Login par bhejo
-            window.location.href = 'login.html';
-        }
+        } 
+        // ⚠️ NOTE: Yahan 'else' me redirect HATA DIYA hai. 
+        // Hum Firebase ka wait karenge.
 
-        // STEP 2: Check Firebase (Background Verify)
+        // STEP 2: Check Firebase (The Final Authority)
         if (typeof firebase !== 'undefined' && firebase.auth) {
             firebase.auth().onAuthStateChanged(async (user) => {
                 if (user) {
-                    console.log("🔥 Firebase User Active:", user.email);
+                    // --- USER LOGGED IN ---
+                    console.log("🔥 Firebase Verified:", user.email);
                     
-                    // Update fresh data
                     currentUser = {
                         uid: user.uid,
                         email: user.email,
                         displayName: user.displayName || user.email.split('@')[0],
                         photoURL: user.photoURL
                     };
+                    
+                    // Future ke liye save karo
                     localStorage.setItem('user', JSON.stringify(currentUser));
                     
-                    if (!isAuthReady) {
-                        isAuthReady = true;
+                    // Agar abhi tak project load nahi hua to ab karo
+                    if (!rawClips.length) { 
                         await loadProjectData();
                     }
+
                 } else {
-                    // Agar Firebase bole user nahi hai, to logout karo
-                    console.warn("Logged out via Firebase");
-                    localStorage.removeItem('user');
-                    window.location.href = 'login.html';
+                    // --- USER LOGGED OUT ---
+                    console.warn("🚫 Firebase says: No User.");
+                    
+                    // AB hum check karenge. Agar LocalStorage bhi khali hai, TABHI nikalo.
+                    if (!localStorage.getItem('user')) {
+                        console.error("❌ No credentials found. Redirecting to Login...");
+                        window.location.href = 'login.html'; 
+                    }
                 }
             });
         }
@@ -534,9 +539,9 @@
     async function loadProjectData() {
         if (!currentProjectID) return;
 
-        // Safety Check: Database connection
+        // DB Check
         const dbRef = window.db || (firebase && firebase.firestore && firebase.firestore());
-        if (!dbRef) return console.error("❌ Database not connected");
+        if (!dbRef) return; 
 
         try {
             const doc = await dbRef.collection('projects').doc(currentProjectID).get();
@@ -545,23 +550,21 @@
                 const titleEl = document.getElementById('rawProjectTitle');
                 if (titleEl) titleEl.textContent = (data.title || 'Untitled').toUpperCase();
                 
-                // Global Variable update
                 rawClips = data.footageLib || [];
                 
-                // UI Render
+                // UI Refresh
                 if (typeof renderVideos === 'function') renderVideos();
-                console.log("✅ Project Loaded");
+                console.log("✅ Project Data Loaded");
             }
         } catch (e) {
-            console.error("❌ Load Error:", e);
+            console.error("Load Error:", e);
         }
     }
 
     // ========================================
-    // 🔥 FILE PREVIEW LOGIC
+    // 🔥 FILE PREVIEW
     // ========================================
     const previewInput = document.getElementById('footageFileInput') || document.getElementById('fileInput');
-    
     if (previewInput) {
         previewInput.addEventListener('change', (e) => {
             const file = e.target.files[0];
@@ -571,12 +574,9 @@
             const previewDiv = document.getElementById('filePreview');
             if(previewDiv) previewDiv.classList.remove('hidden');
             
-            const nameEl = document.getElementById('previewFileName');
-            const sizeEl = document.getElementById('previewFileSize');
-            if(nameEl) nameEl.textContent = file.name;
-            if(sizeEl) sizeEl.textContent = (file.size / (1024 * 1024)).toFixed(2) + ' MB';
-
-            // Thumbnail Generator
+            document.getElementById('previewFileName').textContent = file.name;
+            document.getElementById('previewFileSize').textContent = (file.size / (1024 * 1024)).toFixed(2) + ' MB';
+            
             const video = document.createElement('video');
             video.src = URL.createObjectURL(file);
             video.currentTime = 1;
@@ -591,75 +591,59 @@
     }
 
     // ========================================
-    // 🔥 THE MASTER UPLOAD FUNCTION (Drive + Database)
+    // 🔥 MASTER UPLOAD (Drive + Database Sync)
     // ========================================
     async function sendToStudio() {
-        // 1. Check Input
         const fileInput = document.getElementById('fileInput') || document.getElementById('footageFileInput'); 
-        if (!fileInput || !fileInput.files[0]) {
-            return alert("Please select a file first!");
-        }
+        if (!fileInput || !fileInput.files[0]) return alert("Please select a file!");
         
         const file = fileInput.files[0];
         const statusText = document.getElementById('text') || { innerText: '' }; 
-        
-        statusText.innerText = "Step 1: Connecting to Server...";
-        console.log(`Starting upload for: ${file.name}`);
+        statusText.innerText = "Step 1: Connecting...";
 
         try {
-            // 2. Init Upload (Backend Call)
-            // Hum User Email bhejenge taaki folder sahi jagah bane
-            const projectName = document.getElementById('rawProjectTitle').innerText || "Raw_Footage";
-            
+            // User Check (Relaxed)
+            const uName = currentUser ? currentUser.email : "Unknown_User";
+            const pName = document.getElementById('rawProjectTitle').innerText || "Project";
+
+            // 1. Init Upload
             const response = await fetch('/api/drive/init-upload', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({
-                    userName: currentUser.email, // ✅ FOLDER NAME = USER EMAIL
-                    projectName: projectName,
+                    userName: uName, 
+                    projectName: pName,
                     fileName: file.name,
                     fileType: file.type
                 })
             });
 
             const data = await response.json();
-            
-            if (!data.success) {
-                throw new Error(data.error || "Backend Failed");
-            }
+            if (!data.success) throw new Error(data.error);
 
-            // 3. Direct Upload to Drive
-            statusText.innerText = "Step 2: Uploading to App Storage...";
-            console.log("Upload URL:", data.uploadUrl);
-
+            // 2. Direct Upload
+            statusText.innerText = "Step 2: Uploading...";
             const xhr = new XMLHttpRequest();
             xhr.open("PUT", data.uploadUrl, true);
-            xhr.setRequestHeader("Content-Type", file.type); // No Auth Header Needed
+            xhr.setRequestHeader("Content-Type", file.type);
 
             xhr.upload.onprogress = (e) => {
-                if (e.lengthComputable) {
-                    const percent = ((e.loaded / e.total) * 100).toFixed(0);
-                    statusText.innerText = `Uploading: ${percent}% 🚀`;
-                }
+                const percent = ((e.loaded / e.total) * 100).toFixed(0);
+                statusText.innerText = `Uploading... ${percent}%`;
             };
 
             xhr.onload = async () => {
                 if (xhr.status === 200 || xhr.status === 201 || xhr.status === 308) {
+                    statusText.innerText = "✅ Saving to App...";
                     
-                    statusText.innerText = "✅ Processing for App...";
-                    
-                    // ============================================
-                    // 🚀 STEP 3: DATABASE UPDATE (The Magic Part)
-                    // ============================================
-                    // Drive par chala gaya, ab Database ko batao taaki UI par dikhe
-                    
+                    // 3. Database Update
                     const newVideoData = {
                         title: file.name,
-                        link: data.viewLink, // Backend se mila hua Drive Link
+                        link: data.viewLink,
                         fileId: data.fileId,
-                        thumb: "https://via.placeholder.com/320x180/000000/FFFFFF/?text=VIDEO", // Placeholder
+                        thumb: "https://via.placeholder.com/320x180/000000/FFFFFF/?text=VIDEO",
                         type: file.type.includes('portrait') ? 'shorts' : 'long',
-                        uploadedBy: currentUser.email,
+                        uploadedBy: uName,
                         uploadDate: new Date().toISOString()
                     };
 
@@ -668,34 +652,25 @@
                         await dbRef.collection('projects').doc(currentProjectID).update({
                             footageLib: firebase.firestore.FieldValue.arrayUnion(newVideoData)
                         });
-
-                        // Local Array update & Render
-                        rawClips.push(newVideoData);
-                        renderVideos(); // 👈 Screen refresh!
-
-                        statusText.innerText = "🎉 Upload Complete!";
-                        alert("File Uploaded & Added to Project!");
                         
+                        // Instant UI Update
+                        rawClips.push(newVideoData);
+                        renderVideos();
+                        
+                        statusText.innerText = "🎉 Upload Complete!";
+                        alert("Uploaded Successfully!");
                         if(typeof closeUploadModal === 'function') closeUploadModal();
-
                     } catch (dbError) {
-                        console.error("DB Update Failed:", dbError);
+                        console.error("DB Error", dbError);
                         statusText.innerText = "⚠️ Uploaded, but DB Sync Failed";
                     }
-
                 } else {
-                    statusText.innerText = "❌ Upload Failed: " + xhr.status;
+                    statusText.innerText = "❌ Failed: " + xhr.status;
                 }
             };
-
-            xhr.onerror = () => {
-                statusText.innerText = "❌ Network Error";
-            };
-
             xhr.send(file);
-
         } catch (error) {
-            console.error("Error:", error);
+            console.error(error);
             statusText.innerText = "❌ Error: " + error.message;
         }
     }
@@ -704,10 +679,6 @@
     // 🔥 UI HELPERS
     // ========================================
     function openUploadModal() {
-        if (!isAuthReady) {
-            alert("Logging in... please wait.");
-            return;
-        }
         document.getElementById('uploadFootageModal').classList.remove('hidden');
         document.getElementById('uploadStep1').classList.remove('hidden');
         document.getElementById('uploadStep2').classList.add('hidden');
@@ -724,10 +695,8 @@
         currentType = type;
         document.querySelectorAll('.type-btn').forEach(b => b.classList.remove('active'));
         btn.classList.add('active');
-        
         const shortGrid = document.getElementById('gridShorts');
         const longGrid = document.getElementById('gridLongs');
-        
         if (type === 'shorts') {
             shortGrid.classList.remove('hidden-grid', 'hidden');
             longGrid.classList.add('hidden-grid', 'hidden');
@@ -774,7 +743,6 @@
         const modal = document.getElementById('theaterModal');
         if (!modal) return;
         document.getElementById('playerTitle').innerText = title;
-        // Drive Link ko Embed Link me convert karo
         let embedLink = link.includes('/view') ? link.replace(/\/view.*/, '/preview') : link;
         document.getElementById('playerContainer').innerHTML = `<iframe src="${embedLink}" class="w-full h-full border-0" allow="autoplay; fullscreen" allowfullscreen></iframe>`;
         modal.classList.remove('hidden');
@@ -793,18 +761,13 @@
 
     async function deleteClip(idx) {
         if (!confirm("Delete this clip?")) return;
-        
-        // Remove from local array
         rawClips.splice(idx, 1);
-        
-        // Update Database
         try {
             const dbRef = window.db || firebase.firestore();
             await dbRef.collection('projects').doc(currentProjectID).update({ footageLib: rawClips });
             renderVideos();
         } catch(e) {
             console.error("Delete failed:", e);
-            alert("Failed to delete from database");
         }
     }
 
@@ -812,6 +775,5 @@
         window.location.href = currentProjectID ? `project-hub.html?id=${currentProjectID}` : 'index.html';
     }
 </script>
-
 </body>
 </html>
