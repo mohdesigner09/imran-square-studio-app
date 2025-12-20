@@ -1335,28 +1335,55 @@ app.use((err, req, res, next) => {
 });
 
 
-// 🚀 DIRECT RESUMABLE UPLOAD (Updated & Safer)
+// 🚀 DEBUG MODE: INIT UPLOAD ROUTE
 app.post('/api/drive/init-upload', async (req, res) => {
-    console.log("👉 Request Received for Upload!"); 
-    
-    try {
-        const { userName, projectName, fileName, fileType } = req.body;
+    console.log("👉 [DEBUG] Request Received");
+    console.log("👉 [DEBUG] Body:", JSON.stringify(req.body));
 
-        // 👇 FIX: Alag alag naam check karega taaki crash na ho
+    try {
+        // 1. Check Body Data
+        const { userName, projectName, fileName, fileType } = req.body;
+        if (!fileName) throw new Error("Frontend se 'fileName' nahi aaya! Body check karo.");
+        if (!fileType) throw new Error("Frontend se 'fileType' nahi aaya!");
+
+        // 2. Check Environment Variables
+        // Yahan hum dono naam check kar rahe hain taaki galti na ho
         const ROOT_ID = process.env.DRIVE_FOLDER_ID || process.env.GOOGLE_DRIVE_FOLDER_ID;
         
-        if(!ROOT_ID) {
-            console.error("❌ CRITICAL: Drive Folder ID nahi mila!");
-            return res.status(500).json({ success: false, error: "Server Config Error: Missing DRIVE_FOLDER_ID" });
+        if (!ROOT_ID) {
+             throw new Error("SERVER ERROR: .env file mein 'DRIVE_FOLDER_ID' missing hai!");
+        }
+        console.log("👉 [DEBUG] Root ID Found:", ROOT_ID);
+
+        // 3. Check Google Auth
+        if (!process.env.GOOGLE_OAUTH_CLIENT_ID || !process.env.GOOGLE_DRIVE_REFRESH_TOKEN) {
+            throw new Error("SERVER ERROR: Google Auth Credentials (.env) missing hain!");
         }
 
-        // Folder structure create/find karo
-        const userId = await findOrCreateFolder(userName || "Unknown User", ROOT_ID);
+        // 4. Test Token Generation (Sabse common failure point)
+        let tokenResponse;
+        try {
+            tokenResponse = await oauth2Client.getAccessToken();
+            if (!tokenResponse || !tokenResponse.token) throw new Error("Token Empty");
+        } catch (authErr) {
+            console.error("Auth Error:", authErr);
+            throw new Error(`Google Auth Failed: ${authErr.message}. Refresh Token check karo.`);
+        }
+        console.log("👉 [DEBUG] Auth Token Generated Success");
+
+        // 5. Folder Operations (Safe Mode)
+        // Agar userName ya projectName nahi aaya, to default values use karenge taaki crash na ho
+        const safeUserName = userName || "Unknown_User";
+        const safeProjectName = projectName || "Default_Project";
+
+        console.log(`👉 [DEBUG] Creating Folders for: ${safeUserName} > ${safeProjectName}`);
+
+        const userId = await findOrCreateFolder(safeUserName, ROOT_ID);
         const projectsFolderId = await findOrCreateFolder("Projects", userId);
-        const projectSpecificId = await findOrCreateFolder(projectName || "Untitled Project", projectsFolderId);
+        const projectSpecificId = await findOrCreateFolder(safeProjectName, projectsFolderId);
         const targetFolder = await findOrCreateFolder("Raw Footage", projectSpecificId);
 
-        // Placeholder File
+        // 6. Create Placeholder File
         const placeholder = await drive.files.create({
           resource: { name: fileName, parents: [targetFolder], mimeType: fileType },
           fields: 'id, webViewLink',
@@ -1364,17 +1391,12 @@ app.post('/api/drive/init-upload', async (req, res) => {
 
         const fileId = placeholder.data.id;
         const viewLink = placeholder.data.webViewLink;
+        console.log("👉 [DEBUG] File Created ID:", fileId);
 
-        // Public Permission
+        // 7. Public Permission
         await setFilePublic(fileId);
 
-        // Get Resumable Link
-        const tokenResponse = await oauth2Client.getAccessToken();
-        
-        if (!tokenResponse || !tokenResponse.token) {
-             throw new Error("Failed to generate Access Token. Check Refresh Token.");
-        }
-
+        // 8. Get Upload URL
         const uploadRes = await axios.post(
           `https://www.googleapis.com/upload/drive/v3/files/${fileId}?uploadType=resumable`,
           {},
@@ -1387,6 +1409,9 @@ app.post('/api/drive/init-upload', async (req, res) => {
           }
         );
 
+        console.log("👉 [DEBUG] Upload URL Generated!");
+
+        // SUCCESS RESPONSE
         res.json({ 
           success: true, 
           uploadUrl: uploadRes.headers.location, 
@@ -1395,9 +1420,13 @@ app.post('/api/drive/init-upload', async (req, res) => {
         });
 
     } catch (error) {
-        console.error('❌ Upload Init Error:', error.message);
-        // User ko batao kya galat hua
-        res.status(500).json({ success: false, error: error.message });
+        console.error('❌ CRITICAL ERROR:', error.message);
+        // Browser ko batao EXACTLY kya fat gaya
+        res.status(500).json({ 
+            success: false, 
+            error: error.message,
+            hint: "Check Render Logs or .env variables" 
+        });
     }
 });
 
