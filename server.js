@@ -1337,51 +1337,48 @@ app.use((err, req, res, next) => {
 
 // ✅ CORRECTED: Resumable Upload Initialization
 // Backend (server.js) - /api/drive/init-upload Route
+// ==========================================
+// 🚀 UNIVERSAL UPLOAD ROUTE (Admin Storage)
+// ==========================================
 app.post('/api/drive/init-upload', async (req, res) => {
-    console.log("👉 Request Received:", req.body.fileName);
-
     try {
         const { userName, projectName, fileName, fileType } = req.body;
         
-        // 1. IDs Check
+        // 1. Root Folder (Admin ki Drive)
         const ROOT_ID = process.env.DRIVE_FOLDER_ID;
         if (!ROOT_ID) throw new Error("DRIVE_FOLDER_ID missing in .env");
 
-        // 2. Folder Hierarchy (Jo tumne banaya tha, sahi hai)
-        const userId = await findOrCreateFolder(userName, ROOT_ID);
-        const projectsFolderId = await findOrCreateFolder("Projects", userId);
-        const projectId = await findOrCreateFolder(projectName, projectsFolderId);
-        const targetFolder = await findOrCreateFolder("Raw Footage", projectId);
-
-        // 3. Create Placeholder File (0 Bytes)
+        // 2. Folder Structure: Admin Drive > User Email > Project Name
+        // Hum 'userName' ki jagah user ka EMAIL use karenge folder name ke liye
+        const userFolderId = await findOrCreateFolder(userName, ROOT_ID); 
+        const projectFolderId = await findOrCreateFolder(projectName, userFolderId);
+        
+        // 3. Placeholder File Create karo
         const fileMetadata = {
             name: fileName,
-            parents: [targetFolder],
+            parents: [projectFolderId], // Sahi project folder me daalo
             mimeType: fileType
         };
 
-        const placeholder = await drive.files.create({
+        const file = await drive.files.create({
             resource: fileMetadata,
-            fields: 'id, webViewLink'
+            fields: 'id, webViewLink, thumbnailLink'
         });
 
-        const fileId = placeholder.data.id;
-        console.log("✅ Placeholder Created, ID:", fileId);
+        const fileId = file.data.id;
 
-        // 4. Permission (Public Link)
+        // 4. Public Permission (Taaki App par dikh sake)
         await drive.permissions.create({
             fileId: fileId,
             requestBody: { role: 'reader', type: 'anyone' }
         });
 
-        // 5. Generate Resumable Session Link (PATCH METHOD)
-        // Token Fresh Karo
+        // 5. Generate Resumable Upload Link
         const tokenResponse = await oauth2Client.getAccessToken();
         
-        // ⚠️ CRITICAL FIX: Use 'PATCH' here, NOT 'POST'
-        const sessionResponse = await axios.patch(
+        const uploadResponse = await axios.patch(
             `https://www.googleapis.com/upload/drive/v3/files/${fileId}?uploadType=resumable`,
-            {}, // Empty Body
+            {},
             {
                 headers: {
                     'Authorization': `Bearer ${tokenResponse.token}`,
@@ -1392,23 +1389,18 @@ app.post('/api/drive/init-upload', async (req, res) => {
             }
         );
 
-        // 6. Send Link to Frontend
         res.json({
             success: true,
-            uploadUrl: sessionResponse.headers.location, // Ye hai Magic Link
+            uploadUrl: uploadResponse.headers.location,
             fileId: fileId,
-            viewLink: placeholder.data.webViewLink
+            viewLink: file.data.webViewLink
         });
 
     } catch (error) {
-        console.error("❌ Init Error:", error.response?.data || error.message);
-        res.status(500).json({ 
-            success: false, 
-            error: error.message 
-        });
+        console.error("Server Upload Error:", error.message);
+        res.status(500).json({ success: false, error: error.message });
     }
 });
-
 // ===== SERVER START =====
 const PORT = process.env.PORT || 10000;
 app.listen(PORT, () => {
