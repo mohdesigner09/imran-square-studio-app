@@ -1336,99 +1336,75 @@ app.use((err, req, res, next) => {
 
 
 // ✅ CORRECTED: Resumable Upload Initialization
+// Backend (server.js) - /api/drive/init-upload Route
 app.post('/api/drive/init-upload', async (req, res) => {
-    console.log("🔥 [INIT] Upload Request Received");
-    
+    console.log("👉 Request Received:", req.body.fileName);
+
     try {
         const { userName, projectName, fileName, fileType } = req.body;
+        
+        // 1. IDs Check
+        const ROOT_ID = process.env.DRIVE_FOLDER_ID;
+        if (!ROOT_ID) throw new Error("DRIVE_FOLDER_ID missing in .env");
 
-        // Validation
-        if (!fileName || !fileType) {
-            throw new Error("Missing 'fileName' or 'fileType' in request body");
-        }
-
-        // Environment Check
-        const ROOT_ID = process.env.DRIVE_FOLDER_ID || process.env.GOOGLE_DRIVE_FOLDER_ID;
-        if (!ROOT_ID) {
-            throw new Error("DRIVE_FOLDER_ID not configured in environment");
-        }
-
-        console.log("✅ Root Folder ID:", ROOT_ID);
-
-        // Get Fresh Access Token
-        const { token } = await oauth2Client.getAccessToken();
-        if (!token) throw new Error("Failed to generate access token");
-
-        console.log("✅ Access Token Generated");
-
-        // Create Folder Structure (User > Projects > ProjectName > Raw Footage)
-        const safeUserName = userName || "Unknown_User";
-        const safeProjectName = projectName || "Default_Project";
-
-        const userId = await findOrCreateFolder(safeUserName, ROOT_ID);
+        // 2. Folder Hierarchy (Jo tumne banaya tha, sahi hai)
+        const userId = await findOrCreateFolder(userName, ROOT_ID);
         const projectsFolderId = await findOrCreateFolder("Projects", userId);
-        const projectSpecificId = await findOrCreateFolder(safeProjectName, projectsFolderId);
-        const targetFolder = await findOrCreateFolder("Raw Footage", projectSpecificId);
+        const projectId = await findOrCreateFolder(projectName, projectsFolderId);
+        const targetFolder = await findOrCreateFolder("Raw Footage", projectId);
 
-        console.log("✅ Target Folder Created:", targetFolder);
-
-        // Create Placeholder File (Empty)
-        const fileMeta = {
+        // 3. Create Placeholder File (0 Bytes)
+        const fileMetadata = {
             name: fileName,
-            mimeType: fileType,
-            parents: [targetFolder]
+            parents: [targetFolder],
+            mimeType: fileType
         };
 
         const placeholder = await drive.files.create({
-            requestBody: fileMeta,
+            resource: fileMetadata,
             fields: 'id, webViewLink'
         });
 
         const fileId = placeholder.data.id;
-        const viewLink = placeholder.data.webViewLink;
+        console.log("✅ Placeholder Created, ID:", fileId);
 
-        console.log("✅ Placeholder File Created:", fileId);
+        // 4. Permission (Public Link)
+        await drive.permissions.create({
+            fileId: fileId,
+            requestBody: { role: 'reader', type: 'anyone' }
+        });
 
-        // Make File Public
-        await setFilePublic(fileId);
-
-        // 🔥 Generate Resumable Upload Session URI
-        const uploadUrl = `https://www.googleapis.com/upload/drive/v3/files/${fileId}?uploadType=resumable`;
-
+        // 5. Generate Resumable Session Link (PATCH METHOD)
+        // Token Fresh Karo
+        const tokenResponse = await oauth2Client.getAccessToken();
+        
+        // ⚠️ CRITICAL FIX: Use 'PATCH' here, NOT 'POST'
         const sessionResponse = await axios.patch(
-            uploadUrl,
-            {},
+            `https://www.googleapis.com/upload/drive/v3/files/${fileId}?uploadType=resumable`,
+            {}, // Empty Body
             {
                 headers: {
-                    'Authorization': `Bearer ${token}`,
-                    'Content-Type': 'application/json',
-                    'X-Upload-Content-Type': fileType
+                    'Authorization': `Bearer ${tokenResponse.token}`,
+                    'X-Upload-Content-Type': fileType,
+                    'Content-Type': 'application/json; charset=UTF-8',
+                    'Content-Length': 0
                 }
             }
         );
 
-        const resumableUri = sessionResponse.headers.location;
-        
-        if (!resumableUri) {
-            throw new Error("Failed to get resumable upload URI from Google");
-        }
-
-        console.log("✅ Resumable URI Generated");
-
-        // Send Response to Frontend
+        // 6. Send Link to Frontend
         res.json({
             success: true,
-            uploadUrl: resumableUri, // Frontend ko yeh URL chahiye
+            uploadUrl: sessionResponse.headers.location, // Ye hai Magic Link
             fileId: fileId,
-            viewLink: viewLink
+            viewLink: placeholder.data.webViewLink
         });
 
     } catch (error) {
-        console.error("❌ Init Upload Error:", error.message);
-        res.status(500).json({
-            success: false,
-            error: error.message,
-            hint: "Check Render logs or .env variables"
+        console.error("❌ Init Error:", error.response?.data || error.message);
+        res.status(500).json({ 
+            success: false, 
+            error: error.message 
         });
     }
 });
