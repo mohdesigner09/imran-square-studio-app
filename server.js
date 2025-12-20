@@ -1335,59 +1335,70 @@ app.use((err, req, res, next) => {
 });
 
 
-// 🚀 DIRECT RESUMABLE UPLOAD (High-Speed Logic)
+// 🚀 DIRECT RESUMABLE UPLOAD (Updated & Safer)
 app.post('/api/drive/init-upload', async (req, res) => {
-    console.log("👉 Request Received on Server!"); // Ye 1st log
-    console.log("👉 Data Recieved:", req.body);    // Ye 2nd log
-
-    try {
-    const { userName, projectName, fileName, fileType } = req.body;
+    console.log("👉 Request Received for Upload!"); 
     
-    // 1. Hierarchy Check/Create
-    const ROOT_ID = process.env.DRIVE_FOLDER_ID;
-    const userId = await findOrCreateFolder(userName, ROOT_ID);
-    const projectsFolderId = await findOrCreateFolder("Projects", userId);
-    const projectSpecificId = await findOrCreateFolder(projectName, projectsFolderId);
-    const targetFolder = await findOrCreateFolder("Raw Footage", projectSpecificId);
+    try {
+        const { userName, projectName, fileName, fileType } = req.body;
 
-    // 2. Placeholder File banao (Gets ID instantly)
-    const placeholder = await drive.files.create({
-      resource: { name: fileName, parents: [targetFolder], mimeType: fileType },
-      fields: 'id, webViewLink',
-    });
-
-    const fileId = placeholder.data.id;
-    const viewLink = placeholder.data.webViewLink;
-
-    // 3. Public Permission set karo
-    await setFilePublic(fileId);
-
-    // 4. Google se Resumable Upload Link maango
-    const tokenResponse = await oauth2Client.getAccessToken();
-    const uploadRes = await axios.post(
-      `https://www.googleapis.com/upload/drive/v3/files/${fileId}?uploadType=resumable`,
-      {},
-      {
-        headers: {
-          'Authorization': `Bearer ${tokenResponse.token}`,
-          'X-Upload-Content-Type': fileType,
-          'Content-Type': 'application/json; charset=UTF-8'
+        // 👇 FIX: Alag alag naam check karega taaki crash na ho
+        const ROOT_ID = process.env.DRIVE_FOLDER_ID || process.env.GOOGLE_DRIVE_FOLDER_ID;
+        
+        if(!ROOT_ID) {
+            console.error("❌ CRITICAL: Drive Folder ID nahi mila!");
+            return res.status(500).json({ success: false, error: "Server Config Error: Missing DRIVE_FOLDER_ID" });
         }
-      }
-    );
 
-    // 5. Success! Sab kuch Client ko bhej do
-    res.json({ 
-      success: true, 
-      uploadUrl: uploadRes.headers.location, 
-      fileId: fileId,
-      viewLink: viewLink 
-    });
+        // Folder structure create/find karo
+        const userId = await findOrCreateFolder(userName || "Unknown User", ROOT_ID);
+        const projectsFolderId = await findOrCreateFolder("Projects", userId);
+        const projectSpecificId = await findOrCreateFolder(projectName || "Untitled Project", projectsFolderId);
+        const targetFolder = await findOrCreateFolder("Raw Footage", projectSpecificId);
 
-  } catch (error) {
-    console.error('❌ Init Error:', error.message);
-    res.status(500).json({ success: false, error: error.message });
-  }
+        // Placeholder File
+        const placeholder = await drive.files.create({
+          resource: { name: fileName, parents: [targetFolder], mimeType: fileType },
+          fields: 'id, webViewLink',
+        });
+
+        const fileId = placeholder.data.id;
+        const viewLink = placeholder.data.webViewLink;
+
+        // Public Permission
+        await setFilePublic(fileId);
+
+        // Get Resumable Link
+        const tokenResponse = await oauth2Client.getAccessToken();
+        
+        if (!tokenResponse || !tokenResponse.token) {
+             throw new Error("Failed to generate Access Token. Check Refresh Token.");
+        }
+
+        const uploadRes = await axios.post(
+          `https://www.googleapis.com/upload/drive/v3/files/${fileId}?uploadType=resumable`,
+          {},
+          {
+            headers: {
+              'Authorization': `Bearer ${tokenResponse.token}`,
+              'X-Upload-Content-Type': fileType,
+              'Content-Type': 'application/json; charset=UTF-8'
+            }
+          }
+        );
+
+        res.json({ 
+          success: true, 
+          uploadUrl: uploadRes.headers.location, 
+          fileId: fileId,
+          viewLink: viewLink 
+        });
+
+    } catch (error) {
+        console.error('❌ Upload Init Error:', error.message);
+        // User ko batao kya galat hua
+        res.status(500).json({ success: false, error: error.message });
+    }
 });
 
 // ===== SERVER START =====
