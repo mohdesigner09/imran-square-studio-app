@@ -465,7 +465,7 @@
 
     <script src="main.js"></script>
 
- <script>
+<script>
     // ========================================
     // 🔥 CONFIGURATION
     // ========================================
@@ -476,54 +476,53 @@
     let isAuthReady = false;
 
     // ========================================
-    // 🔥 AUTH CHECK (No Auto-Redirect)
+    // 🔥 AUTH CHECK (SILENT MODE - NO POPUPS)
     // ========================================
     document.addEventListener('DOMContentLoaded', async () => {
         console.log("🚀 Page Loaded");
 
-        // Method 1: Check localStorage first (Instant)
+        // STEP 1: Check LocalStorage
         const storedUser = localStorage.getItem('user');
         if (storedUser) {
             try {
                 currentUser = JSON.parse(storedUser);
                 isAuthReady = true;
-                console.log("✅ User from LocalStorage:", currentUser.email);
+                console.log("✅ LocalStorage User:", currentUser.email);
                 await loadProjectData();
             } catch (e) {
-                console.error("❌ LocalStorage parse error");
+                console.warn("⚠️ LocalStorage reset");
+                localStorage.removeItem('user');
             }
         }
 
-        // Method 2: Firebase Auth (Async backup)
+        // STEP 2: Check Firebase (Silent)
         if (typeof firebase !== 'undefined' && firebase.auth) {
             firebase.auth().onAuthStateChanged(async (user) => {
                 if (user) {
-                    console.log("✅ Firebase Auth Active:", user.email);
+                    console.log("🔥 Firebase User Active:", user.email);
                     
+                    // Data sync karo
                     currentUser = {
                         uid: user.uid,
                         email: user.email,
                         displayName: user.displayName || user.email.split('@')[0],
                         photoURL: user.photoURL
                     };
-                    
                     localStorage.setItem('user', JSON.stringify(currentUser));
-                    isAuthReady = true;
                     
-                    if (!storedUser) {
+                    if (!isAuthReady) {
+                        isAuthReady = true;
                         await loadProjectData();
                     }
                 } else {
-                    console.warn("⚠️ No Firebase session");
+                    // 🛑 POPUP REMOVED
+                    console.warn("⚠️ User appears logged out in Firebase.");
                     
-                    // ✅ FIXED: Only redirect if localStorage also empty
                     if (!storedUser) {
-                        console.error("❌ No stored user found");
-                        setTimeout(() => {
-                            if (confirm("Session expired. Redirect to login?")) {
-                                window.location.href = 'login.html';
-                            }
-                        }, 1000);
+                        console.log("ℹ️ Guest Mode Active (No Redirect)");
+                        // Hum redirect nahi karenge, bas console me batayenge
+                        // Agar tumhe zabardasti login karana ho, to niche wali line uncomment karna:
+                        // window.location.href = 'login.html'; 
                     }
                 }
             });
@@ -536,49 +535,61 @@
     async function loadProjectData() {
         if (!currentProjectID) return;
 
+        // Safety Check: Database connection
+        const dbRef = window.db || (firebase && firebase.firestore && firebase.firestore());
+        if (!dbRef) return console.error("❌ Database not connected");
+
         try {
-            const doc = await db.collection('projects').doc(currentProjectID).get();
+            const doc = await dbRef.collection('projects').doc(currentProjectID).get();
             if (doc.exists) {
                 const data = doc.data();
-                document.getElementById('rawProjectTitle').textContent = (data.title || 'Untitled').toUpperCase();
+                const titleEl = document.getElementById('rawProjectTitle');
+                if (titleEl) titleEl.textContent = (data.title || 'Untitled').toUpperCase();
+                
                 rawClips = data.footageLib || [];
-                renderVideos();
+                
+                if (typeof renderVideos === 'function') renderVideos();
                 console.log("✅ Project Loaded");
             }
         } catch (e) {
-            console.error("❌ Load Error:", e);
+            console.error("❌ Load Error (Permission or Network):", e);
         }
     }
 
     // ========================================
-    // 🔥 FILE PREVIEW
+    // 🔥 FILE PREVIEW & UPLOAD LOGIC
     // ========================================
-    const fileInput = document.getElementById('footageFileInput');
-    if (fileInput) {
-        fileInput.addEventListener('change', (e) => {
+    
+    // --- 1. Preview Logic ---
+    const previewInput = document.getElementById('footageFileInput'); // HTML me ye ID honi chahiye
+    if (previewInput) {
+        previewInput.addEventListener('change', (e) => {
             const file = e.target.files[0];
             if (!file) return;
-            
             selectedFile = file;
-            document.getElementById('filePreview').classList.remove('hidden');
-            document.getElementById('previewFileName').textContent = file.name;
-            document.getElementById('previewFileSize').textContent = (file.size / (1024 * 1024)).toFixed(2) + ' MB';
+            
+            const previewDiv = document.getElementById('filePreview');
+            if(previewDiv) previewDiv.classList.remove('hidden');
+            
+            const nameEl = document.getElementById('previewFileName');
+            const sizeEl = document.getElementById('previewFileSize');
+            if(nameEl) nameEl.textContent = file.name;
+            if(sizeEl) sizeEl.textContent = (file.size / (1024 * 1024)).toFixed(2) + ' MB';
 
-            // Thumbnail
             const video = document.createElement('video');
-            video.preload = 'metadata';
             video.src = URL.createObjectURL(file);
-            video.onloadeddata = () => video.currentTime = 1;
+            video.currentTime = 1;
             video.onseeked = () => {
                 const canvas = document.createElement('canvas');
-                canvas.width = 320;
-                canvas.height = 180;
+                canvas.width = 320; canvas.height = 180;
                 canvas.getContext('2d').drawImage(video, 0, 0, 320, 180);
-                document.getElementById('previewThumbnail').src = canvas.toDataURL();
-                URL.revokeObjectURL(video.src);
+                const thumb = document.getElementById('previewThumbnail');
+                if(thumb) thumb.src = canvas.toDataURL();
             };
         });
     }
+
+
 
    // JavaScript (Frontend Script)
 // ========================================
