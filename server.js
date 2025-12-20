@@ -1335,7 +1335,10 @@ const PORT = process.env.PORT || 3000;
 
 // 🚀 DIRECT RESUMABLE UPLOAD (High-Speed Logic)
 app.post('/api/drive/init-upload', async (req, res) => {
-  try {
+    console.log("👉 Request Received on Server!"); // Ye 1st log
+    console.log("👉 Data Recieved:", req.body);    // Ye 2nd log
+
+    try {
     const { userName, projectName, fileName, fileType } = req.body;
     
     // 1. Hierarchy Check/Create
