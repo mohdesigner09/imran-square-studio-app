@@ -533,27 +533,27 @@
     }
 
   
+
 // ========================================
-    // 🔥 FINAL CORS-FREE UPLOAD FUNCTION
+    // 🔥 FINAL "ANTI-CORS" UPLOAD FUNCTION
     // ========================================
     async function sendToStudio() {
-        // Fallback Logic: Check Variable first, then ID
+        // Fallback Logic
         const fileToUpload = selectedFile || (document.getElementById('fileInput') ? document.getElementById('fileInput').files[0] : null);
         
-        if (!fileToUpload) {
-            alert("⚠️ File select to karo bhai!");
-            return;
-        }
+        if (!fileToUpload) return alert("⚠️ File select to karo bhai!");
         
-        // Guest User Logic
+        // Safe Mime Type (Agar file.type khali ho to MP4 maan lo)
+        const safeFileType = fileToUpload.type || 'video/mp4';
+        
         const uName = (currentUser && currentUser.email) ? currentUser.email : "Guest_Client";
         const statusText = document.getElementById('text') || { innerText: '' }; 
         
-        statusText.innerText = "Step 1: Link Generate kar rahe hain...";
+        statusText.innerText = "Step 1: Connecting...";
         statusText.className = "text-center text-yellow-400 text-xs font-mono";
 
         try {
-            // 1. Backend se Link maango
+            // 1. Backend se Link Maango
             const response = await fetch('/api/drive/init-upload', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
@@ -561,28 +561,27 @@
                     userName: uName, 
                     projectName: "Raw_Footage",
                     fileName: fileToUpload.name,
-                    fileType: fileToUpload.type
+                    fileType: safeFileType // ✅ Safe Type Used
                 })
             });
 
             const data = await response.json();
             if (!data.success) throw new Error(data.error);
 
-            // 2. Direct Upload (CORS FIX APPLIED)
+            // 2. Direct Upload (XHR with Verification)
             statusText.innerText = "Step 2: Uploading...";
             
             const xhr = new XMLHttpRequest();
             xhr.open("PUT", data.uploadUrl, true);
             
-            // ❌ REMOVED: xhr.setRequestHeader("Content-Type", fileToUpload.type);
-            // CORS Fix: Koi header mat bhejo, Google handle kar lega.
-
+            // 🛑 KOI HEADER MAT BHEJNA (Browser khud handle karega)
+            
             xhr.upload.onprogress = (e) => {
                 if (e.lengthComputable) {
                     const percent = ((e.loaded / e.total) * 100).toFixed(0);
                     statusText.innerText = `Uploading: ${percent}% 🚀`;
                     
-                    // Progress Bar Animation (Agar modal me hai to)
+                    // Progress Bar UI Update
                     const bar = document.getElementById('uploadProgressBar');
                     const txt = document.getElementById('uploadProgressText');
                     if(bar) bar.style.width = percent + "%";
@@ -590,61 +589,95 @@
                 }
             };
 
+            // ✅ SUCCESS HANDLER
             xhr.onload = async () => {
-                if (xhr.status === 200 || xhr.status === 201 || xhr.status === 308) {
-                    statusText.innerText = "✅ Finalizing...";
-                    
-                    // Show Success UI
-                    document.getElementById('uploadStep2').classList.add('hidden');
-                    document.getElementById('uploadStep3').classList.remove('hidden');
-
-                    // DB Update
-                    const newVideoData = {
-                        title: fileToUpload.name,
-                        link: data.viewLink,
-                        fileId: data.fileId,
-                        thumb: "https://via.placeholder.com/320x180/000000/FFFFFF/?text=VIDEO",
-                        type: fileToUpload.type.includes('portrait') ? 'shorts' : 'long',
-                        uploadedBy: uName,
-                        uploadDate: new Date().toISOString()
-                    };
-
-                    try {
-                        const dbRef = window.db || firebase.firestore();
-                        await dbRef.collection('projects').doc(currentProjectID).update({
-                            footageLib: firebase.firestore.FieldValue.arrayUnion(newVideoData)
-                        });
-                        
-                        rawClips.push(newVideoData);
-                        renderVideos();
-                        
-                    } catch (e) { console.error("DB Update Error", e); }
+                // Status 200, 201, 308 = Success
+                if (xhr.status >= 200 && xhr.status < 400) {
+                    await handleSuccess(fileToUpload, data, uName, statusText);
                 } else {
-                    statusText.innerText = "Failed: " + xhr.status;
-                    alert("Upload Failed. Status: " + xhr.status);
+                    statusText.innerText = "Error: " + xhr.status;
                 }
             };
 
-            xhr.onerror = () => {
-                statusText.innerText = "❌ Network/CORS Error";
-                console.error("CORS Error Details:", xhr);
-                alert("Network Error! Check Console.");
+            // ⚠️ CORS ERROR HANDLER (Jugaad)
+            xhr.onerror = async () => {
+                console.warn("⚠️ Browser blocked response (CORS), checking file on server...");
+                
+                // Agar upload 100% ho chuka tha, to ye shayad False Alarm hai
+                // Hum server se puchenge: "Kya file pahunchi?"
+                
+                statusText.innerText = "Verifying Upload...";
+                
+                try {
+                    // Finalize call karega check
+                    const verifyResp = await fetch('/api/drive/finalize-upload', {
+                        method: 'POST',
+                        headers: {'Content-Type': 'application/json'},
+                        body: JSON.stringify({ fileId: data.fileId })
+                    });
+                    
+                    const verifyData = await verifyResp.json();
+                    
+                    // Agar server bole "Haan file hai", to Success manao!
+                    if (verifyData.success || (verifyData.size && verifyData.size > 0)) {
+                        console.log("✅ CORS Bypass Successful: File exists on server.");
+                        await handleSuccess(fileToUpload, data, uName, statusText);
+                    } else {
+                        throw new Error("Upload Failed (Network Error)");
+                    }
+                } catch (e) {
+                    console.error("Real Verification Error:", e);
+                    statusText.innerText = "❌ Upload Failed (Network)";
+                    statusText.className = "text-center text-red-500 text-xs font-mono";
+                    alert("Upload Failed. Please check internet connection.");
+                    
+                    // Reset UI
+                    document.getElementById('uploadStep1').classList.remove('hidden');
+                    document.getElementById('uploadStep2').classList.add('hidden');
+                }
             };
 
-            // Switch to Loading UI
+            // Switch UI to Loading
             document.getElementById('uploadStep1').classList.add('hidden');
             document.getElementById('uploadStep2').classList.remove('hidden');
             
-            xhr.send(fileToUpload); // Send Raw File
-            
+            xhr.send(fileToUpload);
+
         } catch (error) {
             console.error(error);
             alert("Error: " + error.message);
             statusText.innerText = "❌ Error: " + error.message;
-            // Error aaya to wapas Step 1 par bhejo
-            document.getElementById('uploadStep1').classList.remove('hidden');
-            document.getElementById('uploadStep2').classList.add('hidden');
         }
+    }
+
+    // ✅ HELPER: Success Logic (Database Update)
+    async function handleSuccess(file, data, uName, statusText) {
+        statusText.innerText = "✅ Finalizing...";
+        
+        // Show Success UI
+        document.getElementById('uploadStep2').classList.add('hidden');
+        document.getElementById('uploadStep3').classList.remove('hidden');
+
+        const newVideoData = {
+            title: file.name,
+            link: data.viewLink,
+            fileId: data.fileId,
+            thumb: "https://via.placeholder.com/320x180/000000/FFFFFF/?text=VIDEO",
+            type: file.type.includes('portrait') ? 'shorts' : 'long',
+            uploadedBy: uName,
+            uploadDate: new Date().toISOString()
+        };
+
+        try {
+            const dbRef = window.db || firebase.firestore();
+            await dbRef.collection('projects').doc(currentProjectID).update({
+                footageLib: firebase.firestore.FieldValue.arrayUnion(newVideoData)
+            });
+            
+            rawClips.push(newVideoData);
+            if (typeof renderVideos === 'function') renderVideos();
+            
+        } catch (e) { console.error("DB Sync Error (File is Safe)", e); }
     }
 
     // UI Helpers (Required to prevent errors)
