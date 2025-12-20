@@ -534,26 +534,26 @@
 
   
 // ========================================
-    // 🔥 ROBUST UPLOAD FUNCTION
+    // 🔥 FINAL CORS-FREE UPLOAD FUNCTION
     // ========================================
     async function sendToStudio() {
-        // Fallback Logic: Pehle variable check karo, phir DOM
+        // Fallback Logic: Check Variable first, then ID
         const fileToUpload = selectedFile || (document.getElementById('fileInput') ? document.getElementById('fileInput').files[0] : null);
         
         if (!fileToUpload) {
-            alert("⚠️ File select to karo bhai! (HTML Input ID check karo)");
+            alert("⚠️ File select to karo bhai!");
             return;
         }
         
-        // Agar user nahi hai, to Guest ban jao
+        // Guest User Logic
         const uName = (currentUser && currentUser.email) ? currentUser.email : "Guest_Client";
         const statusText = document.getElementById('text') || { innerText: '' }; 
         
-        statusText.innerText = "Step 1: Connecting to Server...";
-        statusText.className = "text-center text-yellow-400 text-xs font-mono"; // Yellow color for processing
+        statusText.innerText = "Step 1: Link Generate kar rahe hain...";
+        statusText.className = "text-center text-yellow-400 text-xs font-mono";
 
         try {
-            // Init Upload
+            // 1. Backend se Link maango
             const response = await fetch('/api/drive/init-upload', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
@@ -568,23 +568,35 @@
             const data = await response.json();
             if (!data.success) throw new Error(data.error);
 
-            // Direct Upload
-            statusText.innerText = "Step 2: Uploading to Drive...";
+            // 2. Direct Upload (CORS FIX APPLIED)
+            statusText.innerText = "Step 2: Uploading...";
+            
             const xhr = new XMLHttpRequest();
             xhr.open("PUT", data.uploadUrl, true);
-            xhr.setRequestHeader("Content-Type", fileToUpload.type);
+            
+            // ❌ REMOVED: xhr.setRequestHeader("Content-Type", fileToUpload.type);
+            // CORS Fix: Koi header mat bhejo, Google handle kar lega.
 
             xhr.upload.onprogress = (e) => {
                 if (e.lengthComputable) {
                     const percent = ((e.loaded / e.total) * 100).toFixed(0);
                     statusText.innerText = `Uploading: ${percent}% 🚀`;
+                    
+                    // Progress Bar Animation (Agar modal me hai to)
+                    const bar = document.getElementById('uploadProgressBar');
+                    const txt = document.getElementById('uploadProgressText');
+                    if(bar) bar.style.width = percent + "%";
+                    if(txt) txt.innerText = `Sending Data... ${percent}%`;
                 }
             };
 
             xhr.onload = async () => {
                 if (xhr.status === 200 || xhr.status === 201 || xhr.status === 308) {
                     statusText.innerText = "✅ Finalizing...";
-                    statusText.className = "text-center text-green-400 text-xs font-mono";
+                    
+                    // Show Success UI
+                    document.getElementById('uploadStep2').classList.add('hidden');
+                    document.getElementById('uploadStep3').classList.remove('hidden');
 
                     // DB Update
                     const newVideoData = {
@@ -603,23 +615,35 @@
                             footageLib: firebase.firestore.FieldValue.arrayUnion(newVideoData)
                         });
                         
-                        // UI Refresh
                         rawClips.push(newVideoData);
                         renderVideos();
                         
-                        alert("🎉 Upload Successful!");
-                        if(typeof closeUploadModal === 'function') closeUploadModal();
-                        
-                    } catch (e) { console.error(e); }
+                    } catch (e) { console.error("DB Update Error", e); }
                 } else {
                     statusText.innerText = "Failed: " + xhr.status;
-                    statusText.className = "text-center text-red-400 text-xs font-mono";
+                    alert("Upload Failed. Status: " + xhr.status);
                 }
             };
-            xhr.send(fileToUpload);
+
+            xhr.onerror = () => {
+                statusText.innerText = "❌ Network/CORS Error";
+                console.error("CORS Error Details:", xhr);
+                alert("Network Error! Check Console.");
+            };
+
+            // Switch to Loading UI
+            document.getElementById('uploadStep1').classList.add('hidden');
+            document.getElementById('uploadStep2').classList.remove('hidden');
+            
+            xhr.send(fileToUpload); // Send Raw File
+            
         } catch (error) {
+            console.error(error);
             alert("Error: " + error.message);
             statusText.innerText = "❌ Error: " + error.message;
+            // Error aaya to wapas Step 1 par bhejo
+            document.getElementById('uploadStep1').classList.remove('hidden');
+            document.getElementById('uploadStep2').classList.add('hidden');
         }
     }
 
