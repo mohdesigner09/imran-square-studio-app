@@ -1335,98 +1335,100 @@ app.use((err, req, res, next) => {
 });
 
 
-// 🚀 DEBUG MODE: INIT UPLOAD ROUTE
+// ✅ CORRECTED: Resumable Upload Initialization
 app.post('/api/drive/init-upload', async (req, res) => {
-    console.log("👉 [DEBUG] Request Received");
-    console.log("👉 [DEBUG] Body:", JSON.stringify(req.body));
-
+    console.log("🔥 [INIT] Upload Request Received");
+    
     try {
-        // 1. Check Body Data
         const { userName, projectName, fileName, fileType } = req.body;
-        if (!fileName) throw new Error("Frontend se 'fileName' nahi aaya! Body check karo.");
-        if (!fileType) throw new Error("Frontend se 'fileType' nahi aaya!");
 
-        // 2. Check Environment Variables
-        // Yahan hum dono naam check kar rahe hain taaki galti na ho
+        // Validation
+        if (!fileName || !fileType) {
+            throw new Error("Missing 'fileName' or 'fileType' in request body");
+        }
+
+        // Environment Check
         const ROOT_ID = process.env.DRIVE_FOLDER_ID || process.env.GOOGLE_DRIVE_FOLDER_ID;
-        
         if (!ROOT_ID) {
-             throw new Error("SERVER ERROR: .env file mein 'DRIVE_FOLDER_ID' missing hai!");
-        }
-        console.log("👉 [DEBUG] Root ID Found:", ROOT_ID);
-
-        // 3. Check Google Auth
-        if (!process.env.GOOGLE_OAUTH_CLIENT_ID || !process.env.GOOGLE_DRIVE_REFRESH_TOKEN) {
-            throw new Error("SERVER ERROR: Google Auth Credentials (.env) missing hain!");
+            throw new Error("DRIVE_FOLDER_ID not configured in environment");
         }
 
-        // 4. Test Token Generation (Sabse common failure point)
-        let tokenResponse;
-        try {
-            tokenResponse = await oauth2Client.getAccessToken();
-            if (!tokenResponse || !tokenResponse.token) throw new Error("Token Empty");
-        } catch (authErr) {
-            console.error("Auth Error:", authErr);
-            throw new Error(`Google Auth Failed: ${authErr.message}. Refresh Token check karo.`);
-        }
-        console.log("👉 [DEBUG] Auth Token Generated Success");
+        console.log("✅ Root Folder ID:", ROOT_ID);
 
-        // 5. Folder Operations (Safe Mode)
-        // Agar userName ya projectName nahi aaya, to default values use karenge taaki crash na ho
+        // Get Fresh Access Token
+        const { token } = await oauth2Client.getAccessToken();
+        if (!token) throw new Error("Failed to generate access token");
+
+        console.log("✅ Access Token Generated");
+
+        // Create Folder Structure (User > Projects > ProjectName > Raw Footage)
         const safeUserName = userName || "Unknown_User";
         const safeProjectName = projectName || "Default_Project";
-
-        console.log(`👉 [DEBUG] Creating Folders for: ${safeUserName} > ${safeProjectName}`);
 
         const userId = await findOrCreateFolder(safeUserName, ROOT_ID);
         const projectsFolderId = await findOrCreateFolder("Projects", userId);
         const projectSpecificId = await findOrCreateFolder(safeProjectName, projectsFolderId);
         const targetFolder = await findOrCreateFolder("Raw Footage", projectSpecificId);
 
-        // 6. Create Placeholder File
+        console.log("✅ Target Folder Created:", targetFolder);
+
+        // Create Placeholder File (Empty)
+        const fileMeta = {
+            name: fileName,
+            mimeType: fileType,
+            parents: [targetFolder]
+        };
+
         const placeholder = await drive.files.create({
-          resource: { name: fileName, parents: [targetFolder], mimeType: fileType },
-          fields: 'id, webViewLink',
+            requestBody: fileMeta,
+            fields: 'id, webViewLink'
         });
 
         const fileId = placeholder.data.id;
         const viewLink = placeholder.data.webViewLink;
-        console.log("👉 [DEBUG] File Created ID:", fileId);
 
-        // 7. Public Permission
+        console.log("✅ Placeholder File Created:", fileId);
+
+        // Make File Public
         await setFilePublic(fileId);
 
-        // 8. Get Upload URL
-        const uploadRes = await axios.patch(
-          `https://www.googleapis.com/upload/drive/v3/files/${fileId}?uploadType=resumable`,
-          {},
-          {
-            headers: {
-              'Authorization': `Bearer ${tokenResponse.token}`,
-              'X-Upload-Content-Type': fileType,
-              'Content-Type': 'application/json; charset=UTF-8',
-              'Origin': 'https://imran-square-studio.onrender.com'
+        // 🔥 Generate Resumable Upload Session URI
+        const uploadUrl = `https://www.googleapis.com/upload/drive/v3/files/${fileId}?uploadType=resumable`;
+
+        const sessionResponse = await axios.patch(
+            uploadUrl,
+            {},
+            {
+                headers: {
+                    'Authorization': `Bearer ${token}`,
+                    'Content-Type': 'application/json',
+                    'X-Upload-Content-Type': fileType
+                }
             }
-          }
         );
 
-        console.log("👉 [DEBUG] Upload URL Generated!");
+        const resumableUri = sessionResponse.headers.location;
+        
+        if (!resumableUri) {
+            throw new Error("Failed to get resumable upload URI from Google");
+        }
 
-        // SUCCESS RESPONSE
-        res.json({ 
-          success: true, 
-          uploadUrl: uploadRes.headers.location, 
-          fileId: fileId,
-          viewLink: viewLink 
+        console.log("✅ Resumable URI Generated");
+
+        // Send Response to Frontend
+        res.json({
+            success: true,
+            uploadUrl: resumableUri, // Frontend ko yeh URL chahiye
+            fileId: fileId,
+            viewLink: viewLink
         });
 
     } catch (error) {
-        console.error('❌ CRITICAL ERROR:', error.message);
-        // Browser ko batao EXACTLY kya fat gaya
-        res.status(500).json({ 
-            success: false, 
+        console.error("❌ Init Upload Error:", error.message);
+        res.status(500).json({
+            success: false,
             error: error.message,
-            hint: "Check Render Logs or .env variables" 
+            hint: "Check Render logs or .env variables"
         });
     }
 });
