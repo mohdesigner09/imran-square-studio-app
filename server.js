@@ -20,8 +20,13 @@ dotenv.config();
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
+const driveRoutes = require('./routes/drive')
+
 // ===== 3. APP INITIALIZATION =====
 const app = express();
+app.use(express.json());
+
+app.use('/api/drive', driveRoutes);
 
 const ADMIN_EMAIL = 'mohdesigner09@gmail.com';
 
@@ -1331,7 +1336,10 @@ app.use((err, req, res, next) => {
 });
 
 // ==========================================
-const PORT = process.env.PORT || 3000;
+const PORT = process.env.PORT || 10000;
+app.listen(PORT, () => {
+    console.log(`Server running on port ${PORT}`);
+});
 
 // 🚀 DIRECT RESUMABLE UPLOAD (High-Speed Logic)
 app.post('/api/drive/init-upload', async (req, res) => {
