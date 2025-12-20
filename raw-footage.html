@@ -375,40 +375,36 @@
         <button onclick="closeUploadModal()" class="absolute top-4 right-4 text-gray-400 hover:text-white transition z-10">
             <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path></svg>
         </button>
+<div id="uploadStep1">
+    <h2 class="text-xl font-display font-bold text-white mb-2">Upload Footage</h2>
+    <p class="text-sm text-gray-400 mb-6">Select a video to upload. We will auto-detect if it's a Short or Long video.</p>
 
-        <div id="uploadStep1">
-            <h2 class="text-xl font-display font-bold text-white mb-2">Upload Raw Footage</h2>
-            <p class="text-sm text-gray-400 mb-6">Select a video file to add to the vault.</p>
-
-            <input type="file" id="fileInput" accept="video/*" class="hidden">
-            
-            <div onclick="document.getElementById('fileInput').click()" class="border-2 border-dashed border-white/10 rounded-xl p-8 text-center cursor-pointer hover:border-orange-500/50 hover:bg-white/5 transition group">
-                <div class="w-12 h-12 mx-auto mb-3 rounded-full bg-white/5 flex items-center justify-center group-hover:scale-110 transition">
-                    <svg class="w-6 h-6 text-gray-300 group-hover:text-orange-500 transition" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12"></path></svg>
-                </div>
-                <p class="text-gray-300 font-medium text-sm">Click to choose video</p>
-                <p class="text-gray-500 text-xs mt-1">Supports MP4, MOV, MKV</p>
-            </div>
-
-            <div id="filePreview" class="hidden mt-4">
-                <div class="p-3 bg-white/5 rounded-lg border border-white/10 flex items-center gap-3 mb-4">
-                    <div class="w-16 h-9 bg-black rounded overflow-hidden flex-shrink-0 border border-white/10">
-                        <img id="previewThumbnail" class="w-full h-full object-cover opacity-80" />
-                    </div>
-                    <div class="flex-1 min-w-0">
-                        <p id="previewFileName" class="text-white text-sm font-medium truncate"></p>
-                        <p id="previewFileSize" class="text-xs text-gray-500 mt-0.5 font-mono"></p>
-                    </div>
-                </div>
-
-                <button onclick="sendToStudio()" class="w-full bg-orange-600 hover:bg-orange-700 text-white font-medium py-2.5 rounded-lg transition shadow-lg shadow-orange-900/20 flex items-center justify-center gap-2">
-                    <span>Start Upload</span>
-                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12"></path></svg>
-                </button>
-            </div>
-
-            <p id="text" class="mt-3 text-center text-gray-500 text-xs font-mono h-4"></p>
+    <input type="file" id="fileInput" accept="video/*" class="hidden">
+    
+    <div onclick="document.getElementById('fileInput').click()" class="border-2 border-dashed border-white/10 rounded-xl p-8 text-center cursor-pointer hover:border-orange-500/50 hover:bg-white/5 transition group">
+        <div class="w-12 h-12 mx-auto mb-3 rounded-full bg-white/5 flex items-center justify-center group-hover:scale-110 transition">
+            <svg class="w-6 h-6 text-gray-300 group-hover:text-orange-500 transition" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12"></path></svg>
         </div>
+        <p class="text-gray-300 font-medium text-sm">Click to choose video</p>
+    </div>
+
+    <div id="filePreview" class="hidden mt-4">
+        <div class="p-3 bg-white/5 rounded-lg border border-white/10 flex items-center gap-3 mb-4">
+            <div class="w-16 h-9 bg-black rounded overflow-hidden flex-shrink-0 border border-white/10">
+                <img id="previewThumbnail" class="w-full h-full object-cover opacity-80" />
+            </div>
+            <div class="flex-1 min-w-0 text-left">
+                <p id="previewFileName" class="text-white text-sm font-medium truncate"></p>
+                <span id="detectedBadge" class="inline-block mt-1 px-2 py-0.5 rounded text-[10px] font-bold bg-gray-700 text-gray-300">Detecting...</span>
+            </div>
+        </div>
+        <button onclick="sendToStudio()" class="w-full bg-orange-600 hover:bg-orange-700 text-white font-bold py-2.5 rounded-lg transition text-sm">
+            Start Upload
+        </button>
+    </div>
+    
+    <p id="text" class="mt-3 text-center text-gray-500 text-xs font-mono h-4"></p>
+</div>
 
         <div id="uploadStep2" class="hidden text-center py-8">
             <div class="w-16 h-16 mx-auto mb-4 relative">
@@ -465,242 +461,310 @@
    
 <script>
     // ========================================
-    // 🔥 EMERGENCY SCRIPT (NO REDIRECT MODE)
+    // 🔥 CONFIGURATION
     // ========================================
     let currentProjectID = new URLSearchParams(window.location.search).get('id') || 'demo-project';
     let rawClips = [];
     let selectedFile = null;
     let currentUser = null;
-    let isAuthReady = false;
+    let detectedType = 'long'; // Default
 
-    console.log("🛑 EMERGENCY MODE ACTIVE: Redirects are DISABLED.");
-
+    // ========================================
+    // 🔥 AUTH & INIT
+    // ========================================
     document.addEventListener('DOMContentLoaded', async () => {
-        
-        // 1. LocalStorage Check
         const storedUser = localStorage.getItem('user');
-        if (storedUser) {
-            try {
-                currentUser = JSON.parse(storedUser);
-                console.log("✅ User Found (Local):", currentUser.email);
-                loadProjectData();
-            } catch (e) {}
-        }
-
-        // 2. Firebase Check
+        if (storedUser) { try { currentUser = JSON.parse(storedUser); loadProjectData(); } catch(e){} }
+        
         if (typeof firebase !== 'undefined' && firebase.auth) {
             firebase.auth().onAuthStateChanged(async (user) => {
                 if (user) {
-                    console.log("🔥 Firebase User Found:", user.email);
-                    currentUser = {
-                        uid: user.uid,
-                        email: user.email,
-                        displayName: user.displayName || user.email.split('@')[0],
-                        photoURL: user.photoURL
-                    };
+                    currentUser = { uid: user.uid, email: user.email };
                     localStorage.setItem('user', JSON.stringify(currentUser));
-                    
                     if(rawClips.length === 0) loadProjectData();
-
-                } else {
-                    console.warn("⚠️ Firebase says: NO USER.");
-                    console.log("🛑 Main tumhe kick karne wala tha, par maine khud ko rok liya.");
-                    // Yahan pehle 'window.location.href' tha, maine HATA DIYA hai.
-                    // Ab ye page se hil nahi sakta.
                 }
             });
         }
     });
 
-    // ========================================
-    // 🔥 LOAD PROJECT
-    // ========================================
     async function loadProjectData() {
-        if (!currentProjectID) return;
-        const dbRef = window.db || (firebase && firebase.firestore && firebase.firestore());
-        if (!dbRef) return;
-
+        if (!currentProjectID || !window.db) return;
         try {
-            const doc = await dbRef.collection('projects').doc(currentProjectID).get();
+            const doc = await window.db.collection('projects').doc(currentProjectID).get();
             if (doc.exists) {
                 const data = doc.data();
                 document.getElementById('rawProjectTitle').innerText = (data.title || 'Untitled').toUpperCase();
                 rawClips = data.footageLib || [];
-                if (typeof renderVideos === 'function') renderVideos();
+                renderVideos();
             }
         } catch (e) { console.error("Load Error:", e); }
     }
 
-  
+    // ========================================
+    // 🔥 AUTO-DETECT & PREVIEW LOGIC
+    // ========================================
+    const fileInput = document.getElementById('fileInput');
+    if (fileInput) {
+        fileInput.addEventListener('change', function(e) {
+            const file = e.target.files[0];
+            if (!file) return;
+            selectedFile = file;
 
-// ========================================
-    // 🔥 FINAL "ANTI-CORS" UPLOAD FUNCTION
+            // UI Show
+            document.getElementById('filePreview').classList.remove('hidden');
+            document.getElementById('previewFileName').innerText = file.name;
+
+            // Generate Video Element to Check Dimensions
+            const video = document.createElement('video');
+            video.preload = 'metadata';
+            video.src = URL.createObjectURL(file);
+            
+            video.onloadedmetadata = function() {
+                window.URL.revokeObjectURL(video.src);
+                
+                // 🧠 AUTO-DETECT LOGIC
+                if (video.videoHeight > video.videoWidth) {
+                    detectedType = 'shorts';
+                    document.getElementById('detectedBadge').innerText = "Detected: SHORT (9:16)";
+                    document.getElementById('detectedBadge').className = "inline-block mt-1 px-2 py-0.5 rounded text-[10px] font-bold bg-purple-600 text-white";
+                } else {
+                    detectedType = 'long';
+                    document.getElementById('detectedBadge').innerText = "Detected: LONG VIDEO (16:9)";
+                    document.getElementById('detectedBadge').className = "inline-block mt-1 px-2 py-0.5 rounded text-[10px] font-bold bg-blue-600 text-white";
+                }
+            }
+
+            // Generate Thumbnail
+            video.currentTime = 1;
+            video.onseeked = function() {
+                const canvas = document.createElement('canvas');
+                canvas.width = 320; canvas.height = 180;
+                const ctx = canvas.getContext('2d');
+                ctx.drawImage(video, 0, 0, 320, 180);
+                document.getElementById('previewThumbnail').src = canvas.toDataURL();
+            };
+        });
+    }
+
+    // ========================================
+    // 🔥 UPLOAD FUNCTION (Uses Auto-Detect)
     // ========================================
     async function sendToStudio() {
-        // Fallback Logic
-        const fileToUpload = selectedFile || (document.getElementById('fileInput') ? document.getElementById('fileInput').files[0] : null);
-        
-        if (!fileToUpload) return alert("⚠️ File select to karo bhai!");
-        
-        // Safe Mime Type (Agar file.type khali ho to MP4 maan lo)
-        const safeFileType = fileToUpload.type || 'video/mp4';
-        
-        const uName = (currentUser && currentUser.email) ? currentUser.email : "Guest_Client";
-        const statusText = document.getElementById('text') || { innerText: '' }; 
-        
-        statusText.innerText = "Step 1: Connecting...";
-        statusText.className = "text-center text-yellow-400 text-xs font-mono";
+        if (!selectedFile) return alert("⚠️ Please select a file!");
 
+        const uName = (currentUser && currentUser.email) ? currentUser.email : "Guest_Client";
+        const statusText = document.getElementById('text');
+        
+        statusText.innerText = "Connecting...";
+        
         try {
-            // 1. Backend se Link Maango
+            // Init Upload
             const response = await fetch('/api/drive/init-upload', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({
                     userName: uName, 
                     projectName: "Raw_Footage",
-                    fileName: fileToUpload.name,
-                    fileType: safeFileType // ✅ Safe Type Used
+                    fileName: selectedFile.name,
+                    fileType: selectedFile.type || 'video/mp4'
                 })
             });
 
             const data = await response.json();
             if (!data.success) throw new Error(data.error);
 
-            // 2. Direct Upload (XHR with Verification)
-            statusText.innerText = "Step 2: Uploading...";
-            
+            // Direct Upload
+            statusText.innerText = "Uploading...";
             const xhr = new XMLHttpRequest();
             xhr.open("PUT", data.uploadUrl, true);
-            
-            // 🛑 KOI HEADER MAT BHEJNA (Browser khud handle karega)
             
             xhr.upload.onprogress = (e) => {
                 if (e.lengthComputable) {
                     const percent = ((e.loaded / e.total) * 100).toFixed(0);
-                    statusText.innerText = `Uploading: ${percent}% 🚀`;
-                    
-                    // Progress Bar UI Update
-                    const bar = document.getElementById('uploadProgressBar');
-                    const txt = document.getElementById('uploadProgressText');
-                    if(bar) bar.style.width = percent + "%";
-                    if(txt) txt.innerText = `Sending Data... ${percent}%`;
+                    statusText.innerText = `Uploading: ${percent}%`;
                 }
             };
 
-            // ✅ SUCCESS HANDLER
-            xhr.onload = async () => {
-                // Status 200, 201, 308 = Success
-                if (xhr.status >= 200 && xhr.status < 400) {
-                    await handleSuccess(fileToUpload, data, uName, statusText);
-                } else {
-                    statusText.innerText = "Error: " + xhr.status;
-                }
-            };
+            const finishUpload = async () => {
+                statusText.innerText = "Finalizing...";
+                
+                const newVideoData = {
+                    title: selectedFile.name,
+                    link: data.viewLink,
+                    fileId: data.fileId,
+                    thumb: "https://placehold.co/320x180/000000/FFFFFF/png?text=VIDEO", 
+                    type: detectedType, // ✅ USES AUTO DETECTED VALUE
+                    uploadedBy: uName,
+                    uploadDate: new Date().toISOString()
+                };
 
-            // ⚠️ CORS ERROR HANDLER (Jugaad)
-            xhr.onerror = async () => {
-                console.warn("⚠️ Browser blocked response (CORS), checking file on server...");
-                
-                // Agar upload 100% ho chuka tha, to ye shayad False Alarm hai
-                // Hum server se puchenge: "Kya file pahunchi?"
-                
-                statusText.innerText = "Verifying Upload...";
-                
                 try {
-                    // Finalize call karega check
-                    const verifyResp = await fetch('/api/drive/finalize-upload', {
-                        method: 'POST',
-                        headers: {'Content-Type': 'application/json'},
-                        body: JSON.stringify({ fileId: data.fileId })
+                    const dbRef = window.db || firebase.firestore();
+                    await dbRef.collection('projects').doc(currentProjectID).update({
+                        footageLib: firebase.firestore.FieldValue.arrayUnion(newVideoData)
                     });
                     
-                    const verifyData = await verifyResp.json();
+                    rawClips.push(newVideoData);
                     
-                    // Agar server bole "Haan file hai", to Success manao!
-                    if (verifyData.success || (verifyData.size && verifyData.size > 0)) {
-                        console.log("✅ CORS Bypass Successful: File exists on server.");
-                        await handleSuccess(fileToUpload, data, uName, statusText);
-                    } else {
-                        throw new Error("Upload Failed (Network Error)");
-                    }
-                } catch (e) {
-                    console.error("Real Verification Error:", e);
-                    statusText.innerText = "❌ Upload Failed (Network)";
-                    statusText.className = "text-center text-red-500 text-xs font-mono";
-                    alert("Upload Failed. Please check internet connection.");
+                    // Auto switch tab to show the new video
+                    switchType(detectedType);
                     
-                    // Reset UI
-                    document.getElementById('uploadStep1').classList.remove('hidden');
                     document.getElementById('uploadStep2').classList.add('hidden');
-                }
+                    document.getElementById('uploadStep3').classList.remove('hidden');
+
+                } catch (e) { console.error(e); }
             };
 
-            // Switch UI to Loading
+            xhr.onload = () => { if(xhr.status < 400) finishUpload(); else statusText.innerText = "Error " + xhr.status; };
+            
+            // CORS Bypass Handler
+            xhr.onerror = async () => {
+                 try {
+                     const check = await fetch('/api/drive/finalize-upload', {
+                        method: 'POST', headers: {'Content-Type': 'application/json'},
+                        body: JSON.stringify({ fileId: data.fileId })
+                     });
+                     const res = await check.json();
+                     if(res.success || (res.size && res.size > 0)) finishUpload();
+                     else throw new Error("Verify Failed");
+                 } catch(e) {
+                     statusText.innerText = "Network Error";
+                     alert("Upload Failed (Network)");
+                 }
+            };
+
+            // UI Switch
             document.getElementById('uploadStep1').classList.add('hidden');
             document.getElementById('uploadStep2').classList.remove('hidden');
             
-            xhr.send(fileToUpload);
+            xhr.send(selectedFile);
 
         } catch (error) {
-            console.error(error);
-            alert("Error: " + error.message);
-            statusText.innerText = "❌ Error: " + error.message;
+            alert(error.message);
+            statusText.innerText = "Error: " + error.message;
         }
     }
 
-    // ✅ HELPER: Success Logic (Database Update)
-    async function handleSuccess(file, data, uName, statusText) {
-        statusText.innerText = "✅ Finalizing...";
+    // ========================================
+    // 🔥 TAB SWITCHER (Visual Fix)
+    // ========================================
+    function switchType(type) {
+        const shortGrid = document.getElementById('gridShorts');
+        const longGrid = document.getElementById('gridLongs');
         
-        // Show Success UI
-        document.getElementById('uploadStep2').classList.add('hidden');
-        document.getElementById('uploadStep3').classList.remove('hidden');
+        // Find buttons by their onclick attribute
+        const btnShorts = document.querySelector("button[onclick*='shorts']");
+        const btnLong = document.querySelector("button[onclick*='long']");
 
-        const newVideoData = {
-            title: file.name,
-            link: data.viewLink,
-            fileId: data.fileId,
-            thumb: "https://via.placeholder.com/320x180/000000/FFFFFF/?text=VIDEO",
-            type: file.type.includes('portrait') ? 'shorts' : 'long',
-            uploadedBy: uName,
-            uploadDate: new Date().toISOString()
-        };
-
-        try {
-            const dbRef = window.db || firebase.firestore();
-            await dbRef.collection('projects').doc(currentProjectID).update({
-                footageLib: firebase.firestore.FieldValue.arrayUnion(newVideoData)
-            });
+        if (type === 'shorts') {
+            shortGrid.classList.remove('hidden');
+            longGrid.classList.add('hidden');
             
-            rawClips.push(newVideoData);
-            if (typeof renderVideos === 'function') renderVideos();
+            // Set Active Styles
+            if(btnShorts) btnShorts.className = "type-btn active text-white font-bold pb-2 border-b-2 border-orange-500 transition";
+            if(btnLong) btnLong.className = "type-btn text-gray-400 hover:text-white font-bold pb-2 transition border-b-2 border-transparent";
+        } else {
+            longGrid.classList.remove('hidden');
+            shortGrid.classList.add('hidden');
             
-        } catch (e) { console.error("DB Sync Error (File is Safe)", e); }
+            if(btnLong) btnLong.className = "type-btn active text-white font-bold pb-2 border-b-2 border-orange-500 transition";
+            if(btnShorts) btnShorts.className = "type-btn text-gray-400 hover:text-white font-bold pb-2 transition border-b-2 border-transparent";
+        }
+        renderVideos();
     }
 
-    // UI Helpers (Required to prevent errors)
+    // ========================================
+    // 🔥 RENDERER
+    // ========================================
+    function renderVideos() {
+        const gridShorts = document.getElementById('gridShorts');
+        const gridLongs = document.getElementById('gridLongs');
+        if (!gridShorts || !gridLongs) return;
+        
+        gridShorts.innerHTML = '';
+        gridLongs.innerHTML = '';
+
+        if (rawClips.length === 0) {
+            gridLongs.innerHTML = '<div class="col-span-full text-center text-gray-500 py-10">No videos yet.</div>';
+            return;
+        }
+
+        rawClips.forEach((vid, idx) => {
+            const div = document.createElement('div');
+            const aspectRatio = vid.type === 'shorts' ? 'aspect-[9/16]' : 'aspect-video';
+            
+            div.className = `group relative bg-[#1a1a1a] rounded-xl overflow-hidden border border-white/10 hover:border-orange-500/50 transition shadow-lg ${aspectRatio}`;
+            
+            div.innerHTML = `
+                <div onclick="openTheater('${vid.link}', '${vid.title}')" class="w-full h-full cursor-pointer relative group">
+                    <img src="${vid.thumb}" class="w-full h-full object-cover opacity-80 group-hover:opacity-100 transition duration-500" onerror="this.src='https://placehold.co/320x180/000/FFF?text=PLAY'">
+                    <div class="absolute inset-0 flex items-center justify-center">
+                        <div class="w-12 h-12 bg-black/50 backdrop-blur-sm rounded-full flex items-center justify-center opacity-0 group-hover:opacity-100 transform scale-50 group-hover:scale-100 transition duration-300 border border-white/20">
+                            <svg class="w-5 h-5 text-white ml-1" fill="currentColor" viewBox="0 0 24 24"><path d="M8 5v14l11-7z"/></svg>
+                        </div>
+                    </div>
+                    <div class="absolute top-2 right-2 px-2 py-0.5 bg-black/60 backdrop-blur-md rounded text-[10px] text-white font-bold uppercase border border-white/10">
+                        ${vid.type === 'shorts' ? 'SHORT' : 'VIDEO'}
+                    </div>
+                    <div class="absolute bottom-0 inset-x-0 bg-gradient-to-t from-black via-black/80 to-transparent p-3 pt-6">
+                        <h4 class="text-white text-sm font-medium truncate">${vid.title}</h4>
+                        <button onclick="event.stopPropagation(); deleteClip(${idx})" class="text-gray-500 hover:text-red-500 text-xs mt-1">Delete</button>
+                    </div>
+                </div>`;
+            
+            if (vid.type === 'shorts') gridShorts.appendChild(div);
+            else gridLongs.appendChild(div);
+        });
+    }
+
+    // ========================================
+    // 🔥 THEATER & UI HELPERS
+    // ========================================
+    function openTheater(link, title) {
+        const modal = document.getElementById('theaterModal');
+        if (!modal) return;
+        document.getElementById('playerTitle').innerText = title || "Video";
+        
+        let embedLink = link;
+        if (link.includes('drive.google.com')) embedLink = link.replace('/view', '/preview');
+        
+        document.getElementById('playerContainer').innerHTML = `<iframe src="${embedLink}" class="w-full h-full border-0" allow="autoplay; fullscreen" allowfullscreen></iframe>`;
+        modal.classList.remove('hidden');
+        modal.classList.add('flex');
+        setTimeout(() => modal.classList.remove('opacity-0'), 10);
+    }
+
+    function closeTheater() {
+        const modal = document.getElementById('theaterModal');
+        if (!modal) return;
+        modal.classList.add('opacity-0');
+        setTimeout(() => {
+            modal.classList.add('hidden');
+            modal.classList.remove('flex');
+            document.getElementById('playerContainer').innerHTML = '';
+        }, 300);
+    }
+
     function openUploadModal() {
         document.getElementById('uploadFootageModal').classList.remove('hidden');
         document.getElementById('uploadStep1').classList.remove('hidden');
         document.getElementById('uploadStep2').classList.add('hidden');
+        document.getElementById('uploadStep3').classList.add('hidden');
         document.getElementById('filePreview').classList.add('hidden');
     }
-    function closeUploadModal() { document.getElementById('uploadFootageModal').classList.add('hidden'); }
-    
-    // Preview Logic
-    const pInput = document.getElementById('footageFileInput') || document.getElementById('fileInput');
-    if(pInput) {
-        pInput.addEventListener('change', (e) => {
-            const f = e.target.files[0];
-            if(f) {
-                document.getElementById('filePreview').classList.remove('hidden');
-                document.getElementById('previewFileName').textContent = f.name;
-            }
-        });
+    function closeUploadModal() {
+        document.getElementById('uploadFootageModal').classList.add('hidden');
+        selectedFile = null;
+    }
+    async function deleteClip(idx) {
+        if(!confirm("Delete?")) return;
+        rawClips.splice(idx, 1);
+        try {
+            await window.db.collection('projects').doc(currentProjectID).update({ footageLib: rawClips });
+            renderVideos();
+        } catch(e) {}
     }
 
-    // Render Logic
   // ========================================
     // 🔥 RENDER FUNCTION (Distinct Sizes)
     // ========================================
