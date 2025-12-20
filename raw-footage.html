@@ -370,69 +370,69 @@
     </div>
 
     <!-- UPLOAD MODAL (Updated) -->
-    <div id="uploadFootageModal" class="hidden fixed inset-0 bg-black/90 backdrop-blur-md z-50 flex items-center justify-center p-4">
-        <div class="bg-[#0a0a0a] border border-white/10 rounded-2xl max-w-lg w-full p-6 relative shadow-2xl">
-            <button onclick="closeUploadModal()" class="absolute top-4 right-4 text-gray-400 hover:text-white transition">
-                <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path></svg>
-            </button>
+<div id="uploadFootageModal" class="hidden fixed inset-0 bg-black/90 backdrop-blur-md z-50 flex items-center justify-center p-4">
+    <div class="bg-[#0a0a0a] border border-white/10 rounded-2xl max-w-lg w-full p-6 relative shadow-2xl">
+        
+        <button onclick="closeUploadModal()" class="absolute top-4 right-4 text-gray-400 hover:text-white transition z-10">
+            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path></svg>
+        </button>
 
-            <!-- Step 1 -->
-            <div id="uploadStep1">
-                <h2 class="text-xl font-display font-bold text-white mb-2">Upload Raw Footage</h2>
-                <p class="text-sm text-gray-400 mb-6">Select a video file to add to the vault.</p>
+        <div id="uploadStep1">
+            <h2 class="text-xl font-display font-bold text-white mb-2">Upload Raw Footage</h2>
+            <p class="text-sm text-gray-400 mb-6">Select a video file to add to the vault.</p>
 
-                <input type="file" id="footageFileInput" accept="video/*" class="hidden">
-                <div onclick="document.getElementById('footageFileInput').click()" class="border-2 border-dashed border-white/10 rounded-xl p-8 text-center cursor-pointer hover:border-white/30 hover:bg-white/5 transition group">
-                    <div class="w-12 h-12 mx-auto mb-3 rounded-full bg-white/5 flex items-center justify-center group-hover:scale-110 transition">
-                        <svg class="w-6 h-6 text-gray-300" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12"></path></svg>
+            <input type="file" id="fileInput" accept="video/*" class="hidden">
+            
+            <div onclick="document.getElementById('fileInput').click()" class="border-2 border-dashed border-white/10 rounded-xl p-8 text-center cursor-pointer hover:border-orange-500/50 hover:bg-white/5 transition group">
+                <div class="w-12 h-12 mx-auto mb-3 rounded-full bg-white/5 flex items-center justify-center group-hover:scale-110 transition">
+                    <svg class="w-6 h-6 text-gray-300 group-hover:text-orange-500 transition" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12"></path></svg>
+                </div>
+                <p class="text-gray-300 font-medium text-sm">Click to choose video</p>
+                <p class="text-gray-500 text-xs mt-1">Supports MP4, MOV, MKV</p>
+            </div>
+
+            <div id="filePreview" class="hidden mt-4">
+                <div class="p-3 bg-white/5 rounded-lg border border-white/10 flex items-center gap-3 mb-4">
+                    <div class="w-16 h-9 bg-black rounded overflow-hidden flex-shrink-0 border border-white/10">
+                        <img id="previewThumbnail" class="w-full h-full object-cover opacity-80" />
                     </div>
-                    <p class="text-gray-300 font-medium text-sm">Click to choose video</p>
-                </div>
-
-                <div id="filePreview" class="hidden mt-4 p-3 bg-white/5 rounded-lg border border-white/10">
-                    <div class="flex items-center gap-3 mb-3">
-                        <div class="w-16 h-16 bg-black rounded overflow-hidden flex-shrink-0 border border-white/10">
-                            <img id="previewThumbnail" class="w-full h-full object-cover" />
-                        </div>
-                        <div class="flex-1 min-w-0">
-                            <p id="previewFileName" class="text-white text-sm font-medium truncate"></p>
-                            <p id="previewFileSize" class="text-xs text-gray-500 mt-0.5 font-mono"></p>
-                        </div>
+                    <div class="flex-1 min-w-0">
+                        <p id="previewFileName" class="text-white text-sm font-medium truncate"></p>
+                        <p id="previewFileSize" class="text-xs text-gray-500 mt-0.5 font-mono"></p>
                     </div>
-                  <input type="file" id="fileInput" class="hidden" accept="video/*" />
+                </div>
 
-<button onclick="sendToStudio()" class="bg-red-600 text-white px-6 py-2 rounded">
-    Upload Footage
-</button>
-
-<p id="text" class="mt-2 text-gray-400 text-sm">Waiting for upload...</p>
+                <button onclick="sendToStudio()" class="w-full bg-orange-600 hover:bg-orange-700 text-white font-medium py-2.5 rounded-lg transition shadow-lg shadow-orange-900/20 flex items-center justify-center gap-2">
+                    <span>Start Upload</span>
+                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12"></path></svg>
+                </button>
             </div>
 
-            <!-- Step 2 -->
-            <div id="uploadStep2" class="hidden text-center py-8">
-                <div class="w-16 h-16 mx-auto mb-4 relative">
-                    <svg class="animate-spin text-white" fill="none" viewBox="0 0 24 24">
-                        <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
-                        <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
-                    </svg>
-                </div>
-                <h3 class="text-lg font-bold text-white mb-1">Processing...</h3>
-                <p id="uploadProgressText" class="text-xs text-gray-500 font-mono">Encrypting...</p>
-                <div class="w-full bg-white/10 rounded-full h-1 mt-4 overflow-hidden">
-                    <div id="uploadProgressBar" class="bg-white h-full transition-all duration-300" style="width: 0%"></div>
-                </div>
-            </div>
-
-            <!-- Step 3 -->
-            <div id="uploadStep3" class="hidden text-center py-8">
-                <div class="w-16 h-16 mx-auto mb-4 bg-white text-black rounded-full flex items-center justify-center shadow-[0_0_20px_rgba(255,255,255,0.3)]">
-                    <svg class="w-8 h-8" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path></svg>
-                </div>
-                <h3 class="text-lg font-bold text-white mb-2">Upload Complete!</h3>
-                <button onclick="closeUploadModal()" class="bg-white/10 hover:bg-white/20 text-white py-2 px-6 rounded text-xs transition border border-white/10">Close</button>
-            </div>
+            <p id="text" class="mt-3 text-center text-gray-500 text-xs font-mono h-4"></p>
         </div>
+
+        <div id="uploadStep2" class="hidden text-center py-8">
+            <div class="w-16 h-16 mx-auto mb-4 relative">
+                <svg class="animate-spin text-orange-500" fill="none" viewBox="0 0 24 24">
+                    <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+                    <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                </svg>
+            </div>
+            <h3 class="text-lg font-bold text-white mb-1">Uploading to Vault...</h3>
+            <p class="text-xs text-gray-500 font-mono">Do not close this window</p>
+        </div>
+
+        <div id="uploadStep3" class="hidden text-center py-8">
+            <div class="w-16 h-16 mx-auto mb-4 bg-green-500/20 text-green-400 rounded-full flex items-center justify-center shadow-[0_0_20px_rgba(74,222,128,0.2)]">
+                <svg class="w-8 h-8" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path></svg>
+            </div>
+            <h3 class="text-lg font-bold text-white mb-2">Upload Complete!</h3>
+            <p class="text-sm text-gray-400 mb-6">Your footage has been securely stored.</p>
+            <button onclick="closeUploadModal()" class="bg-white/10 hover:bg-white/20 text-white py-2 px-8 rounded-lg text-sm transition border border-white/10">Close</button>
+        </div>
+
     </div>
+</div>
 
 
 
@@ -532,21 +532,25 @@
         } catch (e) { console.error("Load Error:", e); }
     }
 
-    // ========================================
-    // 🔥 MASTER UPLOAD (Admin Storage)
+  
+// ========================================
+    // 🔥 ROBUST UPLOAD FUNCTION
     // ========================================
     async function sendToStudio() {
-        // ID Check (Both variants)
-        const fileInput = document.getElementById('fileInput') || document.getElementById('footageFileInput'); 
+        // Fallback Logic: Pehle variable check karo, phir DOM
+        const fileToUpload = selectedFile || (document.getElementById('fileInput') ? document.getElementById('fileInput').files[0] : null);
         
-        if (!fileInput || !fileInput.files[0]) return alert("File select to karo bhai!");
+        if (!fileToUpload) {
+            alert("⚠️ File select to karo bhai! (HTML Input ID check karo)");
+            return;
+        }
         
-        // Agar user nahi hai, to Guest ban jao (Redirect mat karo)
-        const uName = currentUser ? currentUser.email : "Guest_Emergency_User";
-        
-        const file = fileInput.files[0];
+        // Agar user nahi hai, to Guest ban jao
+        const uName = (currentUser && currentUser.email) ? currentUser.email : "Guest_Client";
         const statusText = document.getElementById('text') || { innerText: '' }; 
-        statusText.innerText = "Step 1: Connecting...";
+        
+        statusText.innerText = "Step 1: Connecting to Server...";
+        statusText.className = "text-center text-yellow-400 text-xs font-mono"; // Yellow color for processing
 
         try {
             // Init Upload
@@ -556,8 +560,8 @@
                 body: JSON.stringify({
                     userName: uName, 
                     projectName: "Raw_Footage",
-                    fileName: file.name,
-                    fileType: file.type
+                    fileName: fileToUpload.name,
+                    fileType: fileToUpload.type
                 })
             });
 
@@ -565,27 +569,30 @@
             if (!data.success) throw new Error(data.error);
 
             // Direct Upload
-            statusText.innerText = "Step 2: Uploading...";
+            statusText.innerText = "Step 2: Uploading to Drive...";
             const xhr = new XMLHttpRequest();
             xhr.open("PUT", data.uploadUrl, true);
-            xhr.setRequestHeader("Content-Type", file.type);
+            xhr.setRequestHeader("Content-Type", fileToUpload.type);
 
             xhr.upload.onprogress = (e) => {
-                const percent = ((e.loaded / e.total) * 100).toFixed(0);
-                statusText.innerText = `Uploading... ${percent}%`;
+                if (e.lengthComputable) {
+                    const percent = ((e.loaded / e.total) * 100).toFixed(0);
+                    statusText.innerText = `Uploading: ${percent}% 🚀`;
+                }
             };
 
             xhr.onload = async () => {
                 if (xhr.status === 200 || xhr.status === 201 || xhr.status === 308) {
-                    statusText.innerText = "✅ Saving...";
-                    
+                    statusText.innerText = "✅ Finalizing...";
+                    statusText.className = "text-center text-green-400 text-xs font-mono";
+
                     // DB Update
                     const newVideoData = {
-                        title: file.name,
+                        title: fileToUpload.name,
                         link: data.viewLink,
                         fileId: data.fileId,
                         thumb: "https://via.placeholder.com/320x180/000000/FFFFFF/?text=VIDEO",
-                        type: file.type.includes('portrait') ? 'shorts' : 'long',
+                        type: fileToUpload.type.includes('portrait') ? 'shorts' : 'long',
                         uploadedBy: uName,
                         uploadDate: new Date().toISOString()
                     };
@@ -595,19 +602,24 @@
                         await dbRef.collection('projects').doc(currentProjectID).update({
                             footageLib: firebase.firestore.FieldValue.arrayUnion(newVideoData)
                         });
+                        
+                        // UI Refresh
                         rawClips.push(newVideoData);
                         renderVideos();
-                        statusText.innerText = "Success!";
-                        alert("Ho gaya Upload! Bina Login ke bhi.");
+                        
+                        alert("🎉 Upload Successful!");
                         if(typeof closeUploadModal === 'function') closeUploadModal();
+                        
                     } catch (e) { console.error(e); }
                 } else {
                     statusText.innerText = "Failed: " + xhr.status;
+                    statusText.className = "text-center text-red-400 text-xs font-mono";
                 }
             };
-            xhr.send(file);
+            xhr.send(fileToUpload);
         } catch (error) {
             alert("Error: " + error.message);
+            statusText.innerText = "❌ Error: " + error.message;
         }
     }
 
