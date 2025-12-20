@@ -469,25 +469,24 @@
         let currentFilter = 'all';
         let currentType = 'shorts';
 
- // 🛠️ REFRESH-PROOF LOADING & AUTH FIX
+// 🛠️ REFRESH-PROOF LOADING
         document.addEventListener('DOMContentLoaded', async () => {
             if(!currentProjectID) return;
 
-            // Firebase ke bajaye local session check karo pehle (Instant)
+            // Firebase ke bajaye local session check karo pehle (Instant results)
             const localUser = JSON.parse(localStorage.getItem('user')); 
 
             if(localUser) {
-                console.log("✅ Session Found via LocalStorage:", localUser.email);
-                // User mil gaya, data load karo
+                console.log("✅ Session Found (Local):", localUser.email);
                 await loadProjectData();
             } else {
-                // Agar local session nahi hai, to Firebase ka wait karo
+                // Agar local nahi mila, to Firebase Auth ka wait karo
                 auth.onAuthStateChanged(async (user) => {
                     if(user) {
-                        console.log("✅ User Verified via Firebase");
+                        console.log("✅ User Verified (Firebase)");
                         await loadProjectData();
                     } else {
-                        console.warn("⌛ No active session found.");
+                        console.error("⌛ No active session found.");
                     }
                 });
             }
@@ -505,11 +504,10 @@
             try {
                 text.innerText = "Securing Connection...";
                 const localUser = JSON.parse(localStorage.getItem('user'));
-                // Use fallback to 'Guest' if localUser is missing
                 const userName = localUser ? (localUser.username || localUser.firstName || 'Creator') : 'Guest';
                 const projTitle = document.getElementById('rawProjectTitle').innerText || 'Project';
 
-                // API call (Calling the new route we added in Step 1)
+                // API call (Ab server par ye route mil jayega)
                 const initRes = await fetch('/api/drive/init-upload', {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
@@ -522,9 +520,9 @@
                 });
                 
                 const initData = await initRes.json();
-                if(!initData.success) throw new Error(initData.error || 'Server rejected request');
+                if(!initData.success) throw new Error(initData.error || 'Server rejected');
 
-                // STEP 2: Direct Upload (High Speed - No Server Load)
+                // Step 2: Direct Upload (Ignore CORS error at 100%)
                 text.innerText = "Sending Data Directly to Drive...";
                 await new Promise((resolve) => {
                     const xhr = new XMLHttpRequest();
@@ -535,12 +533,12 @@
                         text.innerText = `Uploading: ${p.toFixed(1)}%`;
                     };
                     xhr.onload = () => resolve();
-                    xhr.onerror = () => resolve(); // Ignore CORS browser warnings
+                    xhr.onerror = () => resolve(); 
                     xhr.send(selectedFile);
                 });
 
-                // STEP 3: Update Firestore DB
-                text.innerText = "Saving to Project Library...";
+                // Step 3: Save to DB
+                text.innerText = "Updating Library...";
                 const newClip = {
                     id: initData.fileId,
                     title: selectedFile.name,
@@ -563,7 +561,6 @@
                 setTimeout(closeUploadModal, 1500);
 
             } catch (error) {
-                console.error("Upload Error:", error);
                 alert("Upload Failed: " + error.message);
                 closeUploadModal();
             }
