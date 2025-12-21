@@ -799,6 +799,7 @@ async function sendToStudio() {
 
     
 
+// 🎥 OPEN THEATER (With Animation Fix)
     function openTheater(link, title, fileId) {
         const modal = document.getElementById('theaterModal');
         if (!modal) return;
@@ -814,7 +815,7 @@ async function sendToStudio() {
         
         const embedUrl = `https://drive.google.com/file/d/${finalId}/preview`;
         
-        // 2. Updated Player UI with "Fix Playback" Button
+        // 2. Player UI with Repair Button
         document.getElementById('playerContainer').innerHTML = `
             <div class="w-full h-full flex flex-col bg-black relative group">
                 <iframe src="${embedUrl}" class="flex-1 w-full h-full border-0 z-10" allowfullscreen></iframe>
@@ -830,53 +831,32 @@ async function sendToStudio() {
                 </div>
             </div>`;
         
+        // 3. ✨ VISIBILITY MAGIC (Ye missing tha!)
         modal.classList.remove('hidden');
         modal.classList.add('flex');
+        
+        // Thoda delay taaki animation smooth ho
+        setTimeout(() => {
+            modal.classList.remove('opacity-0');
+            modal.classList.add('opacity-100');
+        }, 10);
     }
 
-    // 3. New Repair Function
-    async function fixPlayback(fileId) {
-        const btn = event.target.closest('button');
-        const originalText = btn.innerHTML;
-        btn.innerHTML = "Fixing...";
-        btn.disabled = true;
-
-        try {
-            const res = await fetch('/api/drive/repair-permissions', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ fileId: fileId })
-            });
-            const data = await res.json();
-            
-            if(data.success) {
-                btn.innerHTML = "✅ Fixed! Reloading...";
-                btn.classList.remove('bg-red-600');
-                btn.classList.add('bg-green-600');
-                
-                // Iframe Reload
-                setTimeout(() => {
-                    const iframe = document.querySelector('#playerContainer iframe');
-                    iframe.src = iframe.src; // Reload iframe
-                    btn.innerHTML = originalText;
-                    btn.disabled = false;
-                    btn.classList.remove('bg-green-600');
-                    btn.classList.add('bg-red-600');
-                }, 1500);
-            } else {
-                alert("Fix Failed: " + data.error);
-                btn.innerHTML = "❌ Failed";
-            }
-        } catch(e) {
-            alert("Error: " + e.message);
-            btn.innerHTML = "❌ Error";
-        }
-    }
-
+    // 🎥 CLOSE THEATER
     function closeTheater() {
-        document.getElementById('theaterModal').classList.add('hidden');
-        document.getElementById('theaterModal').classList.remove('flex');
-        document.getElementById('playerContainer').innerHTML = '';
+        const modal = document.getElementById('theaterModal');
+        if (!modal) return;
+
+        // Fade Out first
+        modal.classList.remove('opacity-100');
+        modal.classList.add('opacity-0');
+        
+        // Phir Hide karo
+        setTimeout(() => {
+            modal.classList.add('hidden');
+            modal.classList.remove('flex');
+            document.getElementById('playerContainer').innerHTML = ''; // Stop video
+        }, 300); // 300ms transition time match karega
     }
     
    // ✅ MISSING FUNCTION ADDED HERE
