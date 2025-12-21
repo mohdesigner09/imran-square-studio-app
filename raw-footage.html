@@ -461,7 +461,7 @@
    
 <script>
     // ========================================
-    // 🔥 SYSTEM CONFIGURATION (v5.0 Stable)
+    // 🔥 SYSTEM CONFIGURATION (Self-Healing)
     // ========================================
     const PROJECT_ID = new URLSearchParams(window.location.search).get('id');
     let rawClips = [];
@@ -475,28 +475,23 @@
     }
 
     // ========================================
-    // 🔥 1. AUTH & INSTANT LOAD
+    // 🔥 1. AUTH & CLEAN LOAD
     // ========================================
     document.addEventListener('DOMContentLoaded', async () => {
-        console.log("🚀 Engine Starting...");
+        console.log("🚀 System Booting...");
 
-        // A. INSTANT LOAD (Don't wait for Firebase) 
+        // Instant Load from Cache
         const cachedUser = localStorage.getItem('user');
         if (cachedUser) {
             currentUser = JSON.parse(cachedUser);
-            console.log("⚡ Instant Load for:", currentUser.email);
-            loadProjectData(); // Turant data dikhao
+            loadProjectData(); 
         }
 
-        // B. BACKGROUND VERIFY
         if (typeof firebase !== 'undefined' && firebase.auth) {
             firebase.auth().onAuthStateChanged(async (user) => {
                 if (user) {
-                    console.log("✅ Firebase Verified");
                     currentUser = { uid: user.uid, email: user.email };
                     localStorage.setItem('user', JSON.stringify(currentUser));
-                    
-                    // Agar list khali thi, to ab load karo
                     if (rawClips.length === 0) loadProjectData();
                 }
             });
@@ -510,14 +505,36 @@
             if (doc.exists) {
                 const data = doc.data();
                 document.getElementById('rawProjectTitle').innerText = (data.title || 'Untitled').toUpperCase();
-                rawClips = data.footageLib || [];
+                
+                // 🔥 SELF-HEALING: Check for Bad Data
+                let clips = data.footageLib || [];
+                let dirty = false;
+
+                // Loop through all clips and fix bad thumbnails
+                clips = clips.map(clip => {
+                    if (clip.thumb && clip.thumb.startsWith('blob:')) {
+                        console.warn("🧹 Cleaning bad data:", clip.title);
+                        clip.thumb = "https://placehold.co/320x180/1a1a1a/FFFFFF/png?text=VIDEO";
+                        dirty = true;
+                    }
+                    return clip;
+                });
+
+                rawClips = clips;
+
+                // Agar safai hui hai, to Database ko bhi update karo
+                if (dirty) {
+                    console.log("💾 Saving Cleaned Data to DB...");
+                    await window.db.collection('projects').doc(PROJECT_ID).update({ footageLib: rawClips });
+                }
+
                 renderVideos();
             }
         } catch (e) { console.error("DB Error:", e); }
     }
 
     // ========================================
-    // 🔥 2. AUTO-DETECT & PREVIEW
+    // 🔥 2. AUTO-DETECT
     // ========================================
     const fileInput = document.getElementById('fileInput');
     if (fileInput) {
@@ -545,8 +562,7 @@
                     document.getElementById('detectedBadge').className = "inline-block mt-1 px-2 py-0.5 rounded text-[10px] font-bold bg-blue-600 text-white";
                 }
             }
-
-            // Snapshot for UI only
+            // Snapshot for UI Preview ONLY
             video.currentTime = 1;
             video.onseeked = function() {
                 const canvas = document.createElement('canvas');
@@ -558,7 +574,7 @@
     }
 
     // ========================================
-    // 🔥 3. UPLOAD ENGINE (Anti-CORS)
+    // 🔥 3. UPLOAD ENGINE (Strict Safe Mode)
     // ========================================
     async function sendToStudio() {
         if (!selectedFile) return alert("⚠️ Select a file first!");
@@ -570,7 +586,7 @@
         statusText.className = "text-center text-yellow-400 text-xs font-mono";
         
         try {
-            // A. Init
+            // Init
             const response = await fetch('/api/drive/init-upload', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
@@ -585,8 +601,8 @@
             const data = await response.json();
             if (!data.success) throw new Error(data.error);
 
-            // B. Upload 
-            statusText.innerText = "Step 2: Sending File...";
+            // Upload
+            statusText.innerText = "Step 2: Uploading...";
             const xhr = new XMLHttpRequest();
             xhr.open("PUT", data.uploadUrl, true);
             
@@ -597,19 +613,18 @@
                 }
             };
 
-            // 🔥 THE SAVER FUNCTION
             const saveToDB = async () => {
                 statusText.innerText = "Step 3: Saving to Database...";
                 statusText.className = "text-center text-orange-400 text-xs font-bold font-mono";
 
-                // Safe Thumbnail (No Blobs)
+                // 🔥 FORCE STATIC THUMBNAIL (Never use Blob here)
                 const safeThumb = "https://placehold.co/320x180/1a1a1a/FFFFFF/png?text=VIDEO";
 
                 const newVideoData = {
                     title: selectedFile.name,
                     link: data.viewLink,
-                    fileId: data.fileId, // Crucial for new player
-                    thumb: safeThumb,
+                    fileId: data.fileId,
+                    thumb: safeThumb, 
                     type: detectedType,
                     uploadedBy: uName,
                     uploadDate: new Date().toISOString()
@@ -630,28 +645,22 @@
                 } catch (e) {
                     console.error(e);
                     statusText.innerText = "❌ DB Save Failed!";
-                    alert("File uploaded to Drive, but Database Save failed.");
+                    alert("Database Save Failed. Check Console.");
                 }
             };
 
-            // C. Handlers
             xhr.onload = () => { if(xhr.status < 400) saveToDB(); else statusText.innerText = "Error " + xhr.status; };
             
-            // D. CORS Bypass (The Magic)
             xhr.onerror = async () => {
-                 console.warn("⚠️ CORS blocked response. Verifying on server...");
+                 console.warn("⚠️ CORS blocked response. Verifying...");
                  try {
                      const check = await fetch('/api/drive/finalize-upload', {
                         method: 'POST', headers: {'Content-Type': 'application/json'},
                         body: JSON.stringify({ fileId: data.fileId })
                      });
                      const res = await check.json();
-                     if(res.success || res.size > 0) {
-                         console.log("✅ Server confirmed file exists.");
-                         saveToDB(); // Proceed to save
-                     } else {
-                         throw new Error("Verification Failed");
-                     }
+                     if(res.success || res.size > 0) saveToDB();
+                     else throw new Error("Verification Failed");
                  } catch(e) {
                      statusText.innerText = "Network Error";
                      alert("Upload Failed");
@@ -668,7 +677,7 @@
     }
 
     // ========================================
-    // 🔥 4. VIDEO PLAYER (Direct Stream - No Iframe)
+    // 🔥 4. VIDEO PLAYER (Autoplay Fix)
     // ========================================
     function openTheater(link, title, fileId) {
         const modal = document.getElementById('theaterModal');
@@ -676,11 +685,9 @@
         
         document.getElementById('playerTitle').innerText = title || "Video";
         
-        // 1. Extract File ID if missing
         let finalId = fileId;
         if (!finalId && link) {
             try {
-                // Try to get ID from link structure
                 if (link.includes('/d/')) finalId = link.split('/d/')[1].split('/')[0];
                 else if (link.includes('id=')) finalId = link.split('id=')[1].split('&')[0];
             } catch(e) {}
@@ -688,17 +695,14 @@
 
         if(!finalId) return alert("Error: Invalid Video Link");
 
-        // 2. Direct Stream URL 
         const streamUrl = `https://drive.google.com/uc?export=view&id=${finalId}`;
-        console.log("▶️ Playing Direct Stream:", streamUrl);
+        console.log("▶️ Stream:", streamUrl);
 
-        // 3. Native Video Tag (Bypasses 401 Error)
+        // 🔥 ADDED 'muted' to allow autoplay
         document.getElementById('playerContainer').innerHTML = `
             <video controls autoplay class="w-full h-full bg-black rounded outline-none shadow-2xl">
                 <source src="${streamUrl}" type="video/mp4">
-                <source src="${streamUrl}" type="video/quicktime">
-                <source src="${streamUrl}" type="video/x-matroska">
-                <p class="text-white text-center mt-10">Your browser cannot play this video directly.</p>
+                <p class="text-white text-center mt-10">Video loading...</p>
             </video>`;
         
         modal.classList.remove('hidden');
@@ -756,7 +760,7 @@
             const div = document.createElement('div');
             const aspectRatio = vid.type === 'shorts' ? 'aspect-[9/16]' : 'aspect-video';
             
-            // Clean Thumb Logic
+            // 🛡️ FINAL SHIELD: Display mein bhi check karo
             let displayThumb = vid.thumb;
             if(!displayThumb || displayThumb.startsWith('blob:')) displayThumb = "https://placehold.co/320x180/1a1a1a/FFFFFF/png?text=VIDEO";
 
