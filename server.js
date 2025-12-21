@@ -1376,17 +1376,25 @@ app.post('/api/drive/init-upload', async (req, res) => {
         // 5. Generate Resumable Upload Link
         const tokenResponse = await oauth2Client.getAccessToken();
         
-       const uploadResponse = await axios.patch(
+      // ✅ REPLACE THIS BLOCK IN server.js (inside /api/drive/init-upload)
+
+        // 5. Generate Resumable Upload Link
+        const tokenResponse = await oauth2Client.getAccessToken();
+        
+        // Browser ka Origin pakdo
+        const clientOrigin = req.headers.origin || 'https://imran-square-studio.onrender.com';
+
+        const uploadResponse = await axios.patch(
             `https://www.googleapis.com/upload/drive/v3/files/${fileId}?uploadType=resumable`,
             {},
             {
                 headers: {
                     'Authorization': `Bearer ${tokenResponse.token}`,
-                    // ⚠️ YE LINE HATA DO ya COMMENT KAR DO:
-                    // 'X-Upload-Content-Type': fileType,  <-- Isse Comment karein
-                    
+                    // 🔥 IMPORTANT: Content-Type match hona chahiye
+                    'X-Upload-Content-Type': fileType, 
                     'Content-Type': 'application/json; charset=UTF-8',
-                    'Content-Length': 0
+                    // 🚀 THE SECRET SAUCE: Google ko Origin batao
+                    'Origin': clientOrigin 
                 }
             }
         );

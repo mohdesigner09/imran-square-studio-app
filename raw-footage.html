@@ -628,21 +628,22 @@
         });
     }
 
-    async function sendToStudio() {
+async function sendToStudio() {
         if (!selectedFile) return alert("Please select a video file!");
 
-        // 1. UI Switch: Step 1 Chupao -> Step 2 Dikhao
+        // 1. UI Setup
         document.getElementById('uploadStep1').classList.add('hidden');
         document.getElementById('uploadStep2').classList.remove('hidden');
-        
-        // Progress Text Set Karo
         const statusText = document.querySelector('#uploadStep2 h3');
         statusText.innerText = "Initializing Upload...";
 
         const uName = currentUser ? currentUser.email : "Guest";
         
+        // 🔥 SAFE TYPE: Agar file.type empty ho to default video/mp4 lo
+        const safeFileType = selectedFile.type || 'video/mp4'; 
+
         try {
-            // 2. Server se "Pasal" (Upload Link) mango
+            // 2. Server Call
             const response = await fetch('/api/drive/init-upload', {
                 method: 'POST', 
                 headers: { 'Content-Type': 'application/json' },
@@ -650,21 +651,20 @@
                     userName: uName, 
                     projectName: "Raw_Footage", 
                     fileName: selectedFile.name, 
-                    fileType: selectedFile.type 
+                    fileType: safeFileType // 👈 YE MATCH KAREGA
                 })
             });
             
             const data = await response.json();
             if(!data.success) throw new Error(data.error || "Init failed");
 
-            // 3. Asli Upload (Browser -> Google Drive)
+            // 3. Upload to Google
             const xhr = new XMLHttpRequest();
             xhr.open("PUT", data.uploadUrl, true);
             
-            // CORS Fix: Content-Type explicitly match karo
-            xhr.setRequestHeader("Content-Type", selectedFile.type);
+            // ⚡ CONTENT-TYPE MUST MATCH EXACTLY
+            xhr.setRequestHeader("Content-Type", safeFileType);
 
-            // ⚡ LIVE PROGRESS TRACKER
             xhr.upload.onprogress = (e) => {
                 if (e.lengthComputable) {
                     const percent = (e.loaded / e.total) * 100;
@@ -673,11 +673,10 @@
             };
 
             xhr.onload = async () => {
-                // 200/201 matlab Success
-                if (xhr.status === 200 || xhr.status === 201) {
+                if (xhr.status === 200 || xhr.status === 201 || xhr.status === 308) {
                     console.log("✅ Upload Success!");
                     
-                    // 4. Database Update
+                    // Database Update & Grid Refresh Logic...
                     const badgeText = document.getElementById('detectedBadge').innerText;
                     const vType = badgeText.includes('SHORT') ? 'shorts' : 'long';
                     
@@ -695,22 +694,19 @@
                         footageLib: firebase.firestore.FieldValue.arrayUnion(newVid)
                     }, { merge: true });
 
-                    // 5. Grid Refresh & UI Finish
-                    switchType(currentTab); // Grid update karo
+                    switchType(currentTab);
                     document.getElementById('uploadStep2').classList.add('hidden');
                     document.getElementById('uploadStep3').classList.remove('hidden');
                 } else {
-                    console.error("Upload Failed:", xhr.status, xhr.statusText);
-                    alert("Upload failed. Check console.");
+                    console.error("Upload Failed:", xhr.status, xhr.responseText);
+                    alert("Upload failed. Status: " + xhr.status);
                     resetUploadUI();
                 }
             };
 
             xhr.onerror = () => {
                 console.error("❌ Network/CORS Error.");
-                // CORS error ke bawajood agar file upload ho gayi ho (Check Drive),
-                // to hum user ko success dikha sakte hain, par abhi safe fail karte hain.
-                alert("Network Interrupt (CORS). But check your Drive, file might be there.");
+                alert("Network Error (Check Console).");
                 resetUploadUI();
             };
             
