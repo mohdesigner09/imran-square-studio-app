@@ -463,71 +463,65 @@
     // ========================================
     // 🔥 SYSTEM CONFIGURATION
     // ========================================
-    let currentProjectID = new URLSearchParams(window.location.search).get('id');
+    const PROJECT_ID = new URLSearchParams(window.location.search).get('id');
     let rawClips = [];
     let selectedFile = null;
     let currentUser = null;
     let detectedType = 'long';
 
-    // 🛑 SAFETY CHECK: Agar Project ID nahi hai, to app nahi chalega
-    if (!currentProjectID) {
-        alert("CRITICAL ERROR: No Project ID Found. Please go back to Dashboard.");
+    // Safety: ID check
+    if (!PROJECT_ID) {
+        alert("⚠️ No Project ID found. Returning to Home.");
         window.location.href = 'index.html';
     }
 
     // ========================================
-    // 🔥 AUTHENTICATION & DATA LOADING
+    // 🔥 AUTH & DATA LOADING (Persistence Fix)
     // ========================================
     document.addEventListener('DOMContentLoaded', async () => {
         console.log("🚀 System Booting...");
 
-        // 1. LocalStorage Check
-        const storedUser = localStorage.getItem('user');
-        if (storedUser) { 
-            try { 
-                currentUser = JSON.parse(storedUser); 
-                console.log("👤 User Restored:", currentUser.email);
-                loadProjectData(); 
-            } catch(e){} 
-        }
-
-        // 2. Firebase Connection (The Lifeline)
+        // 1. Setup Firebase Listener FIRST
         if (typeof firebase !== 'undefined' && firebase.auth) {
             firebase.auth().onAuthStateChanged(async (user) => {
                 if (user) {
+                    console.log("✅ User Verified:", user.email);
                     currentUser = { uid: user.uid, email: user.email };
-                    localStorage.setItem('user', JSON.stringify(currentUser));
                     
-                    // Agar abhi tak data nahi aaya, to ab le aao
-                    if(rawClips.length === 0) loadProjectData();
+                    // 🔥 KEY FIX: Load Data ONLY after User is Verified
+                    await loadProjectData(); 
                 } else {
-                    console.warn("⚠️ No Active Session");
+                    console.warn("⚠️ No Active Session - Waiting...");
                 }
             });
         } else {
-            alert("🔥 FATAL ERROR: Firebase Not Loaded. Check Internet.");
+            alert("Firebase Error. Check Internet.");
         }
     });
 
     async function loadProjectData() {
         if (!window.db) return;
         try {
-            console.log("📂 Loading Data from Database...");
-            const doc = await window.db.collection('projects').doc(currentProjectID).get();
+            console.log("📂 Fetching Data from DB...");
+            const doc = await window.db.collection('projects').doc(PROJECT_ID).get();
             
             if (doc.exists) {
                 const data = doc.data();
                 document.getElementById('rawProjectTitle').innerText = (data.title || 'Untitled').toUpperCase();
                 
-                // ✅ IMPORTANT: Database se data lo, taki gayab na ho
+                // Load & Render
                 rawClips = data.footageLib || [];
-                console.log(`✅ Loaded ${rawClips.length} videos.`);
+                console.log(`✅ Success: Loaded ${rawClips.length} videos.`);
                 renderVideos();
             } else {
-                console.error("❌ Project Document Missing!");
+                console.log("❌ Project not found in DB.");
             }
         } catch (e) { 
-            console.error("❌ DB Load Error:", e); 
+            console.error("❌ DB Read Error:", e);
+            // Agar permission error hai to user ko dikhao
+            if(e.code === 'permission-denied') {
+                alert("Access Denied: Please login again.");
+            }
         }
     }
 
@@ -550,7 +544,6 @@
             
             video.onloadedmetadata = function() {
                 window.URL.revokeObjectURL(video.src);
-                // Logic: Height > Width = Shorts
                 if (video.videoHeight > video.videoWidth) {
                     detectedType = 'shorts';
                     document.getElementById('detectedBadge').innerText = "Detected: SHORT (9:16)";
@@ -573,19 +566,19 @@
     }
 
     // ========================================
-    // 🔥 UPLOAD ENGINE (Save Guarantee)
+    // 🔥 UPLOAD ENGINE (Robust)
     // ========================================
     async function sendToStudio() {
-        if (!selectedFile) return alert("⚠️ Please select a file!");
+        if (!selectedFile) return alert("⚠️ Select a file first!");
 
-        const uName = (currentUser && currentUser.email) ? currentUser.email : "Guest_Client";
+        const uName = (currentUser && currentUser.email) ? currentUser.email : "Guest";
         const statusText = document.getElementById('text');
         
-        statusText.innerText = "Connecting to Server...";
+        statusText.innerText = "Connecting...";
         statusText.className = "text-center text-yellow-400 text-xs font-mono";
         
         try {
-            // 1. Get Link
+            // 1. Init
             const response = await fetch('/api/drive/init-upload', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
@@ -601,7 +594,7 @@
             if (!data.success) throw new Error(data.error);
 
             // 2. Upload
-            statusText.innerText = "Uploading to Drive...";
+            statusText.innerText = "Uploading...";
             const xhr = new XMLHttpRequest();
             xhr.open("PUT", data.uploadUrl, true);
             
@@ -612,15 +605,13 @@
                 }
             };
 
-            // 3. FINALIZATION (The most important part)
-            const saveToDatabase = async () => {
-                statusText.innerText = "Saving to Database (Do not close)...";
-                statusText.className = "text-center text-orange-400 text-xs font-bold font-mono";
+            const finishProcess = async () => {
+                statusText.innerText = "Saving to Database...";
                 
                 const newVideoData = {
                     title: selectedFile.name,
-                    link: data.viewLink, // Backend link
-                    fileId: data.fileId,
+                    link: data.viewLink,
+                    fileId: data.fileId, // We need this for the player
                     thumb: "https://placehold.co/320x180/000000/FFFFFF/png?text=VIDEO", 
                     type: detectedType,
                     uploadedBy: uName,
@@ -629,44 +620,36 @@
 
                 try {
                     const dbRef = window.db || firebase.firestore();
-                    
-                    // 🔥 CRITICAL: Database Update
-                    await dbRef.collection('projects').doc(currentProjectID).update({
+                    await dbRef.collection('projects').doc(PROJECT_ID).update({
                         footageLib: firebase.firestore.FieldValue.arrayUnion(newVideoData)
                     });
-
-                    console.log("✅ Database Updated Successfully!");
                     
-                    // Local update only AFTER DB success
                     rawClips.push(newVideoData);
                     switchType(detectedType);
 
-                    // Show Success
                     document.getElementById('uploadStep2').classList.add('hidden');
                     document.getElementById('uploadStep3').classList.remove('hidden');
 
-                } catch (dbError) {
-                    console.error("🔥 DB SAVE FAILED:", dbError);
-                    statusText.innerText = "❌ Uploaded, But Save Failed!";
-                    alert("CRITICAL: Video uploaded to Drive, but could not be saved to App Database. Check Internet.");
+                } catch (e) { 
+                    console.error(e);
+                    statusText.innerText = "❌ DB Error (File is on Drive)";
                 }
             };
 
-            xhr.onload = () => { if(xhr.status < 400) saveToDatabase(); else statusText.innerText = "Drive Error " + xhr.status; };
+            xhr.onload = () => { if(xhr.status < 400) finishProcess(); else statusText.innerText = "Error " + xhr.status; };
             
             xhr.onerror = async () => {
-                 // CORS Bypass Check
                  try {
                      const check = await fetch('/api/drive/finalize-upload', {
                         method: 'POST', headers: {'Content-Type': 'application/json'},
                         body: JSON.stringify({ fileId: data.fileId })
                      });
                      const res = await check.json();
-                     if(res.success || res.size > 0) saveToDatabase(); // Success via Bypass
-                     else throw new Error("Verify Failed");
+                     if(res.success || res.size > 0) finishProcess();
+                     else throw new Error("Verification Failed");
                  } catch(e) {
                      statusText.innerText = "Network Error";
-                     alert("Upload Failed (Network)");
+                     alert("Upload Failed");
                  }
             };
 
@@ -676,36 +659,35 @@
 
         } catch (error) {
             alert(error.message);
-            statusText.innerText = "Error: " + error.message;
         }
     }
 
     // ========================================
-    // 🔥 PLAYER LOGIC (Fixed for Playback)
+    // 🔥 NEW VIDEO PLAYER (Native <video> Tag)
     // ========================================
-    function openTheater(link, title) {
+    function openTheater(link, title, fileId) {
         const modal = document.getElementById('theaterModal');
         if (!modal) return;
         
         document.getElementById('playerTitle').innerText = title || "Video";
         
-        // 🔧 LINK FIXER: Convert 'view' to 'preview' for playback
-        let embedLink = link;
-        if (link.includes('drive.google.com')) {
-            // Force preview mode (bypasses some cookie issues)
-            embedLink = link.replace(/\/view.*/, '/preview');
-            embedLink = embedLink.replace(/\/edit.*/, '/preview');
+        // 🔥 FIX: Use Direct Stream Link instead of Preview/Iframe
+        // agar fileId database me nahi hai, to link se nikaalo
+        let finalId = fileId;
+        if (!finalId && link.includes('/d/')) {
+            finalId = link.split('/d/')[1].split('/')[0];
         }
-        
-        console.log("▶️ Playing:", embedLink);
+
+        // Direct Stream URL (Bypasses Google UI & 401 Errors)
+        const streamUrl = `https://drive.google.com/uc?export=view&id=${finalId}`;
+
+        console.log("▶️ Streaming:", streamUrl);
 
         document.getElementById('playerContainer').innerHTML = `
-            <iframe 
-                src="${embedLink}" 
-                class="w-full h-full border-0" 
-                allow="autoplay; fullscreen" 
-                allowfullscreen>
-            </iframe>`;
+            <video controls autoplay class="w-full h-full bg-black rounded outline-none" controlsList="nodownload">
+                <source src="${streamUrl}" type="video/mp4">
+                Your browser does not support the video tag.
+            </video>`;
         
         modal.classList.remove('hidden');
         modal.classList.add('flex');
@@ -723,7 +705,7 @@
     }
 
     // ========================================
-    // 🔥 TAB & UI HELPERS
+    // 🔥 TAB & UI
     // ========================================
     function switchType(type) {
         const shortGrid = document.getElementById('gridShorts');
@@ -764,17 +746,21 @@
             
             div.className = `group relative bg-[#1a1a1a] rounded-xl overflow-hidden border border-white/10 hover:border-orange-500/50 transition shadow-lg ${aspectRatio}`;
             
+            // Pass 'vid.fileId' to openTheater
             div.innerHTML = `
-                <div onclick="openTheater('${vid.link}', '${vid.title}')" class="w-full h-full cursor-pointer relative group">
+                <div onclick="openTheater('${vid.link}', '${vid.title}', '${vid.fileId}')" class="w-full h-full cursor-pointer relative group">
                     <img src="${vid.thumb}" class="w-full h-full object-cover opacity-80 group-hover:opacity-100 transition duration-500" onerror="this.src='https://placehold.co/320x180/000/FFF?text=PLAY'">
+                    
                     <div class="absolute inset-0 flex items-center justify-center">
                         <div class="w-12 h-12 bg-black/50 backdrop-blur-sm rounded-full flex items-center justify-center opacity-0 group-hover:opacity-100 transform scale-50 group-hover:scale-100 transition duration-300 border border-white/20">
                             <svg class="w-5 h-5 text-white ml-1" fill="currentColor" viewBox="0 0 24 24"><path d="M8 5v14l11-7z"/></svg>
                         </div>
                     </div>
+                    
                     <div class="absolute top-2 right-2 px-2 py-0.5 bg-black/60 backdrop-blur-md rounded text-[10px] text-white font-bold uppercase border border-white/10">
                         ${vid.type === 'shorts' ? 'SHORT' : 'VIDEO'}
                     </div>
+
                     <div class="absolute bottom-0 inset-x-0 bg-gradient-to-t from-black via-black/80 to-transparent p-3 pt-6">
                         <h4 class="text-white text-sm font-medium truncate">${vid.title}</h4>
                         <button onclick="event.stopPropagation(); deleteClip(${idx})" class="text-gray-500 hover:text-red-500 text-xs mt-1">Delete</button>
@@ -801,7 +787,7 @@
         if(!confirm("Delete?")) return;
         rawClips.splice(idx, 1);
         try {
-            await window.db.collection('projects').doc(currentProjectID).update({ footageLib: rawClips });
+            await window.db.collection('projects').doc(PROJECT_ID).update({ footageLib: rawClips });
             renderVideos();
         } catch(e) {}
     }
