@@ -699,6 +699,20 @@
         document.getElementById('playerContainer').innerHTML = '';
     }
     
+   // ✅ MISSING FUNCTION ADDED HERE
+    function openUploadModal() {
+        const modal = document.getElementById('uploadFootageModal');
+        if (modal) {
+            modal.classList.remove('hidden');
+            // Reset steps if needed
+            document.getElementById('uploadStep1').classList.remove('hidden');
+            document.getElementById('uploadStep2').classList.add('hidden');
+            document.getElementById('uploadStep3').classList.add('hidden');
+        } else {
+            console.error("Error: Upload Modal ID not found!");
+        }
+    }
+
     function closeUploadModal() {
         document.getElementById('uploadFootageModal').classList.add('hidden');
     }
