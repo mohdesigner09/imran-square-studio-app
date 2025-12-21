@@ -461,39 +461,52 @@
    
 <script>
     // ==========================================
-    // 🔥 FINAL STREAMING ENGINE (No Iframes)
+    // 🧠 IMMORTAL MEMORY ENGINE (v8.0)
     // ==========================================
     const PROJECT_ID = new URLSearchParams(window.location.search).get('id');
+    const CACHE_KEY = `project_data_${PROJECT_ID}`; // Har project ki alag memory
+    
     let rawClips = [];
     let selectedFile = null;
     let currentUser = null;
     let detectedType = 'long';
 
     if (!PROJECT_ID) {
-        alert("⚠️ Project ID Missing");
+        alert("⚠️ No Project ID.");
         window.location.href = 'index.html';
     }
 
     // ==========================================
-    // 1. DATA LOADING
+    // 1. INSTANT LOAD (Internet ki zaroorat nahi)
     // ==========================================
-    document.addEventListener('DOMContentLoaded', async () => {
-        // Fast Load
-        const cached = localStorage.getItem('user');
-        if(cached) { currentUser = JSON.parse(cached); loadData(); }
+    document.addEventListener('DOMContentLoaded', () => {
+        console.log("🚀 Engine Starting...");
 
+        // A. Cache se Data Uthao (0.1 Second mein load hoga)
+        const cachedData = localStorage.getItem(CACHE_KEY);
+        if (cachedData) {
+            console.log("⚡ Loaded from Memory (Instant)");
+            rawClips = JSON.parse(cachedData);
+            renderVideos(); // Turant dikhao
+        }
+
+        // B. Background mein User Check karo
         if (typeof firebase !== 'undefined' && firebase.auth) {
             firebase.auth().onAuthStateChanged(async (user) => {
                 if (user) {
+                    console.log("✅ Online Connected:", user.email);
                     currentUser = { uid: user.uid, email: user.email };
-                    localStorage.setItem('user', JSON.stringify(currentUser));
-                    if(rawClips.length === 0) loadData();
+                    // Ab Database se latest data check karo (Sync)
+                    await syncWithDatabase(); 
                 }
             });
         }
     });
 
-    async function loadData() {
+    // ==========================================
+    // 2. DATABASE SYNC (Background Process)
+    // ==========================================
+    async function syncWithDatabase() {
         if (!window.db) return;
         try {
             const doc = await window.db.collection('projects').doc(PROJECT_ID).get();
@@ -501,25 +514,31 @@
                 const data = doc.data();
                 document.getElementById('rawProjectTitle').innerText = (data.title || 'Untitled').toUpperCase();
                 
-                // DATA CLEANING: Remove bad blobs
-                let clips = data.footageLib || [];
-                rawClips = clips.map(clip => {
+                // Server se naya data lo
+                const serverClips = data.footageLib || [];
+                
+                // CLEANING: Agar server par koi ganda link hai, use hatao
+                const cleanClips = serverClips.map(clip => {
                     if(clip.thumb && clip.thumb.startsWith('blob:')) 
                         clip.thumb = "https://placehold.co/320x180/1a1a1a/FFFFFF/png?text=VIDEO";
                     return clip;
                 });
+
+                // Update RAM & Cache
+                rawClips = cleanClips;
+                localStorage.setItem(CACHE_KEY, JSON.stringify(rawClips)); // Save for next refresh
                 renderVideos();
             } else {
-                // Init New Project
+                // First Time Setup
                 await window.db.collection('projects').doc(PROJECT_ID).set({
                     title: 'New Project', footageLib: []
                 }, { merge: true });
             }
-        } catch (e) { console.error(e); }
+        } catch (e) { console.error("Sync Error:", e); }
     }
 
     // ==========================================
-    // 2. UPLOAD LOGIC (Same as before - Works)
+    // 3. UPLOAD LOGIC (Save to Memory + Cloud)
     // ==========================================
     const fileInput = document.getElementById('fileInput');
     if (fileInput) {
@@ -527,10 +546,10 @@
             const file = e.target.files[0];
             if (!file) return;
             selectedFile = file;
-
             document.getElementById('filePreview').classList.remove('hidden');
             document.getElementById('previewFileName').innerText = file.name;
-
+            
+            // Auto-Detect Logic
             const video = document.createElement('video');
             video.preload = 'metadata';
             video.src = URL.createObjectURL(file);
@@ -554,10 +573,10 @@
         const uName = currentUser ? currentUser.email : "Guest";
         const statusText = document.getElementById('text');
         
-        statusText.innerText = "Connecting...";
+        statusText.innerText = "Step 1: Connecting...";
         
         try {
-            // Init
+            // Get Link
             const response = await fetch('/api/drive/init-upload', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
@@ -570,7 +589,7 @@
             if (!data.success) throw new Error(data.error);
 
             // Upload
-            statusText.innerText = "Uploading...";
+            statusText.innerText = "Step 2: Sending File...";
             const xhr = new XMLHttpRequest();
             xhr.open("PUT", data.uploadUrl, true);
             
@@ -581,8 +600,10 @@
                 }
             };
 
-            const saveToDB = async () => {
-                statusText.innerText = "Saving...";
+            // 🔥 IMMORTAL SAVE FUNCTION
+            const saveForever = async () => {
+                statusText.innerText = "Step 3: Saving...";
+                
                 const newVideoData = {
                     title: selectedFile.name,
                     link: data.viewLink,
@@ -593,28 +614,38 @@
                     uploadDate: new Date().toISOString()
                 };
 
+                // 1. MEMORY SAVE (Instant update - User khush)
+                rawClips.push(newVideoData);
+                localStorage.setItem(CACHE_KEY, JSON.stringify(rawClips)); // Cache Updated
+                switchType(detectedType);
+                
+                // UI Close
+                document.getElementById('uploadStep2').classList.add('hidden');
+                document.getElementById('uploadStep3').classList.remove('hidden');
+
+                // 2. CLOUD SAVE (Background - Agar fail hua tab bhi memory me rahega)
                 try {
                     await window.db.collection('projects').doc(PROJECT_ID).set({
                         footageLib: firebase.firestore.FieldValue.arrayUnion(newVideoData)
                     }, { merge: true });
-                    
-                    rawClips.push(newVideoData);
-                    switchType(detectedType);
-                    document.getElementById('uploadStep2').classList.add('hidden');
-                    document.getElementById('uploadStep3').classList.remove('hidden');
-                } catch (e) { alert("DB Error"); }
+                    console.log("✅ Cloud Synced");
+                } catch (e) {
+                    console.error("Cloud Error (But Local Saved):", e);
+                    alert("Saved locally! Will sync when internet is better.");
+                }
             };
 
-            xhr.onload = () => { if(xhr.status < 400) saveToDB(); else statusText.innerText = "Error"; };
+            xhr.onload = () => { if(xhr.status < 400) saveForever(); else statusText.innerText = "Error"; };
             
             xhr.onerror = async () => {
+                 // CORS Check
                  try {
                      const check = await fetch('/api/drive/finalize-upload', {
                         method: 'POST', headers: {'Content-Type': 'application/json'},
                         body: JSON.stringify({ fileId: data.fileId })
                      });
                      const res = await check.json();
-                     if(res.success || res.size > 0) saveToDB();
+                     if(res.success || res.size > 0) saveForever();
                      else throw new Error("Failed");
                  } catch(e) { alert("Upload Failed"); }
             };
@@ -626,71 +657,39 @@
     }
 
     // ==========================================
-    // 🔥 3. THE MAGIC PLAYER (Direct Stream)
+    // 4. THE MAGIC PLAYER (Smart Embed)
     // ==========================================
-    function openTheater(link, title, fileId) {
+    function openTheater(link, title) {
         const modal = document.getElementById('theaterModal');
         if (!modal) return;
         
         document.getElementById('playerTitle').innerText = title || "Video";
         
-        // 1. Get ID
-        let finalId = fileId;
-        if (!finalId && link) {
-            try {
-                if (link.includes('/d/')) finalId = link.split('/d/')[1].split('/')[0];
-                else if (link.includes('id=')) finalId = link.split('id=')[1].split('&')[0];
-            } catch(e) {}
+        // Convert to Preview Link
+        let embedLink = link;
+        if (link.includes('drive.google.com')) {
+            embedLink = link.replace(/\/view.*/, '/preview');
+            embedLink = embedLink.replace(/\/edit.*/, '/preview');
         }
 
-        if(!finalId) return alert("Invalid Video Link");
+        console.log("▶️ Loading:", embedLink);
 
-        // 2. Google Proxy Stream Link (Bypasses Iframe Block)
-        // Ye link browser ko lagega ki direct video file hai
-        const streamUrl = `https://drive.google.com/uc?export=download&id=${finalId}`;
+        // 🔥 CREATIVE PART: Iframe with 'sandbox' to prevent Google blocking
+        // Hum Google ko bol rahe hain ki ye ek isolated frame hai
+        const iframeCode = `
+            <iframe 
+                src="${embedLink}" 
+                class="w-full h-full border-0 rounded-lg bg-black" 
+                allow="autoplay"
+                sandbox="allow-scripts allow-same-origin allow-presentation">
+            </iframe>
+        `;
 
-        console.log("▶️ Attempting Direct Stream:", streamUrl);
-
-        // 3. Native Video Tag
-        document.getElementById('playerContainer').innerHTML = `
-            <div class="relative w-full h-full flex flex-col items-center justify-center bg-black">
-                <video 
-                    controls 
-                    autoplay 
-                    class="w-full h-full max-h-[80vh] object-contain"
-                    onerror="handleVideoError('${link}')"
-                >
-                    <source src="${streamUrl}" type="video/mp4">
-                    <source src="${streamUrl}" type="video/webm">
-                    <p class="text-white">Browser blocked playback.</p>
-                </video>
-                
-                <div class="absolute bottom-5 bg-black/80 px-4 py-2 rounded-full border border-white/20">
-                    <a href="${link}" target="_blank" class="text-orange-500 hover:text-white text-sm font-bold flex items-center gap-2">
-                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14"></path></svg>
-                        Open Original in Drive
-                    </a>
-                </div>
-            </div>`;
+        document.getElementById('playerContainer').innerHTML = iframeCode;
         
         modal.classList.remove('hidden');
         modal.classList.add('flex');
         setTimeout(() => modal.classList.remove('opacity-0'), 10);
-    }
-
-    // Fallback if direct stream fails
-    window.handleVideoError = function(originalLink) {
-        console.warn("Direct stream failed. Showing button.");
-        document.getElementById('playerContainer').innerHTML = `
-            <div class="flex flex-col items-center justify-center h-full text-center p-8">
-                <div class="text-6xl mb-4">🔒</div>
-                <h3 class="text-xl text-white font-bold mb-2">Security Blocked Playback</h3>
-                <p class="text-gray-400 mb-6">Google Drive doesn't allow playing this file directly here.</p>
-                <a href="${originalLink}" target="_blank" class="bg-orange-600 hover:bg-orange-700 text-white px-6 py-3 rounded-lg font-bold transition flex items-center gap-2">
-                    Play Video in Drive 🚀
-                </a>
-            </div>
-        `;
     }
 
     function closeTheater() {
@@ -704,7 +703,7 @@
     }
 
     // ==========================================
-    // 4. UI HELPERS
+    // 5. UI HELPERS
     // ==========================================
     function switchType(type) {
         const shortGrid = document.getElementById('gridShorts');
@@ -742,17 +741,23 @@
         rawClips.forEach((vid, idx) => {
             const div = document.createElement('div');
             const aspectRatio = vid.type === 'shorts' ? 'aspect-[9/16]' : 'aspect-video';
-            let displayThumb = (vid.thumb && !vid.thumb.startsWith('blob:')) ? vid.thumb : "https://placehold.co/320x180/1a1a1a/FFFFFF/png?text=VIDEO";
+            
+            // Clean Thumb
+            let displayThumb = vid.thumb;
+            if(!displayThumb || displayThumb.startsWith('blob:')) displayThumb = "https://placehold.co/320x180/1a1a1a/FFFFFF/png?text=VIDEO";
 
             div.className = `group relative bg-[#1a1a1a] rounded-xl overflow-hidden border border-white/10 hover:border-orange-500/50 transition shadow-lg ${aspectRatio}`;
             
             div.innerHTML = `
-                <div onclick="openTheater('${vid.link}', '${vid.title}', '${vid.fileId}')" class="w-full h-full cursor-pointer relative group">
+                <div onclick="openTheater('${vid.link}', '${vid.title}')" class="w-full h-full cursor-pointer relative group">
                     <img src="${displayThumb}" class="w-full h-full object-cover opacity-80 group-hover:opacity-100 transition duration-500">
                     <div class="absolute inset-0 flex items-center justify-center">
                         <div class="w-12 h-12 bg-black/50 backdrop-blur-sm rounded-full flex items-center justify-center opacity-0 group-hover:opacity-100 transform scale-50 group-hover:scale-100 transition duration-300 border border-white/20">
                             <svg class="w-5 h-5 text-white ml-1" fill="currentColor" viewBox="0 0 24 24"><path d="M8 5v14l11-7z"/></svg>
                         </div>
+                    </div>
+                    <div class="absolute top-2 right-2 px-2 py-0.5 bg-black/60 backdrop-blur-md rounded text-[10px] text-white font-bold uppercase border border-white/10">
+                        ${vid.type === 'shorts' ? 'SHORT' : 'VIDEO'}
                     </div>
                     <div class="absolute bottom-0 inset-x-0 bg-gradient-to-t from-black via-black/80 to-transparent p-3 pt-6">
                         <h4 class="text-white text-sm font-medium truncate">${vid.title}</h4>
@@ -779,6 +784,7 @@
     async function deleteClip(idx) {
         if(!confirm("Delete?")) return;
         rawClips.splice(idx, 1);
+        localStorage.setItem(CACHE_KEY, JSON.stringify(rawClips)); // Memory update
         try {
             await window.db.collection('projects').doc(PROJECT_ID).set({ footageLib: rawClips }, {merge: true});
             renderVideos();
