@@ -723,27 +723,73 @@ async function sendToStudio() {
     }
 
     // 💾 HELPER: Database Save Logic
+// 💾 HELPER: Database Save + Instant UI Update
     async function finalizeSuccess(data, uName, fileName) {
-        const badgeText = document.getElementById('detectedBadge').innerText;
-        const vType = badgeText.includes('SHORT') ? 'shorts' : 'long';
+        console.log("🎬 Finalizing Video for Grid...");
+
+        // 1. Video Type Detect Karo
+        const badgeElement = document.getElementById('detectedBadge');
+        const badgeText = badgeElement ? badgeElement.innerText : 'LONG'; // Fallback
         
+        // Agar "Detecting..." phasa reh gaya ho, to filename check kar lo
+        let vType = 'long';
+        if (badgeText.includes('SHORT')) {
+            vType = 'shorts';
+        } else if (fileName.toLowerCase().includes('short') || fileName.toLowerCase().includes('reel')) {
+            vType = 'shorts'; // Extra safety
+        }
+
+        // 2. New Video Object Banao
         const newVid = {
             title: fileName, 
-            link: data.viewLink, 
+            link: data.viewLink || "", // Link kabhi null na ho
             fileId: data.fileId,
             thumb: "https://placehold.co/320x180/1a1a1a/FFFFFF/png?text=PROCESSING", 
             type: vType,
             uploadedBy: uName, 
             uploadDate: new Date().toISOString()
         };
-        
-        await window.db.collection('projects').doc(PROJECT_ID).set({
-            footageLib: firebase.firestore.FieldValue.arrayUnion(newVid)
-        }, { merge: true });
 
-        switchType(currentTab);
-        document.getElementById('uploadStep2').classList.add('hidden');
-        document.getElementById('uploadStep3').classList.remove('hidden');
+        try {
+            // 🔥 STEP 3: OPTIMISTIC UPDATE (Turant Dikhao)
+            // Database ka wait mat karo, user ko abhi dikhao
+            currentRawClips.push(newVid); 
+            
+            // Agar user galat tab par hai, to sahi tab par switch kar do
+            if (vType === 'shorts' && currentTab !== 'shorts') {
+                switchType('shorts');
+            } else if (vType === 'long' && currentTab !== 'long') {
+                switchType('long');
+            } else {
+                renderVideos(); // Same tab refresh
+            }
+
+            // Success Message Update
+            const statusText = document.querySelector('#uploadStep2 h3');
+            if(statusText) statusText.innerText = "Finishing Up...";
+
+            // 4. Asli Database Save (Background mein)
+            await window.db.collection('projects').doc(PROJECT_ID).set({
+                footageLib: firebase.firestore.FieldValue.arrayUnion(newVid)
+            }, { merge: true });
+
+            console.log("✅ Database Updated Successfully!");
+
+            // 5. Close Modal
+            setTimeout(() => {
+                document.getElementById('uploadStep2').classList.add('hidden');
+                document.getElementById('uploadStep3').classList.remove('hidden');
+            }, 500); // Thoda delay taaki user process dekh sake
+
+        } catch (error) {
+            console.error("❌ Database Save Failed:", error);
+            alert("Video uploaded to Drive but failed to save in App Database. \nError: " + error.message);
+            
+            // Agar DB fail hua, to local grid se bhi hatao (Rollback)
+            currentRawClips.pop();
+            renderVideos();
+            resetUploadUI();
+        }
     }
 
     function resetUploadUI() {
