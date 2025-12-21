@@ -461,7 +461,7 @@
    
 <script>
     // ========================================
-    // 🔥 SYSTEM CONFIGURATION (Self-Healing)
+    // 🔥 FINAL STABLE ENGINE (v6.0)
     // ========================================
     const PROJECT_ID = new URLSearchParams(window.location.search).get('id');
     let rawClips = [];
@@ -469,30 +469,29 @@
     let currentUser = null;
     let detectedType = 'long';
 
+    // 1. Safety Check
     if (!PROJECT_ID) {
-        alert("⚠️ No Project ID found.");
+        alert("⚠️ Fatal Error: No Project ID. Go back to Home.");
         window.location.href = 'index.html';
     }
 
     // ========================================
-    // 🔥 1. AUTH & CLEAN LOAD
+    // 🔥 AUTH & DATA LOADING
     // ========================================
     document.addEventListener('DOMContentLoaded', async () => {
-        console.log("🚀 System Booting...");
+        console.log("🚀 Initializing...");
 
-        // Instant Load from Cache
-        const cachedUser = localStorage.getItem('user');
-        if (cachedUser) {
-            currentUser = JSON.parse(cachedUser);
-            loadProjectData(); 
-        }
-
+        // Firebase Listener
         if (typeof firebase !== 'undefined' && firebase.auth) {
             firebase.auth().onAuthStateChanged(async (user) => {
                 if (user) {
+                    console.log("✅ Logged In:", user.email);
                     currentUser = { uid: user.uid, email: user.email };
-                    localStorage.setItem('user', JSON.stringify(currentUser));
-                    if (rawClips.length === 0) loadProjectData();
+                    
+                    // Auth milne ke baad hi Data load karo
+                    await loadProjectData();
+                } else {
+                    console.warn("⚠️ Waiting for Login...");
                 }
             });
         }
@@ -501,40 +500,37 @@
     async function loadProjectData() {
         if (!window.db) return;
         try {
+            console.log("📂 Loading Data...");
             const doc = await window.db.collection('projects').doc(PROJECT_ID).get();
+            
             if (doc.exists) {
                 const data = doc.data();
                 document.getElementById('rawProjectTitle').innerText = (data.title || 'Untitled').toUpperCase();
                 
-                // 🔥 SELF-HEALING: Check for Bad Data
+                // DATA RECOVERY: Purane Gande Links (Blob) ko hatao
                 let clips = data.footageLib || [];
-                let dirty = false;
-
-                // Loop through all clips and fix bad thumbnails
-                clips = clips.map(clip => {
+                rawClips = clips.map(clip => {
                     if (clip.thumb && clip.thumb.startsWith('blob:')) {
-                        console.warn("🧹 Cleaning bad data:", clip.title);
                         clip.thumb = "https://placehold.co/320x180/1a1a1a/FFFFFF/png?text=VIDEO";
-                        dirty = true;
                     }
                     return clip;
                 });
 
-                rawClips = clips;
-
-                // Agar safai hui hai, to Database ko bhi update karo
-                if (dirty) {
-                    console.log("💾 Saving Cleaned Data to DB...");
-                    await window.db.collection('projects').doc(PROJECT_ID).update({ footageLib: rawClips });
-                }
-
+                console.log(`✅ Loaded ${rawClips.length} clips.`);
                 renderVideos();
+            } else {
+                console.log("ℹ️ New Project - No Data yet.");
+                // Create Empty Doc to prevent future errors
+                await window.db.collection('projects').doc(PROJECT_ID).set({ 
+                    title: 'New Project', 
+                    footageLib: [] 
+                }, { merge: true });
             }
         } catch (e) { console.error("DB Error:", e); }
     }
 
     // ========================================
-    // 🔥 2. AUTO-DETECT
+    // 🔥 AUTO-DETECT TYPE
     // ========================================
     const fileInput = document.getElementById('fileInput');
     if (fileInput) {
@@ -562,7 +558,7 @@
                     document.getElementById('detectedBadge').className = "inline-block mt-1 px-2 py-0.5 rounded text-[10px] font-bold bg-blue-600 text-white";
                 }
             }
-            // Snapshot for UI Preview ONLY
+            // Snapshot for UI
             video.currentTime = 1;
             video.onseeked = function() {
                 const canvas = document.createElement('canvas');
@@ -574,7 +570,7 @@
     }
 
     // ========================================
-    // 🔥 3. UPLOAD ENGINE (Strict Safe Mode)
+    // 🔥 UPLOAD ENGINE (Create + Merge)
     // ========================================
     async function sendToStudio() {
         if (!selectedFile) return alert("⚠️ Select a file first!");
@@ -583,10 +579,9 @@
         const statusText = document.getElementById('text');
         
         statusText.innerText = "Step 1: Getting Link...";
-        statusText.className = "text-center text-yellow-400 text-xs font-mono";
         
         try {
-            // Init
+            // A. Init
             const response = await fetch('/api/drive/init-upload', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
@@ -601,7 +596,7 @@
             const data = await response.json();
             if (!data.success) throw new Error(data.error);
 
-            // Upload
+            // B. Upload
             statusText.innerText = "Step 2: Uploading...";
             const xhr = new XMLHttpRequest();
             xhr.open("PUT", data.uploadUrl, true);
@@ -613,18 +608,15 @@
                 }
             };
 
+            // 🔥 C. SAVE TO DB (The Fix)
             const saveToDB = async () => {
-                statusText.innerText = "Step 3: Saving to Database...";
-                statusText.className = "text-center text-orange-400 text-xs font-bold font-mono";
-
-                // 🔥 FORCE STATIC THUMBNAIL (Never use Blob here)
-                const safeThumb = "https://placehold.co/320x180/1a1a1a/FFFFFF/png?text=VIDEO";
-
+                statusText.innerText = "Step 3: Saving...";
+                
                 const newVideoData = {
                     title: selectedFile.name,
                     link: data.viewLink,
                     fileId: data.fileId,
-                    thumb: safeThumb, 
+                    thumb: "https://placehold.co/320x180/1a1a1a/FFFFFF/png?text=VIDEO", 
                     type: detectedType,
                     uploadedBy: uName,
                     uploadDate: new Date().toISOString()
@@ -632,11 +624,13 @@
 
                 try {
                     const dbRef = window.db || firebase.firestore();
-                    await dbRef.collection('projects').doc(PROJECT_ID).update({
-                        footageLib: firebase.firestore.FieldValue.arrayUnion(newVideoData)
-                    });
                     
-                    console.log("✅ Saved to DB!");
+                    // 🔥 USE 'SET' with MERGE (Ye kabhi fail nahi hota)
+                    await dbRef.collection('projects').doc(PROJECT_ID).set({
+                        footageLib: firebase.firestore.FieldValue.arrayUnion(newVideoData)
+                    }, { merge: true });
+                    
+                    console.log("✅ Permanently Saved to DB!");
                     rawClips.push(newVideoData);
                     switchType(detectedType);
 
@@ -645,14 +639,14 @@
                 } catch (e) {
                     console.error(e);
                     statusText.innerText = "❌ DB Save Failed!";
-                    alert("Database Save Failed. Check Console.");
+                    alert("Critial Error: Could not save to database.");
                 }
             };
 
             xhr.onload = () => { if(xhr.status < 400) saveToDB(); else statusText.innerText = "Error " + xhr.status; };
             
             xhr.onerror = async () => {
-                 console.warn("⚠️ CORS blocked response. Verifying...");
+                 // CORS Verification
                  try {
                      const check = await fetch('/api/drive/finalize-upload', {
                         method: 'POST', headers: {'Content-Type': 'application/json'},
@@ -677,33 +671,37 @@
     }
 
     // ========================================
-    // 🔥 4. VIDEO PLAYER (Autoplay Fix)
+    // 🔥 PLAYER (Iframe with Fallback)
     // ========================================
-    function openTheater(link, title, fileId) {
+    function openTheater(link, title) {
         const modal = document.getElementById('theaterModal');
         if (!modal) return;
         
         document.getElementById('playerTitle').innerText = title || "Video";
         
-        let finalId = fileId;
-        if (!finalId && link) {
-            try {
-                if (link.includes('/d/')) finalId = link.split('/d/')[1].split('/')[0];
-                else if (link.includes('id=')) finalId = link.split('id=')[1].split('&')[0];
-            } catch(e) {}
+        // Use Preview Link (Standard)
+        let embedLink = link;
+        if (link.includes('drive.google.com')) {
+            embedLink = link.replace(/\/view.*/, '/preview');
+            embedLink = embedLink.replace(/\/edit.*/, '/preview');
         }
 
-        if(!finalId) return alert("Error: Invalid Video Link");
+        console.log("▶️ Playing:", embedLink);
 
-        const streamUrl = `https://drive.google.com/uc?export=view&id=${finalId}`;
-        console.log("▶️ Stream:", streamUrl);
-
-        // 🔥 ADDED 'muted' to allow autoplay
         document.getElementById('playerContainer').innerHTML = `
-            <video controls autoplay class="w-full h-full bg-black rounded outline-none shadow-2xl">
-                <source src="${streamUrl}" type="video/mp4">
-                <p class="text-white text-center mt-10">Video loading...</p>
-            </video>`;
+            <div class="flex flex-col h-full w-full">
+                <iframe 
+                    src="${embedLink}" 
+                    class="w-full flex-1 border-0 rounded-lg" 
+                    allow="autoplay; fullscreen" 
+                    allowfullscreen>
+                </iframe>
+                <div class="text-center p-2">
+                    <a href="${link}" target="_blank" class="text-orange-500 text-xs hover:underline">
+                        ⚠️ Video not playing? Click here to watch on Drive
+                    </a>
+                </div>
+            </div>`;
         
         modal.classList.remove('hidden');
         modal.classList.add('flex');
@@ -721,7 +719,7 @@
     }
 
     // ========================================
-    // 🔥 5. UI & RENDERERS
+    // 🔥 UI HELPERS
     // ========================================
     function switchType(type) {
         const shortGrid = document.getElementById('gridShorts');
@@ -760,14 +758,13 @@
             const div = document.createElement('div');
             const aspectRatio = vid.type === 'shorts' ? 'aspect-[9/16]' : 'aspect-video';
             
-            // 🛡️ FINAL SHIELD: Display mein bhi check karo
             let displayThumb = vid.thumb;
             if(!displayThumb || displayThumb.startsWith('blob:')) displayThumb = "https://placehold.co/320x180/1a1a1a/FFFFFF/png?text=VIDEO";
 
             div.className = `group relative bg-[#1a1a1a] rounded-xl overflow-hidden border border-white/10 hover:border-orange-500/50 transition shadow-lg ${aspectRatio}`;
             
             div.innerHTML = `
-                <div onclick="openTheater('${vid.link}', '${vid.title}', '${vid.fileId}')" class="w-full h-full cursor-pointer relative group">
+                <div onclick="openTheater('${vid.link}', '${vid.title}')" class="w-full h-full cursor-pointer relative group">
                     <img src="${displayThumb}" class="w-full h-full object-cover opacity-80 group-hover:opacity-100 transition duration-500">
                     <div class="absolute inset-0 flex items-center justify-center">
                         <div class="w-12 h-12 bg-black/50 backdrop-blur-sm rounded-full flex items-center justify-center opacity-0 group-hover:opacity-100 transform scale-50 group-hover:scale-100 transition duration-300 border border-white/20">
@@ -803,7 +800,7 @@
         if(!confirm("Delete?")) return;
         rawClips.splice(idx, 1);
         try {
-            await window.db.collection('projects').doc(PROJECT_ID).update({ footageLib: rawClips });
+            await window.db.collection('projects').doc(PROJECT_ID).set({ footageLib: rawClips }, {merge: true});
             renderVideos();
         } catch(e) {}
     }
