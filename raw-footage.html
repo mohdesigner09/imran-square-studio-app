@@ -460,43 +460,53 @@
 
    
 <script>
-    // ========================================
-    // 🔥 FINAL STABLE ENGINE (v7.0 - The Fixer)
-    // ========================================
+    // ==========================================
+    // 🛠️ PROFESSIONAL ENGINE (Stable Build)
+    // ==========================================
     const PROJECT_ID = new URLSearchParams(window.location.search).get('id');
     let rawClips = [];
     let selectedFile = null;
     let currentUser = null;
     let detectedType = 'long';
 
+    // 1. Critical Safety Check
     if (!PROJECT_ID) {
-        alert("⚠️ Fatal Error: No Project ID.");
+        console.error("⛔ NO PROJECT ID FOUND");
+        alert("System Error: Project ID missing. Returning to Dashboard.");
         window.location.href = 'index.html';
     }
 
-    // ========================================
-    // 🔥 1. AUTH & AUTO-CLEANER
-    // ========================================
+    // ==========================================
+    // 📡 1. AUTH & DATABASE CONNECTION
+    // ==========================================
     document.addEventListener('DOMContentLoaded', async () => {
-        console.log("🚀 Initializing...");
+        console.log("🔵 App Initializing...");
 
+        // Firebase Listener
         if (typeof firebase !== 'undefined' && firebase.auth) {
             firebase.auth().onAuthStateChanged(async (user) => {
                 if (user) {
-                    console.log("✅ Logged In:", user.email);
+                    console.log("✅ User Logged In:", user.email);
                     currentUser = { uid: user.uid, email: user.email };
-                    await loadAndCleanData(); // 🔥 Cleaning Triggered
+                    
+                    // Auth confirm hone ke baad hi data load karo
+                    await loadAndRepairData();
                 } else {
-                    console.warn("⚠️ Waiting for Login...");
+                    console.warn("⚠️ Waiting for User Login...");
                 }
             });
+        } else {
+            alert("⚠️ Fatal Error: Firebase database not connected.");
         }
     });
 
-    async function loadAndCleanData() {
+    // ==========================================
+    // 🧹 2. DATA LOADER & REPAIRER (Fixes "Gayab" Issue)
+    // ==========================================
+    async function loadAndRepairData() {
         if (!window.db) return;
         try {
-            console.log("📂 Loading & Cleaning Data...");
+            console.log(`📂 Reading Project: ${PROJECT_ID}`);
             const doc = await window.db.collection('projects').doc(PROJECT_ID).get();
             
             if (doc.exists) {
@@ -504,41 +514,42 @@
                 document.getElementById('rawProjectTitle').innerText = (data.title || 'Untitled').toUpperCase();
                 
                 let clips = data.footageLib || [];
-                let needsUpdate = false;
-
-                // 🧹 THE JANITOR: Clean corrupt BLOB links
-                const cleanClips = clips.map(clip => {
-                    // Agar thumbnail Blob hai, toh Placeholder lagao
-                    if (clip.thumb && clip.thumb.startsWith('blob:')) {
-                        console.warn("🧹 Fixing Corrupt Thumb:", clip.title);
+                
+                // 🛡️ REPAIR LOGIC: Filter out bad data instantly
+                // Agar 'blob' link mile ya link gayab ho, to use safe placeholder bana do
+                const safeClips = clips.map(clip => {
+                    if (!clip.link || clip.link.startsWith('blob:')) {
+                        // Agar link kharab hai, to hum kuch nahi kar sakte, bas crash se bacha sakte hain
+                        console.warn("⚠️ Corrupt Clip Found:", clip.title);
+                        return null; // Isse baad me filter out kar denge
+                    }
+                    if (!clip.thumb || clip.thumb.startsWith('blob:')) {
                         clip.thumb = "https://placehold.co/320x180/1a1a1a/FFFFFF/png?text=VIDEO";
-                        needsUpdate = true;
                     }
                     return clip;
-                });
+                }).filter(clip => clip !== null); // Remove nulls
 
-                rawClips = cleanClips;
+                rawClips = safeClips;
+                console.log(`✅ Loaded ${rawClips.length} Valid Clips`);
                 renderVideos();
 
-                // Agar gandagi mili thi, to database saaf karo
-                if (needsUpdate) {
-                    console.log("💾 Saving Cleaned Data to DB...");
-                    await window.db.collection('projects').doc(PROJECT_ID).update({ footageLib: rawClips });
-                }
-
             } else {
-                // New Project Init
-                await window.db.collection('projects').doc(PROJECT_ID).set({ 
-                    title: 'New Project', 
-                    footageLib: [] 
+                console.log("ℹ️ New Project Detected. Creating DB entry...");
+                await window.db.collection('projects').doc(PROJECT_ID).set({
+                    title: 'New Project',
+                    footageLib: [],
+                    createdAt: new Date().toISOString()
                 }, { merge: true });
             }
-        } catch (e) { console.error("DB Error:", e); }
+        } catch (e) {
+            console.error("❌ Database Read Error:", e);
+            alert("Error loading data. Check console.");
+        }
     }
 
-    // ========================================
-    // 🔥 2. AUTO-DETECT
-    // ========================================
+    // ==========================================
+    // 🕵️ 3. AUTO-DETECT FILE TYPE
+    // ==========================================
     const fileInput = document.getElementById('fileInput');
     if (fileInput) {
         fileInput.addEventListener('change', function(e) {
@@ -546,9 +557,11 @@
             if (!file) return;
             selectedFile = file;
 
+            // Show Preview
             document.getElementById('filePreview').classList.remove('hidden');
             document.getElementById('previewFileName').innerText = file.name;
 
+            // Detect Dimensions
             const video = document.createElement('video');
             video.preload = 'metadata';
             video.src = URL.createObjectURL(file);
@@ -565,6 +578,8 @@
                     document.getElementById('detectedBadge').className = "inline-block mt-1 px-2 py-0.5 rounded text-[10px] font-bold bg-blue-600 text-white";
                 }
             }
+
+            // Generate Static Thumb
             video.currentTime = 1;
             video.onseeked = function() {
                 const canvas = document.createElement('canvas');
@@ -575,19 +590,20 @@
         });
     }
 
-    // ========================================
-    // 🔥 3. UPLOAD ENGINE
-    // ========================================
+    // ==========================================
+    // 🚀 4. UPLOAD ENGINE (Robust Save)
+    // ==========================================
     async function sendToStudio() {
-        if (!selectedFile) return alert("⚠️ Select a file first!");
+        if (!selectedFile) return alert("⚠️ Please select a file first!");
 
         const uName = (currentUser && currentUser.email) ? currentUser.email : "Guest";
         const statusText = document.getElementById('text');
         
-        statusText.innerText = "Step 1: Getting Link...";
+        statusText.innerText = "Step 1: Connecting...";
+        statusText.className = "text-center text-yellow-400 text-xs font-mono";
         
         try {
-            // Init
+            // A. Init Upload
             const response = await fetch('/api/drive/init-upload', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
@@ -602,8 +618,8 @@
             const data = await response.json();
             if (!data.success) throw new Error(data.error);
 
-            // Upload
-            statusText.innerText = "Step 2: Uploading...";
+            // B. Upload to Drive
+            statusText.innerText = "Step 2: Uploading File...";
             const xhr = new XMLHttpRequest();
             xhr.open("PUT", data.uploadUrl, true);
             
@@ -614,17 +630,16 @@
                 }
             };
 
+            // 🔥 C. DATABASE SAVE FUNCTION (Guaranteed)
             const saveToDB = async () => {
-                statusText.innerText = "Step 3: Saving...";
-                
-                // Static Thumb (No Blobs allowed in DB)
-                const safeThumb = "https://placehold.co/320x180/1a1a1a/FFFFFF/png?text=VIDEO";
+                statusText.innerText = "Step 3: Saving to Database...";
+                statusText.className = "text-center text-orange-400 text-xs font-bold font-mono";
 
                 const newVideoData = {
                     title: selectedFile.name,
-                    link: data.viewLink,
+                    link: data.viewLink, // THIS LINK IS PERMANENT
                     fileId: data.fileId,
-                    thumb: safeThumb, 
+                    thumb: "https://placehold.co/320x180/1a1a1a/FFFFFF/png?text=VIDEO", 
                     type: detectedType,
                     uploadedBy: uName,
                     uploadDate: new Date().toISOString()
@@ -632,38 +647,50 @@
 
                 try {
                     const dbRef = window.db || firebase.firestore();
-                    // SET with Merge (Safest way to save)
+                    
+                    // Use arrayUnion inside set with merge to ensure document exists
                     await dbRef.collection('projects').doc(PROJECT_ID).set({
                         footageLib: firebase.firestore.FieldValue.arrayUnion(newVideoData)
                     }, { merge: true });
                     
-                    console.log("✅ Saved to DB!");
+                    console.log("✅ Saved to Database!");
+                    
+                    // UI Update
                     rawClips.push(newVideoData);
                     switchType(detectedType);
 
                     document.getElementById('uploadStep2').classList.add('hidden');
                     document.getElementById('uploadStep3').classList.remove('hidden');
+
                 } catch (e) {
                     console.error(e);
                     statusText.innerText = "❌ DB Save Failed!";
-                    alert("Critical: Could not save to database.");
+                    alert("Network Error: Could not save video info to database.");
                 }
             };
 
-            xhr.onload = () => { if(xhr.status < 400) saveToDB(); else statusText.innerText = "Error " + xhr.status; };
+            // Success Handler
+            xhr.onload = () => { if(xhr.status < 400) saveToDB(); else statusText.innerText = "Upload Error " + xhr.status; };
             
+            // Error Handler (CORS Bypass)
             xhr.onerror = async () => {
+                 console.log("⚠️ CORS detected, verifying on server...");
                  try {
+                     // Check if file made it to server despite browser error
                      const check = await fetch('/api/drive/finalize-upload', {
                         method: 'POST', headers: {'Content-Type': 'application/json'},
                         body: JSON.stringify({ fileId: data.fileId })
                      });
                      const res = await check.json();
-                     if(res.success || res.size > 0) saveToDB();
-                     else throw new Error("Verification Failed");
+                     if(res.success || res.size > 0) {
+                         console.log("✅ Server confirmed upload.");
+                         saveToDB(); 
+                     } else {
+                         throw new Error("Verification Failed");
+                     }
                  } catch(e) {
                      statusText.innerText = "Network Error";
-                     alert("Upload Failed");
+                     alert("Upload Failed. Please try again.");
                  }
             };
 
@@ -676,16 +703,16 @@
         }
     }
 
-    // ========================================
-    // 🔥 4. HYBRID PLAYER (The Real Fix)
-    // ========================================
+    // ==========================================
+    // 🎬 5. ROBUST VIDEO PLAYER
+    // ==========================================
     function openTheater(link, title) {
         const modal = document.getElementById('theaterModal');
         if (!modal) return;
         
         document.getElementById('playerTitle').innerText = title || "Video";
         
-        // Link Processing
+        // Link Fixer: Convert View -> Preview
         let embedLink = link;
         if (link.includes('drive.google.com')) {
             embedLink = link.replace(/\/view.*/, '/preview');
@@ -694,22 +721,24 @@
 
         console.log("▶️ Loading Player:", embedLink);
 
-        // 🔥 HYBRID PLAYER UI
-        // Iframe + Fallback Button (Agar Iframe block ho jaye to button kaam karega)
+        // Player UI with Fallback Button
         document.getElementById('playerContainer').innerHTML = `
-            <div class="relative w-full h-full group">
-                <iframe 
-                    src="${embedLink}" 
-                    class="w-full h-full border-0 rounded-lg bg-black" 
-                    allow="autoplay; fullscreen" 
-                    allowfullscreen>
-                </iframe>
+            <div class="relative w-full h-full group flex flex-col">
+                <div class="flex-1 relative bg-black rounded-lg overflow-hidden">
+                    <iframe 
+                        src="${embedLink}" 
+                        class="absolute inset-0 w-full h-full border-0" 
+                        allow="autoplay; fullscreen" 
+                        allowfullscreen>
+                    </iframe>
+                </div>
                 
-                <div class="absolute top-4 right-4 z-50 opacity-50 hover:opacity-100 transition">
-                     <a href="${link}" target="_blank" class="bg-black/80 hover:bg-orange-600 text-white text-xs px-3 py-2 rounded-full border border-white/20 flex items-center gap-2 shadow-xl">
-                        <span>⚠️ Not playing? Open in Drive</span>
+                <div class="bg-[#111] p-3 flex justify-between items-center text-xs text-gray-400 border-t border-white/10">
+                    <span>If video shows "Processing" or doesn't play:</span>
+                    <a href="${link}" target="_blank" class="text-orange-500 hover:text-white flex items-center gap-1 font-bold">
+                        Open in Drive 
                         <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14"></path></svg>
-                     </a>
+                    </a>
                 </div>
             </div>`;
         
@@ -728,9 +757,9 @@
         }, 300);
     }
 
-    // ========================================
-    // 🔥 5. UI & RENDERERS
-    // ========================================
+    // ==========================================
+    // 🎨 6. UI HELPERS
+    // ==========================================
     function switchType(type) {
         const shortGrid = document.getElementById('gridShorts');
         const longGrid = document.getElementById('gridLongs');
@@ -768,7 +797,7 @@
             const div = document.createElement('div');
             const aspectRatio = vid.type === 'shorts' ? 'aspect-[9/16]' : 'aspect-video';
             
-            // Clean Thumb Logic for Display
+            // Clean Thumb Logic
             let displayThumb = vid.thumb;
             if(!displayThumb || displayThumb.startsWith('blob:')) displayThumb = "https://placehold.co/320x180/1a1a1a/FFFFFF/png?text=VIDEO";
 
@@ -777,14 +806,17 @@
             div.innerHTML = `
                 <div onclick="openTheater('${vid.link}', '${vid.title}')" class="w-full h-full cursor-pointer relative group">
                     <img src="${displayThumb}" class="w-full h-full object-cover opacity-80 group-hover:opacity-100 transition duration-500">
+                    
                     <div class="absolute inset-0 flex items-center justify-center">
                         <div class="w-12 h-12 bg-black/50 backdrop-blur-sm rounded-full flex items-center justify-center opacity-0 group-hover:opacity-100 transform scale-50 group-hover:scale-100 transition duration-300 border border-white/20">
                             <svg class="w-5 h-5 text-white ml-1" fill="currentColor" viewBox="0 0 24 24"><path d="M8 5v14l11-7z"/></svg>
                         </div>
                     </div>
+                    
                     <div class="absolute top-2 right-2 px-2 py-0.5 bg-black/60 backdrop-blur-md rounded text-[10px] text-white font-bold uppercase border border-white/10">
                         ${vid.type === 'shorts' ? 'SHORT' : 'VIDEO'}
                     </div>
+
                     <div class="absolute bottom-0 inset-x-0 bg-gradient-to-t from-black via-black/80 to-transparent p-3 pt-6">
                         <h4 class="text-white text-sm font-medium truncate">${vid.title}</h4>
                         <button onclick="event.stopPropagation(); deleteClip(${idx})" class="text-gray-500 hover:text-red-500 text-xs mt-1">Delete</button>
@@ -811,9 +843,13 @@
         if(!confirm("Delete?")) return;
         rawClips.splice(idx, 1);
         try {
-            await window.db.collection('projects').doc(PROJECT_ID).set({ footageLib: rawClips }, {merge: true});
+            // Update DB with cleaner array
+            await window.db.collection('projects').doc(PROJECT_ID).update({ footageLib: rawClips });
             renderVideos();
-        } catch(e) {}
+        } catch(e) {
+            console.error(e);
+            alert("Delete failed (DB Error)");
+        }
     }
 </script>
 </body>
