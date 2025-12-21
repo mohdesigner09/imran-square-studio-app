@@ -1335,8 +1335,7 @@ app.use((err, req, res, next) => {
 });
 
 
-// ✅ CORRECTED: Resumable Upload Initialization
-// Backend (server.js) - /api/drive/init-upload Route
+
 // ==========================================
 // 🚀 UNIVERSAL UPLOAD ROUTE (Admin Storage)
 // ==========================================
@@ -1373,16 +1372,16 @@ app.post('/api/drive/init-upload', async (req, res) => {
             requestBody: { role: 'reader', type: 'anyone' }
         });
 
-        // 5. Generate Resumable Upload Link
-        const tokenResponse = await oauth2Client.getAccessToken();
-        
-      // ✅ REPLACE THIS BLOCK IN server.js (inside /api/drive/init-upload)
+ 
+
+     // ✅ REPLACE THIS BLOCK IN server.js (inside /api/drive/init-upload)
 
         // 5. Generate Resumable Upload Link
         const tokenResponse = await oauth2Client.getAccessToken();
         
-        // Browser ka Origin pakdo
+        // Browser ka Origin pakdo (Dynamic)
         const clientOrigin = req.headers.origin || 'https://imran-square-studio.onrender.com';
+        console.log(`🔗 Origin Set to: ${clientOrigin}`); // Debugging ke liye
 
         const uploadResponse = await axios.patch(
             `https://www.googleapis.com/upload/drive/v3/files/${fileId}?uploadType=resumable`,
@@ -1390,11 +1389,10 @@ app.post('/api/drive/init-upload', async (req, res) => {
             {
                 headers: {
                     'Authorization': `Bearer ${tokenResponse.token}`,
-                    // 🔥 IMPORTANT: Content-Type match hona chahiye
-                    'X-Upload-Content-Type': fileType, 
+                    'X-Upload-Content-Type': fileType,  // Match File Type
                     'Content-Type': 'application/json; charset=UTF-8',
-                    // 🚀 THE SECRET SAUCE: Google ko Origin batao
-                    'Origin': clientOrigin 
+                    'Content-Length': 0,
+                    'Origin': clientOrigin // 👈 YE HAI WO MISSING KEY (Jadoo yahan hai)
                 }
             }
         );
