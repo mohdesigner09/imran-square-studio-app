@@ -461,118 +461,125 @@
    
 <script>
     // ==========================================
-    // 🎬 IMMORTAL CINEMA ENGINE (v9.0 Final)
+    // 🚀 IMRAN SQUARE STUDIO: TITAN ENGINE (v12.0)
     // ==========================================
     const PROJECT_ID = new URLSearchParams(window.location.search).get('id');
-    const CACHE_KEY = `project_data_${PROJECT_ID}`;
-    
-    let rawClips = [];
-    let selectedFile = null;
     let currentUser = null;
-    let detectedType = 'long';
+    let selectedFile = null;      // File object for upload
+    let localObjectUrl = null;    // Magic URL for instant play
+    let isUploading = false;      // Upload status
+
+    // Global Store for Videos
+    let rawClips = []; 
 
     if (!PROJECT_ID) {
-        alert("⚠️ Fatal Error: No Project ID.");
+        alert("⚠️ Fatal Error: Project ID Missing.");
         window.location.href = 'index.html';
     }
 
     // ==========================================
-    // 1. LIGHTNING LOAD (Memory First)
+    // 1. AUTH & DATABASE SYNC
     // ==========================================
     document.addEventListener('DOMContentLoaded', () => {
-        console.log("🚀 Engine Starting...");
+        console.log("🔵 Titan Engine Starting...");
 
-        // A. Instant Cache Load (0s wait)
-        const cached = localStorage.getItem(CACHE_KEY);
-        if (cached) {
-            console.log("⚡ Loaded from Memory");
-            rawClips = JSON.parse(cached);
-            renderVideos();
-        }
-
-        // B. Background Sync
         if (typeof firebase !== 'undefined' && firebase.auth) {
-            firebase.auth().onAuthStateChanged(async (user) => {
+            firebase.auth().onAuthStateChanged((user) => {
                 if (user) {
-                    console.log("✅ Syncing with Cloud...");
                     currentUser = { uid: user.uid, email: user.email };
-                    await syncDatabase();
+                    startLiveSync();
                 }
             });
         }
     });
 
-    async function syncDatabase() {
+    function startLiveSync() {
         if (!window.db) return;
-        try {
-            const doc = await window.db.collection('projects').doc(PROJECT_ID).get();
-            if (doc.exists) {
-                const data = doc.data();
-                document.getElementById('rawProjectTitle').innerText = (data.title || 'Untitled').toUpperCase();
-                
-                // Clean bad links from server
-                let serverClips = data.footageLib || [];
-                serverClips = serverClips.map(clip => {
-                    if(clip.thumb && clip.thumb.startsWith('blob:')) 
-                        clip.thumb = "https://placehold.co/320x180/1a1a1a/FFFFFF/png?text=VIDEO";
-                    return clip;
-                });
-
-                // Update Local & Cache
-                rawClips = serverClips;
-                localStorage.setItem(CACHE_KEY, JSON.stringify(rawClips));
-                renderVideos();
-            } else {
-                // Init New Project
-                await window.db.collection('projects').doc(PROJECT_ID).set({
-                    title: 'New Project', footageLib: []
-                }, { merge: true });
-            }
-        } catch (e) { console.error(e); }
+        
+        // Real-time Database Listener
+        window.db.collection('projects').doc(PROJECT_ID)
+            .onSnapshot((doc) => {
+                if (doc.exists) {
+                    const data = doc.data();
+                    document.getElementById('rawProjectTitle').innerText = (data.title || 'Untitled').toUpperCase();
+                    
+                    // Filter bad data
+                    let clips = data.footageLib || [];
+                    rawClips = clips.map(clip => {
+                        // Agar purana blob link hai to placeholder laga do
+                        if(clip.thumb && clip.thumb.startsWith('blob:')) 
+                            clip.thumb = "https://placehold.co/320x180/1a1a1a/FFFFFF/png?text=VIDEO";
+                        return clip;
+                    });
+                    
+                    renderVideos();
+                } else {
+                    window.db.collection('projects').doc(PROJECT_ID).set({ footageLib: [] }, { merge: true });
+                }
+            });
     }
 
     // ==========================================
-    // 2. UPLOAD LOGIC (Persist Guarantee)
+    // 2. FILE SELECTION & LOCAL STREAMING
     // ==========================================
     const fileInput = document.getElementById('fileInput');
+    
     if (fileInput) {
         fileInput.addEventListener('change', function(e) {
             const file = e.target.files[0];
             if (!file) return;
-            selectedFile = file;
             
+            selectedFile = file; // Store file in RAM
+
+            // 🔥 MAGIC 1: Create Instant Local Link
+            localObjectUrl = URL.createObjectURL(file);
+
             // UI Update
             document.getElementById('filePreview').classList.remove('hidden');
             document.getElementById('previewFileName').innerText = file.name;
 
-            // Auto-Detect
+            // Generate Thumb & Detect Type instantly
             const video = document.createElement('video');
             video.preload = 'metadata';
-            video.src = URL.createObjectURL(file);
+            video.src = localObjectUrl;
+            
             video.onloadedmetadata = function() {
-                window.URL.revokeObjectURL(video.src);
                 if (video.videoHeight > video.videoWidth) {
-                    detectedType = 'shorts';
                     document.getElementById('detectedBadge').innerText = "SHORT (9:16)";
                     document.getElementById('detectedBadge').className = "inline-block mt-1 px-2 py-0.5 rounded text-[10px] font-bold bg-purple-600 text-white";
                 } else {
-                    detectedType = 'long';
                     document.getElementById('detectedBadge').innerText = "LONG (16:9)";
                     document.getElementById('detectedBadge').className = "inline-block mt-1 px-2 py-0.5 rounded text-[10px] font-bold bg-blue-600 text-white";
                 }
             }
+            
+            // Snapshot
+            video.currentTime = 1;
+            video.onseeked = function() {
+                const canvas = document.createElement('canvas');
+                canvas.width = 320; canvas.height = 180;
+                canvas.getContext('2d').drawImage(video, 0, 0, 320, 180);
+                document.getElementById('previewThumbnail').src = canvas.toDataURL();
+            };
         });
     }
 
+    // ==========================================
+    // 3. UPLOAD ENGINE (20GB+ Handler)
+    // ==========================================
     async function sendToStudio() {
-        if (!selectedFile) return alert("Select a file!");
+        if (!selectedFile) return alert("Select File!");
+        if (isUploading) return alert("Upload in progress...");
+
         const uName = currentUser ? currentUser.email : "Guest";
         const statusText = document.getElementById('text');
+        const progressBar = document.getElementById('uploadProgressBar'); // Make sure you have this in HTML or remove logic
         
-        statusText.innerText = "Processing...";
+        isUploading = true;
+        statusText.innerText = "Initiating...";
         
         try {
-            // Init
+            // A. Get Upload URL
             const response = await fetch('/api/drive/init-upload', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
@@ -584,118 +591,171 @@
             const data = await response.json();
             if (!data.success) throw new Error(data.error);
 
-            // Upload
-            statusText.innerText = "Uploading File...";
+            // B. Upload File (Streamed)
+            statusText.innerText = "Uploading (Don't Close)...";
             const xhr = new XMLHttpRequest();
             xhr.open("PUT", data.uploadUrl, true);
             
             xhr.upload.onprogress = (e) => {
                 if (e.lengthComputable) {
                     const percent = ((e.loaded / e.total) * 100).toFixed(0);
-                    statusText.innerText = `Uploading: ${percent}%`;
+                    const gbDone = (e.loaded / (1024*1024*1024)).toFixed(2);
+                    const gbTotal = (e.total / (1024*1024*1024)).toFixed(2);
+                    statusText.innerText = `Uploading: ${percent}% (${gbDone}GB / ${gbTotal}GB)`;
                 }
             };
 
-            // ✅ SAVE FUNCTION (Immortal)
-            const saveForever = async () => {
-                statusText.innerText = "Saving...";
-                
-                const newVideoData = {
-                    title: selectedFile.name,
-                    link: data.viewLink,
-                    fileId: data.fileId,
-                    thumb: "https://placehold.co/320x180/1a1a1a/FFFFFF/png?text=VIDEO", 
-                    type: detectedType,
-                    uploadedBy: uName,
-                    uploadDate: new Date().toISOString()
-                };
-
-                // 1. Local Instant Update
-                rawClips.push(newVideoData);
-                localStorage.setItem(CACHE_KEY, JSON.stringify(rawClips)); 
-                switchType(detectedType);
-                
-                // UI Close
-                document.getElementById('uploadStep2').classList.add('hidden');
-                document.getElementById('uploadStep3').classList.remove('hidden');
-
-                // 2. Cloud Update
-                try {
-                    await window.db.collection('projects').doc(PROJECT_ID).set({
-                        footageLib: firebase.firestore.FieldValue.arrayUnion(newVideoData)
-                    }, { merge: true });
-                    console.log("✅ Saved to Cloud");
-                } catch (e) { console.error("Cloud Error (Local Safe):", e); }
+            // C. On Complete -> Save to DB
+            xhr.onload = async () => { 
+                if(xhr.status < 400) {
+                    await finalizeUpload(data, uName);
+                } else {
+                    statusText.innerText = "Upload Error: " + xhr.status;
+                    isUploading = false;
+                }
             };
-
-            xhr.onload = () => { if(xhr.status < 400) saveForever(); else statusText.innerText = "Error"; };
             
-            xhr.onerror = async () => {
-                 try {
-                     const check = await fetch('/api/drive/finalize-upload', {
-                        method: 'POST', headers: {'Content-Type': 'application/json'},
-                        body: JSON.stringify({ fileId: data.fileId })
-                     });
-                     const res = await check.json();
-                     if(res.success || res.size > 0) saveForever();
-                     else throw new Error("Failed");
-                 } catch(e) { alert("Upload Failed"); }
+            xhr.onerror = () => {
+                // CORS Bypass (Agar browser error de, fir bhi check karo)
+                checkIfUploaded(data, uName);
             };
 
+            // UI Switch
             document.getElementById('uploadStep1').classList.add('hidden');
             document.getElementById('uploadStep2').classList.remove('hidden');
             xhr.send(selectedFile);
-        } catch (error) { alert(error.message); }
+
+        } catch (error) { 
+            alert("Error: " + error.message); 
+            isUploading = false;
+        }
     }
 
-// ==========================================
-    // 🎥 FINAL PLAYER FIX (Clean Iframe)
+    async function checkIfUploaded(data, uName) {
+         try {
+             const check = await fetch('/api/drive/finalize-upload', {
+                method: 'POST', headers: {'Content-Type': 'application/json'},
+                body: JSON.stringify({ fileId: data.fileId })
+             });
+             const res = await check.json();
+             if(res.success || res.size > 0) {
+                 await finalizeUpload(data, uName);
+             } else {
+                 throw new Error("Verification Failed");
+             }
+         } catch(e) { 
+             document.getElementById('text').innerText = "Network Error";
+             alert("Upload Failed");
+             isUploading = false;
+         }
+    }
+
+    async function finalizeUpload(data, uName) {
+        document.getElementById('text').innerText = "Syncing Database...";
+        
+        // Detect Type (Re-confirm)
+        let type = 'long';
+        if(selectedFile.size > 0) {
+            // Simple logic: Assuming logic based on filename or preview used earlier
+             const badge = document.getElementById('detectedBadge').innerText;
+             type = badge.includes('SHORT') ? 'shorts' : 'long';
+        }
+
+        const newVideoData = {
+            title: selectedFile.name,
+            link: data.viewLink, // Permanent Cloud Link
+            fileId: data.fileId,
+            thumb: "https://placehold.co/320x180/1a1a1a/FFFFFF/png?text=VIDEO", 
+            type: type,
+            uploadedBy: uName,
+            uploadDate: new Date().toISOString()
+        };
+
+        try {
+            await window.db.collection('projects').doc(PROJECT_ID).update({
+                footageLib: firebase.firestore.FieldValue.arrayUnion(newVideoData)
+            });
+            
+            // IMPORTANT: Hum is video ko 'selectedFile' se match karke rakhenge
+            // taaki jab tak refresh na ho, ye LOCAL FILE se chale.
+            newVideoData.tempLocalUrl = localObjectUrl; 
+            
+            // Add to local array immediately for responsiveness
+            // (Note: onSnapshot will overwrite this, but that's okay)
+            
+            document.getElementById('uploadStep2').classList.add('hidden');
+            document.getElementById('uploadStep3').classList.remove('hidden');
+            isUploading = false;
+            console.log("✅ Success");
+
+        } catch (e) { console.error(e); }
+    }
+
+
     // ==========================================
-    function openTheater(link, title) {
+    // 🎥 4. INTELLIGENT PLAYER (Hybrid Mode)
+    // ==========================================
+    function openTheater(link, title, fileId) {
         const modal = document.getElementById('theaterModal');
         if (!modal) return;
         
         document.getElementById('playerTitle').innerText = title || "Video";
         
-        // 1. LINK CLEANER: Humesha '/preview' wala link banao
-        let embedLink = link;
-        
-        // Agar link drive ka hai, to use tod-mod ke 'preview' link banao
-        if (link.includes('drive.google.com')) {
-            // Remove everything after /view or /edit
-            embedLink = link.split('/view')[0].split('/edit')[0];
-            
-            // Ensure it ends with /preview
-            if (!embedLink.endsWith('/preview')) {
-                embedLink += '/preview';
+        // 🔥 MAGIC CHECK: Kya ye video abhi upload hui hai?
+        // Agar 'selectedFile' wahi hai jo hum play kar rahe hain, to LOCAL chalao
+        let playSource = null;
+        let isLocal = false;
+
+        if (selectedFile && title === selectedFile.name && localObjectUrl) {
+            // YES! Play directly from RAM (0 Buffering, 20GB+ support)
+            playSource = localObjectUrl;
+            isLocal = true;
+            console.log("🚀 Playing from LOCAL MEMORY (Instant)");
+        } else {
+            // Nope, play from Cloud (Drive)
+            // Extract ID
+            let finalId = fileId;
+            if (!finalId && link) {
+                try {
+                    if (link.includes('/d/')) finalId = link.split('/d/')[1].split('/')[0];
+                    else if (link.includes('id=')) finalId = link.split('id=')[1].split('&')[0];
+                } catch(e) {}
             }
+            // Use Preview Link
+            playSource = `https://drive.google.com/file/d/${finalId}/preview`;
         }
 
-        console.log("▶️ Playing Clean Link:", embedLink);
+        const container = document.getElementById('playerContainer');
+        container.innerHTML = ''; // Clear previous
 
-        // 2. PLAYER UI (Simple & Clean)
-        // 'no-referrer' is the MAGIC KEY here to avoid 401 Errors
-        document.getElementById('playerContainer').innerHTML = `
-            <div class="w-full h-full bg-black rounded-lg overflow-hidden flex flex-col">
-                <iframe 
-                    src="${embedLink}" 
-                    class="flex-1 w-full h-full border-0" 
-                    frameborder="0"
-                    scrolling="no"
-                    allow="autoplay; fullscreen; encrypted-media" 
-                    referrerpolicy="no-referrer"
-                    allowfullscreen>
-                </iframe>
-                
-                <div class="bg-[#111] py-2 px-4 text-center border-t border-white/10">
-                    <p class="text-[10px] text-gray-500">
-                        Video not playing? Google might be processing it. 
-                        <a href="${link}" target="_blank" class="text-orange-500 hover:text-white underline ml-1 font-bold">
-                            Open in Drive
-                        </a>
-                    </p>
-                </div>
-            </div>`;
+        if (isLocal) {
+            // 🟢 LOCAL PLAYER (Video Tag)
+            container.innerHTML = `
+                <div class="w-full h-full bg-black flex flex-col items-center justify-center">
+                    <video controls autoplay class="w-full h-full max-h-[85vh] shadow-2xl">
+                        <source src="${playSource}" type="${selectedFile.type}">
+                        Your browser does not support the video tag.
+                    </video>
+                    <div class="absolute bottom-5 bg-green-900/80 px-4 py-1 rounded-full text-xs text-white border border-green-500">
+                        ⚡ Playing Local Preview (High Speed)
+                    </div>
+                </div>`;
+        } else {
+            // ☁️ CLOUD PLAYER (Iframe)
+            container.innerHTML = `
+                <div class="w-full h-full bg-black flex flex-col">
+                    <iframe 
+                        src="${playSource}" 
+                        class="flex-1 w-full border-0" 
+                        allow="autoplay; fullscreen" 
+                        referrerpolicy="no-referrer"
+                        allowfullscreen>
+                    </iframe>
+                    <div class="bg-[#111] p-2 text-center text-[10px] text-gray-500 border-t border-white/10">
+                        If video is processing, <a href="${link}" target="_blank" class="text-orange-500 hover:text-white underline font-bold">Open in Drive</a>
+                    </div>
+                </div>`;
+        }
         
         modal.classList.remove('hidden');
         modal.classList.add('flex');
@@ -709,11 +769,13 @@
             modal.classList.add('hidden');
             modal.classList.remove('flex');
             document.getElementById('playerContainer').innerHTML = '';
+            
+            // Don't revoke URL yet, user might want to play again
         }, 300);
     }
 
     // ==========================================
-    // 4. UI RENDERER
+    // 5. UI RENDERER
     // ==========================================
     function switchType(type) {
         const shortGrid = document.getElementById('gridShorts');
@@ -724,13 +786,13 @@
         if (type === 'shorts') {
             shortGrid.classList.remove('hidden');
             longGrid.classList.add('hidden');
-            if(btnShorts) btnShorts.className = "type-btn active text-white font-bold pb-2 border-b-2 border-orange-500 transition";
-            if(btnLong) btnLong.className = "type-btn text-gray-400 hover:text-white font-bold pb-2 transition border-b-2 border-transparent";
+            if(btnShorts) { btnShorts.classList.add('text-white', 'border-orange-500'); btnShorts.classList.remove('text-gray-400', 'border-transparent'); }
+            if(btnLong) { btnLong.classList.add('text-gray-400', 'border-transparent'); btnLong.classList.remove('text-white', 'border-orange-500'); }
         } else {
             longGrid.classList.remove('hidden');
             shortGrid.classList.add('hidden');
-            if(btnLong) btnLong.className = "type-btn active text-white font-bold pb-2 border-b-2 border-orange-500 transition";
-            if(btnShorts) btnShorts.className = "type-btn text-gray-400 hover:text-white font-bold pb-2 transition border-b-2 border-transparent";
+            if(btnLong) { btnLong.classList.add('text-white', 'border-orange-500'); btnLong.classList.remove('text-gray-400', 'border-transparent'); }
+            if(btnShorts) { btnShorts.classList.add('text-gray-400', 'border-transparent'); btnShorts.classList.remove('text-white', 'border-orange-500'); }
         }
         renderVideos();
     }
@@ -763,9 +825,6 @@
                             <svg class="w-5 h-5 text-white ml-1" fill="currentColor" viewBox="0 0 24 24"><path d="M8 5v14l11-7z"/></svg>
                         </div>
                     </div>
-                    <div class="absolute top-2 right-2 px-2 py-0.5 bg-black/60 backdrop-blur-md rounded text-[10px] text-white font-bold uppercase border border-white/10">
-                        ${vid.type === 'shorts' ? 'SHORT' : 'VIDEO'}
-                    </div>
                     <div class="absolute bottom-0 inset-x-0 bg-gradient-to-t from-black via-black/80 to-transparent p-3 pt-6">
                         <h4 class="text-white text-sm font-medium truncate">${vid.title}</h4>
                         <button onclick="event.stopPropagation(); deleteClip(${idx})" class="text-gray-500 hover:text-red-500 text-xs mt-1">Delete</button>
@@ -786,16 +845,15 @@
     }
     function closeUploadModal() {
         document.getElementById('uploadFootageModal').classList.add('hidden');
-        selectedFile = null;
+        // Note: We do NOT clear selectedFile/localObjectUrl here to keep the preview active
     }
     async function deleteClip(idx) {
         if(!confirm("Delete?")) return;
-        rawClips.splice(idx, 1);
-        localStorage.setItem(CACHE_KEY, JSON.stringify(rawClips));
+        const newClips = [...rawClips];
+        newClips.splice(idx, 1);
         try {
-            await window.db.collection('projects').doc(PROJECT_ID).set({ footageLib: rawClips }, {merge: true});
-            renderVideos();
-        } catch(e) {}
+            await window.db.collection('projects').doc(PROJECT_ID).update({ footageLib: newClips });
+        } catch(e) { console.error(e); }
     }
 </script>
 </body>
