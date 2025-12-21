@@ -461,10 +461,10 @@
    
 <script>
     // ==========================================
-    // 🧠 IMMORTAL MEMORY ENGINE (v8.0)
+    // 🎬 IMMORTAL CINEMA ENGINE (v9.0 Final)
     // ==========================================
     const PROJECT_ID = new URLSearchParams(window.location.search).get('id');
-    const CACHE_KEY = `project_data_${PROJECT_ID}`; // Har project ki alag memory
+    const CACHE_KEY = `project_data_${PROJECT_ID}`;
     
     let rawClips = [];
     let selectedFile = null;
@@ -472,41 +472,37 @@
     let detectedType = 'long';
 
     if (!PROJECT_ID) {
-        alert("⚠️ No Project ID.");
+        alert("⚠️ Fatal Error: No Project ID.");
         window.location.href = 'index.html';
     }
 
     // ==========================================
-    // 1. INSTANT LOAD (Internet ki zaroorat nahi)
+    // 1. LIGHTNING LOAD (Memory First)
     // ==========================================
     document.addEventListener('DOMContentLoaded', () => {
         console.log("🚀 Engine Starting...");
 
-        // A. Cache se Data Uthao (0.1 Second mein load hoga)
-        const cachedData = localStorage.getItem(CACHE_KEY);
-        if (cachedData) {
-            console.log("⚡ Loaded from Memory (Instant)");
-            rawClips = JSON.parse(cachedData);
-            renderVideos(); // Turant dikhao
+        // A. Instant Cache Load (0s wait)
+        const cached = localStorage.getItem(CACHE_KEY);
+        if (cached) {
+            console.log("⚡ Loaded from Memory");
+            rawClips = JSON.parse(cached);
+            renderVideos();
         }
 
-        // B. Background mein User Check karo
+        // B. Background Sync
         if (typeof firebase !== 'undefined' && firebase.auth) {
             firebase.auth().onAuthStateChanged(async (user) => {
                 if (user) {
-                    console.log("✅ Online Connected:", user.email);
+                    console.log("✅ Syncing with Cloud...");
                     currentUser = { uid: user.uid, email: user.email };
-                    // Ab Database se latest data check karo (Sync)
-                    await syncWithDatabase(); 
+                    await syncDatabase();
                 }
             });
         }
     });
 
-    // ==========================================
-    // 2. DATABASE SYNC (Background Process)
-    // ==========================================
-    async function syncWithDatabase() {
+    async function syncDatabase() {
         if (!window.db) return;
         try {
             const doc = await window.db.collection('projects').doc(PROJECT_ID).get();
@@ -514,31 +510,29 @@
                 const data = doc.data();
                 document.getElementById('rawProjectTitle').innerText = (data.title || 'Untitled').toUpperCase();
                 
-                // Server se naya data lo
-                const serverClips = data.footageLib || [];
-                
-                // CLEANING: Agar server par koi ganda link hai, use hatao
-                const cleanClips = serverClips.map(clip => {
+                // Clean bad links from server
+                let serverClips = data.footageLib || [];
+                serverClips = serverClips.map(clip => {
                     if(clip.thumb && clip.thumb.startsWith('blob:')) 
                         clip.thumb = "https://placehold.co/320x180/1a1a1a/FFFFFF/png?text=VIDEO";
                     return clip;
                 });
 
-                // Update RAM & Cache
-                rawClips = cleanClips;
-                localStorage.setItem(CACHE_KEY, JSON.stringify(rawClips)); // Save for next refresh
+                // Update Local & Cache
+                rawClips = serverClips;
+                localStorage.setItem(CACHE_KEY, JSON.stringify(rawClips));
                 renderVideos();
             } else {
-                // First Time Setup
+                // Init New Project
                 await window.db.collection('projects').doc(PROJECT_ID).set({
                     title: 'New Project', footageLib: []
                 }, { merge: true });
             }
-        } catch (e) { console.error("Sync Error:", e); }
+        } catch (e) { console.error(e); }
     }
 
     // ==========================================
-    // 3. UPLOAD LOGIC (Save to Memory + Cloud)
+    // 2. UPLOAD LOGIC (Persist Guarantee)
     // ==========================================
     const fileInput = document.getElementById('fileInput');
     if (fileInput) {
@@ -546,10 +540,12 @@
             const file = e.target.files[0];
             if (!file) return;
             selectedFile = file;
+            
+            // UI Update
             document.getElementById('filePreview').classList.remove('hidden');
             document.getElementById('previewFileName').innerText = file.name;
-            
-            // Auto-Detect Logic
+
+            // Auto-Detect
             const video = document.createElement('video');
             video.preload = 'metadata';
             video.src = URL.createObjectURL(file);
@@ -557,11 +553,11 @@
                 window.URL.revokeObjectURL(video.src);
                 if (video.videoHeight > video.videoWidth) {
                     detectedType = 'shorts';
-                    document.getElementById('detectedBadge').innerText = "Detected: SHORT";
+                    document.getElementById('detectedBadge').innerText = "SHORT (9:16)";
                     document.getElementById('detectedBadge').className = "inline-block mt-1 px-2 py-0.5 rounded text-[10px] font-bold bg-purple-600 text-white";
                 } else {
                     detectedType = 'long';
-                    document.getElementById('detectedBadge').innerText = "Detected: LONG";
+                    document.getElementById('detectedBadge').innerText = "LONG (16:9)";
                     document.getElementById('detectedBadge').className = "inline-block mt-1 px-2 py-0.5 rounded text-[10px] font-bold bg-blue-600 text-white";
                 }
             }
@@ -573,10 +569,10 @@
         const uName = currentUser ? currentUser.email : "Guest";
         const statusText = document.getElementById('text');
         
-        statusText.innerText = "Step 1: Connecting...";
+        statusText.innerText = "Processing...";
         
         try {
-            // Get Link
+            // Init
             const response = await fetch('/api/drive/init-upload', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
@@ -589,7 +585,7 @@
             if (!data.success) throw new Error(data.error);
 
             // Upload
-            statusText.innerText = "Step 2: Sending File...";
+            statusText.innerText = "Uploading File...";
             const xhr = new XMLHttpRequest();
             xhr.open("PUT", data.uploadUrl, true);
             
@@ -600,9 +596,9 @@
                 }
             };
 
-            // 🔥 IMMORTAL SAVE FUNCTION
+            // ✅ SAVE FUNCTION (Immortal)
             const saveForever = async () => {
-                statusText.innerText = "Step 3: Saving...";
+                statusText.innerText = "Saving...";
                 
                 const newVideoData = {
                     title: selectedFile.name,
@@ -614,31 +610,27 @@
                     uploadDate: new Date().toISOString()
                 };
 
-                // 1. MEMORY SAVE (Instant update - User khush)
+                // 1. Local Instant Update
                 rawClips.push(newVideoData);
-                localStorage.setItem(CACHE_KEY, JSON.stringify(rawClips)); // Cache Updated
+                localStorage.setItem(CACHE_KEY, JSON.stringify(rawClips)); 
                 switchType(detectedType);
                 
                 // UI Close
                 document.getElementById('uploadStep2').classList.add('hidden');
                 document.getElementById('uploadStep3').classList.remove('hidden');
 
-                // 2. CLOUD SAVE (Background - Agar fail hua tab bhi memory me rahega)
+                // 2. Cloud Update
                 try {
                     await window.db.collection('projects').doc(PROJECT_ID).set({
                         footageLib: firebase.firestore.FieldValue.arrayUnion(newVideoData)
                     }, { merge: true });
-                    console.log("✅ Cloud Synced");
-                } catch (e) {
-                    console.error("Cloud Error (But Local Saved):", e);
-                    alert("Saved locally! Will sync when internet is better.");
-                }
+                    console.log("✅ Saved to Cloud");
+                } catch (e) { console.error("Cloud Error (Local Safe):", e); }
             };
 
             xhr.onload = () => { if(xhr.status < 400) saveForever(); else statusText.innerText = "Error"; };
             
             xhr.onerror = async () => {
-                 // CORS Check
                  try {
                      const check = await fetch('/api/drive/finalize-upload', {
                         method: 'POST', headers: {'Content-Type': 'application/json'},
@@ -657,35 +649,51 @@
     }
 
     // ==========================================
-    // 4. THE MAGIC PLAYER (Smart Embed)
+    // 🎥 3. SMOOTH CINEMA PLAYER (The Fix)
     // ==========================================
-    function openTheater(link, title) {
+    function openTheater(link, title, fileId) {
         const modal = document.getElementById('theaterModal');
         if (!modal) return;
         
         document.getElementById('playerTitle').innerText = title || "Video";
         
-        // Convert to Preview Link
-        let embedLink = link;
-        if (link.includes('drive.google.com')) {
-            embedLink = link.replace(/\/view.*/, '/preview');
-            embedLink = embedLink.replace(/\/edit.*/, '/preview');
+        // 1. Robust ID Extraction
+        let finalId = fileId;
+        if (!finalId && link) {
+            try {
+                if (link.includes('/d/')) finalId = link.split('/d/')[1].split('/')[0];
+                else if (link.includes('id=')) finalId = link.split('id=')[1].split('&')[0];
+            } catch(e) {}
         }
 
-        console.log("▶️ Loading:", embedLink);
+        if(!finalId) return alert("Video is processing. Try again in 1 min.");
 
-        // 🔥 CREATIVE PART: Iframe with 'sandbox' to prevent Google blocking
-        // Hum Google ko bol rahe hain ki ye ek isolated frame hai
-        const iframeCode = `
-            <iframe 
-                src="${embedLink}" 
-                class="w-full h-full border-0 rounded-lg bg-black" 
-                allow="autoplay"
-                sandbox="allow-scripts allow-same-origin allow-presentation">
-            </iframe>
-        `;
+        // 2. The Clean Embed URL
+        const embedUrl = `https://drive.google.com/file/d/${finalId}/preview`;
 
-        document.getElementById('playerContainer').innerHTML = iframeCode;
+        // 3. Player UI with Loader & Fallback
+        
+        document.getElementById('playerContainer').innerHTML = `
+            <div class="relative w-full h-full bg-black rounded-lg overflow-hidden group">
+                <div class="absolute inset-0 flex items-center justify-center pointer-events-none z-0">
+                    <div class="animate-spin rounded-full h-12 w-12 border-b-2 border-orange-500"></div>
+                </div>
+
+                <iframe 
+                    src="${embedUrl}" 
+                    class="relative z-10 w-full h-full border-0" 
+                    allow="autoplay; encrypted-media; fullscreen; picture-in-picture" 
+                    referrerpolicy="no-referrer"
+                    allowfullscreen>
+                </iframe>
+
+                <div class="absolute top-4 right-4 z-50 opacity-0 group-hover:opacity-100 transition duration-300">
+                    <a href="${embedUrl}" target="_blank" class="bg-black/80 hover:bg-orange-600 text-white text-xs font-bold px-4 py-2 rounded-full border border-white/20 flex items-center gap-2 shadow-xl backdrop-blur-md">
+                        <span>External Player</span>
+                        <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14"></path></svg>
+                    </a>
+                </div>
+            </div>`;
         
         modal.classList.remove('hidden');
         modal.classList.add('flex');
@@ -703,7 +711,7 @@
     }
 
     // ==========================================
-    // 5. UI HELPERS
+    // 4. UI RENDERER
     // ==========================================
     function switchType(type) {
         const shortGrid = document.getElementById('gridShorts');
@@ -741,15 +749,12 @@
         rawClips.forEach((vid, idx) => {
             const div = document.createElement('div');
             const aspectRatio = vid.type === 'shorts' ? 'aspect-[9/16]' : 'aspect-video';
-            
-            // Clean Thumb
-            let displayThumb = vid.thumb;
-            if(!displayThumb || displayThumb.startsWith('blob:')) displayThumb = "https://placehold.co/320x180/1a1a1a/FFFFFF/png?text=VIDEO";
+            let displayThumb = (vid.thumb && !vid.thumb.startsWith('blob:')) ? vid.thumb : "https://placehold.co/320x180/1a1a1a/FFFFFF/png?text=VIDEO";
 
             div.className = `group relative bg-[#1a1a1a] rounded-xl overflow-hidden border border-white/10 hover:border-orange-500/50 transition shadow-lg ${aspectRatio}`;
             
             div.innerHTML = `
-                <div onclick="openTheater('${vid.link}', '${vid.title}')" class="w-full h-full cursor-pointer relative group">
+                <div onclick="openTheater('${vid.link}', '${vid.title}', '${vid.fileId}')" class="w-full h-full cursor-pointer relative group">
                     <img src="${displayThumb}" class="w-full h-full object-cover opacity-80 group-hover:opacity-100 transition duration-500">
                     <div class="absolute inset-0 flex items-center justify-center">
                         <div class="w-12 h-12 bg-black/50 backdrop-blur-sm rounded-full flex items-center justify-center opacity-0 group-hover:opacity-100 transform scale-50 group-hover:scale-100 transition duration-300 border border-white/20">
@@ -784,7 +789,7 @@
     async function deleteClip(idx) {
         if(!confirm("Delete?")) return;
         rawClips.splice(idx, 1);
-        localStorage.setItem(CACHE_KEY, JSON.stringify(rawClips)); // Memory update
+        localStorage.setItem(CACHE_KEY, JSON.stringify(rawClips));
         try {
             await window.db.collection('projects').doc(PROJECT_ID).set({ footageLib: rawClips }, {merge: true});
             renderVideos();
