@@ -1408,6 +1408,26 @@ app.post('/api/drive/init-upload', async (req, res) => {
         res.status(500).json({ success: false, error: error.message });
     }
 });
+
+// ✅ REPAIR ROUTE: Force Public Permissions
+app.post('/api/drive/repair-permissions', async (req, res) => {
+    try {
+        const { fileId } = req.body;
+        console.log(`🔧 Repairing Permissions for: ${fileId}`);
+
+        // 1. Force Public Permission
+        await drive.permissions.create({
+            fileId: fileId,
+            requestBody: { role: 'reader', type: 'anyone' }
+        });
+
+        res.json({ success: true, message: "Permissions Fixed!" });
+    } catch (error) {
+        console.error("❌ Repair Failed:", error.message);
+        res.status(500).json({ success: false, error: error.message });
+    }
+});
+
 // ===== SERVER START =====
 const PORT = process.env.PORT || 10000;
 app.listen(PORT, () => {
