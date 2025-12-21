@@ -1376,19 +1376,20 @@ app.post('/api/drive/init-upload', async (req, res) => {
         // 5. Generate Resumable Upload Link
         const tokenResponse = await oauth2Client.getAccessToken();
         
-        const uploadResponse = await axios.patch(
+       const uploadResponse = await axios.patch(
             `https://www.googleapis.com/upload/drive/v3/files/${fileId}?uploadType=resumable`,
             {},
             {
                 headers: {
                     'Authorization': `Bearer ${tokenResponse.token}`,
-                    'X-Upload-Content-Type': fileType,
+                    // ⚠️ YE LINE HATA DO ya COMMENT KAR DO:
+                    // 'X-Upload-Content-Type': fileType,  <-- Isse Comment karein
+                    
                     'Content-Type': 'application/json; charset=UTF-8',
                     'Content-Length': 0
                 }
             }
         );
-
         res.json({
             success: true,
             uploadUrl: uploadResponse.headers.location,

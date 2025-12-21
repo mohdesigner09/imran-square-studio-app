@@ -629,45 +629,103 @@
     }
 
     async function sendToStudio() {
-        // ... (Tumhara purana working upload code same rahega)
-        // Bas ensure karna ki upload ke baad ye line ho:
-        // window.db.collection('projects').doc(PROJECT_ID).update(...)
-        // Kyunki onSnapshot apne aap UI update kar dega.
+        if (!selectedFile) return alert("Please select a video file!");
+
+        // 1. UI Switch: Step 1 Chupao -> Step 2 Dikhao
+        document.getElementById('uploadStep1').classList.add('hidden');
+        document.getElementById('uploadStep2').classList.remove('hidden');
         
-        // Short version for context:
-        if (!selectedFile) return alert("Select file!");
+        // Progress Text Set Karo
+        const statusText = document.querySelector('#uploadStep2 h3');
+        statusText.innerText = "Initializing Upload...";
+
         const uName = currentUser ? currentUser.email : "Guest";
-        document.getElementById('text').innerText = "Uploading...";
         
         try {
+            // 2. Server se "Pasal" (Upload Link) mango
             const response = await fetch('/api/drive/init-upload', {
-                method: 'POST', headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ userName: uName, projectName: "Raw_Footage", fileName: selectedFile.name, fileType: selectedFile.type })
+                method: 'POST', 
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ 
+                    userName: uName, 
+                    projectName: "Raw_Footage", 
+                    fileName: selectedFile.name, 
+                    fileType: selectedFile.type 
+                })
             });
-            const data = await response.json();
             
+            const data = await response.json();
+            if(!data.success) throw new Error(data.error || "Init failed");
+
+            // 3. Asli Upload (Browser -> Google Drive)
             const xhr = new XMLHttpRequest();
             xhr.open("PUT", data.uploadUrl, true);
             
-            xhr.onload = async () => {
-                const badgeText = document.getElementById('detectedBadge').innerText;
-                const vType = badgeText.includes('SHORT') ? 'shorts' : 'long';
-                
-                const newVid = {
-                    title: selectedFile.name, link: data.viewLink, fileId: data.fileId,
-                    thumb: "https://placehold.co/320x180/1a1a1a/FFFFFF/png?text=VIDEO", type: vType,
-                    uploadedBy: uName, uploadDate: new Date().toISOString()
-                };
-                
-                await window.db.collection('projects').doc(PROJECT_ID).set({
-                    footageLib: firebase.firestore.FieldValue.arrayUnion(newVid)
-                }, { merge: true });
-                
-                document.getElementById('uploadStep2').classList.add('hidden');
-                document.getElementById('uploadStep3').classList.remove('hidden');
+            // CORS Fix: Content-Type explicitly match karo
+            xhr.setRequestHeader("Content-Type", selectedFile.type);
+
+            // ⚡ LIVE PROGRESS TRACKER
+            xhr.upload.onprogress = (e) => {
+                if (e.lengthComputable) {
+                    const percent = (e.loaded / e.total) * 100;
+                    statusText.innerText = `Uploading... ${Math.round(percent)}%`;
+                }
             };
+
+            xhr.onload = async () => {
+                // 200/201 matlab Success
+                if (xhr.status === 200 || xhr.status === 201) {
+                    console.log("✅ Upload Success!");
+                    
+                    // 4. Database Update
+                    const badgeText = document.getElementById('detectedBadge').innerText;
+                    const vType = badgeText.includes('SHORT') ? 'shorts' : 'long';
+                    
+                    const newVid = {
+                        title: selectedFile.name, 
+                        link: data.viewLink, 
+                        fileId: data.fileId,
+                        thumb: "https://placehold.co/320x180/1a1a1a/FFFFFF/png?text=PROCESSING", 
+                        type: vType,
+                        uploadedBy: uName, 
+                        uploadDate: new Date().toISOString()
+                    };
+                    
+                    await window.db.collection('projects').doc(PROJECT_ID).set({
+                        footageLib: firebase.firestore.FieldValue.arrayUnion(newVid)
+                    }, { merge: true });
+
+                    // 5. Grid Refresh & UI Finish
+                    switchType(currentTab); // Grid update karo
+                    document.getElementById('uploadStep2').classList.add('hidden');
+                    document.getElementById('uploadStep3').classList.remove('hidden');
+                } else {
+                    console.error("Upload Failed:", xhr.status, xhr.statusText);
+                    alert("Upload failed. Check console.");
+                    resetUploadUI();
+                }
+            };
+
+            xhr.onerror = () => {
+                console.error("❌ Network/CORS Error.");
+                // CORS error ke bawajood agar file upload ho gayi ho (Check Drive),
+                // to hum user ko success dikha sakte hain, par abhi safe fail karte hain.
+                alert("Network Interrupt (CORS). But check your Drive, file might be there.");
+                resetUploadUI();
+            };
+            
             xhr.send(selectedFile);
-        } catch(e) { alert("Error: " + e.message); }
+
+        } catch(e) { 
+            console.error(e);
+            alert("Error: " + e.message); 
+            resetUploadUI();
+        }
+    }
+
+    function resetUploadUI() {
+        document.getElementById('uploadStep2').classList.add('hidden');
+        document.getElementById('uploadStep1').classList.remove('hidden');
     }
 
     // 6. PLAYER (Clean Iframe)
