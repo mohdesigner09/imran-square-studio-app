@@ -638,8 +638,6 @@ async function sendToStudio() {
         statusText.innerText = "Connecting to Vault...";
 
         const uName = currentUser ? currentUser.email : "Guest";
-        
-        // 🔥 SAFE TYPE: Agar file.type empty ho to default mp4 lo
         const safeFileType = selectedFile.type || 'video/mp4'; 
 
         try {
@@ -661,8 +659,6 @@ async function sendToStudio() {
             // 3. Upload to Google (Asli Action)
             const xhr = new XMLHttpRequest();
             xhr.open("PUT", data.uploadUrl, true);
-            
-            // ⚡ CONTENT-TYPE MUST MATCH EXACTLY
             xhr.setRequestHeader("Content-Type", safeFileType);
 
             xhr.upload.onprogress = (e) => {
@@ -672,51 +668,24 @@ async function sendToStudio() {
                 }
             };
 
+            // ✅ SUCCESS HANDLER (Normal Case)
             xhr.onload = async () => {
-                // 200, 201, 308 sab success maane jayenge
                 if (xhr.status === 200 || xhr.status === 201 || xhr.status === 308) {
-                    console.log("✅ Upload Success!");
-                    
-                    // Database Update
-                    const badgeText = document.getElementById('detectedBadge').innerText;
-                    const vType = badgeText.includes('SHORT') ? 'shorts' : 'long';
-                    
-                    const newVid = {
-                        title: selectedFile.name, 
-                        link: data.viewLink, 
-                        fileId: data.fileId,
-                        thumb: "https://placehold.co/320x180/1a1a1a/FFFFFF/png?text=PROCESSING", 
-                        type: vType,
-                        uploadedBy: uName, 
-                        uploadDate: new Date().toISOString()
-                    };
-                    
-                    await window.db.collection('projects').doc(PROJECT_ID).set({
-                        footageLib: firebase.firestore.FieldValue.arrayUnion(newVid)
-                    }, { merge: true });
-
-                    switchType(currentTab);
-                    document.getElementById('uploadStep2').classList.add('hidden');
-                    document.getElementById('uploadStep3').classList.remove('hidden');
+                    console.log("✅ Upload Success (Clean)!");
+                    await finalizeSuccess(data, uName, selectedFile.name);
                 } else {
-                    console.error("Upload Failed:", xhr.status, xhr.responseText);
-                    alert("Upload failed. Status: " + xhr.status);
-                    resetUploadUI();
+                    console.error("Upload Status Error:", xhr.status);
+                    // Agar 200 nahi hai, tab bhi verify try karo (kabhi kabhi 0 aata hai)
+                    verifyAndFinalize(data.fileId, uName, selectedFile.name, data);
                 }
             };
 
+            // ⚠️ ERROR/CORS HANDLER (The Bypass)
             xhr.onerror = () => {
-                // Agar 200 OK ke baad bhi ye error aaye, to ise SUCCESS maano
-                // Kyunki file upload ho chuki hai, bas browser nakhre kar raha hai.
-                console.warn("⚠️ CORS Error triggered but file might be uploaded.");
-                
-                // Hum check karenge ki kya sach mein fail hua?
-                // Filhal ke liye ise 'Soft Success' mante hain taaki user panic na kare
-                alert("Upload Finished! (Checking verification...)");
-                
-                // Force Update UI (Assuming Success)
-                document.getElementById('uploadStep2').classList.add('hidden');
-                document.getElementById('uploadStep3').classList.remove('hidden');
+                console.warn("⚠️ CORS Blocked Response (Checking Server Verification...)");
+                statusText.innerText = "Verifying Upload...";
+                // Browser ne block kiya, par file wahan ho sakti hai. Server se confirm karo.
+                verifyAndFinalize(data.fileId, uName, selectedFile.name, data);
             };
             
             xhr.send(selectedFile);
@@ -728,10 +697,61 @@ async function sendToStudio() {
         }
     }
 
+    // 🔥 HELPER: Server se confirm karo ki file aayi ya nahi
+    async function verifyAndFinalize(fileId, uName, fileName, originalData) {
+        try {
+            // Server ki 'finalize-upload' API use karke check karo
+            const res = await fetch('/api/drive/finalize-upload', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ fileId: fileId })
+            });
+            const result = await res.json();
+            
+            if (result.success) {
+                console.log("✅ Server Verified: File exists!");
+                // Agar server bole file hai, to DB update kar do
+                await finalizeSuccess(originalData, uName, fileName);
+            } else {
+                throw new Error("Verification Failed: File not found on Drive.");
+            }
+        } catch (err) {
+            console.error(err);
+            alert("Upload Failed. Network blocked and file not verified.");
+            resetUploadUI();
+        }
+    }
+
+    // 💾 HELPER: Database Save Logic
+    async function finalizeSuccess(data, uName, fileName) {
+        const badgeText = document.getElementById('detectedBadge').innerText;
+        const vType = badgeText.includes('SHORT') ? 'shorts' : 'long';
+        
+        const newVid = {
+            title: fileName, 
+            link: data.viewLink, 
+            fileId: data.fileId,
+            thumb: "https://placehold.co/320x180/1a1a1a/FFFFFF/png?text=PROCESSING", 
+            type: vType,
+            uploadedBy: uName, 
+            uploadDate: new Date().toISOString()
+        };
+        
+        await window.db.collection('projects').doc(PROJECT_ID).set({
+            footageLib: firebase.firestore.FieldValue.arrayUnion(newVid)
+        }, { merge: true });
+
+        switchType(currentTab);
+        document.getElementById('uploadStep2').classList.add('hidden');
+        document.getElementById('uploadStep3').classList.remove('hidden');
+    }
+
     function resetUploadUI() {
         document.getElementById('uploadStep2').classList.add('hidden');
         document.getElementById('uploadStep1').classList.remove('hidden');
     }
+
+    
 
     // 6. PLAYER (Clean Iframe)
     function openTheater(link, title, fileId) {
