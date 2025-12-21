@@ -461,7 +461,7 @@
    
 <script>
     // ========================================
-    // 🔥 SYSTEM CONFIGURATION
+    // 🔥 SYSTEM CONFIGURATION (v5.0 Stable)
     // ========================================
     const PROJECT_ID = new URLSearchParams(window.location.search).get('id');
     let rawClips = [];
@@ -469,57 +469,55 @@
     let currentUser = null;
     let detectedType = 'long';
 
-    // Safety: ID check
     if (!PROJECT_ID) {
-        alert("⚠️ No Project ID found. Returning to Home.");
+        alert("⚠️ No Project ID found.");
         window.location.href = 'index.html';
     }
 
     // ========================================
-    // 🔥 AUTH & DATA LOADING (Stabilized)
+    // 🔥 1. AUTH & INSTANT LOAD
     // ========================================
     document.addEventListener('DOMContentLoaded', async () => {
-        console.log("🚀 System Booting...");
+        console.log("🚀 Engine Starting...");
 
-        // 1. Wait for Firebase Auth FIRST
+        // A. INSTANT LOAD (Don't wait for Firebase) 
+        const cachedUser = localStorage.getItem('user');
+        if (cachedUser) {
+            currentUser = JSON.parse(cachedUser);
+            console.log("⚡ Instant Load for:", currentUser.email);
+            loadProjectData(); // Turant data dikhao
+        }
+
+        // B. BACKGROUND VERIFY
         if (typeof firebase !== 'undefined' && firebase.auth) {
             firebase.auth().onAuthStateChanged(async (user) => {
                 if (user) {
-                    console.log("✅ User Active:", user.email);
+                    console.log("✅ Firebase Verified");
                     currentUser = { uid: user.uid, email: user.email };
+                    localStorage.setItem('user', JSON.stringify(currentUser));
                     
-                    // Auth confirm hone ke baad hi data load karo
-                    await loadProjectData(); 
-                } else {
-                    console.warn("⚠️ No Active Session - Waiting for login...");
+                    // Agar list khali thi, to ab load karo
+                    if (rawClips.length === 0) loadProjectData();
                 }
             });
-        } else {
-            alert("Firebase Error. Check Internet.");
         }
     });
 
     async function loadProjectData() {
         if (!window.db) return;
         try {
-            console.log("📂 Fetching Data...");
             const doc = await window.db.collection('projects').doc(PROJECT_ID).get();
-            
             if (doc.exists) {
                 const data = doc.data();
                 document.getElementById('rawProjectTitle').innerText = (data.title || 'Untitled').toUpperCase();
-                
                 rawClips = data.footageLib || [];
-                console.log(`✅ Loaded ${rawClips.length} clips.`);
                 renderVideos();
             }
-        } catch (e) { 
-            console.error("❌ DB Read Error:", e);
-        }
+        } catch (e) { console.error("DB Error:", e); }
     }
 
     // ========================================
-    // 🔥 AUTO-DETECT FILE TYPE
+    // 🔥 2. AUTO-DETECT & PREVIEW
     // ========================================
     const fileInput = document.getElementById('fileInput');
     if (fileInput) {
@@ -531,7 +529,6 @@
             document.getElementById('filePreview').classList.remove('hidden');
             document.getElementById('previewFileName').innerText = file.name;
 
-            // Generate Preview
             const video = document.createElement('video');
             video.preload = 'metadata';
             video.src = URL.createObjectURL(file);
@@ -549,7 +546,7 @@
                 }
             }
 
-            // Thumbnail for Preview ONLY (Not for Database)
+            // Snapshot for UI only
             video.currentTime = 1;
             video.onseeked = function() {
                 const canvas = document.createElement('canvas');
@@ -561,7 +558,7 @@
     }
 
     // ========================================
-    // 🔥 UPLOAD ENGINE (No Blobs in DB)
+    // 🔥 3. UPLOAD ENGINE (Anti-CORS)
     // ========================================
     async function sendToStudio() {
         if (!selectedFile) return alert("⚠️ Select a file first!");
@@ -569,10 +566,11 @@
         const uName = (currentUser && currentUser.email) ? currentUser.email : "Guest";
         const statusText = document.getElementById('text');
         
-        statusText.innerText = "Connecting...";
+        statusText.innerText = "Step 1: Getting Link...";
+        statusText.className = "text-center text-yellow-400 text-xs font-mono";
         
         try {
-            // 1. Get Link
+            // A. Init
             const response = await fetch('/api/drive/init-upload', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
@@ -587,8 +585,8 @@
             const data = await response.json();
             if (!data.success) throw new Error(data.error);
 
-            // 2. Upload
-            statusText.innerText = "Uploading to Drive...";
+            // B. Upload 
+            statusText.innerText = "Step 2: Sending File...";
             const xhr = new XMLHttpRequest();
             xhr.open("PUT", data.uploadUrl, true);
             
@@ -599,18 +597,19 @@
                 }
             };
 
-            const finishProcess = async () => {
-                statusText.innerText = "Saving to Database...";
-                
-                // 🔥 CRITICAL FIX: Use Static Thumbnail, NOT Blob
-                // Blobs die on refresh. Static images live forever.
+            // 🔥 THE SAVER FUNCTION
+            const saveToDB = async () => {
+                statusText.innerText = "Step 3: Saving to Database...";
+                statusText.className = "text-center text-orange-400 text-xs font-bold font-mono";
+
+                // Safe Thumbnail (No Blobs)
                 const safeThumb = "https://placehold.co/320x180/1a1a1a/FFFFFF/png?text=VIDEO";
 
                 const newVideoData = {
                     title: selectedFile.name,
-                    link: data.viewLink, // Persistent Drive Link
-                    fileId: data.fileId,
-                    thumb: safeThumb,    // ✅ NO MORE BLOB ERRORS
+                    link: data.viewLink,
+                    fileId: data.fileId, // Crucial for new player
+                    thumb: safeThumb,
                     type: detectedType,
                     uploadedBy: uName,
                     uploadDate: new Date().toISOString()
@@ -622,30 +621,37 @@
                         footageLib: firebase.firestore.FieldValue.arrayUnion(newVideoData)
                     });
                     
+                    console.log("✅ Saved to DB!");
                     rawClips.push(newVideoData);
                     switchType(detectedType);
 
                     document.getElementById('uploadStep2').classList.add('hidden');
                     document.getElementById('uploadStep3').classList.remove('hidden');
-
-                } catch (e) { 
+                } catch (e) {
                     console.error(e);
-                    statusText.innerText = "❌ DB Error";
+                    statusText.innerText = "❌ DB Save Failed!";
+                    alert("File uploaded to Drive, but Database Save failed.");
                 }
             };
 
-            xhr.onload = () => { if(xhr.status < 400) finishProcess(); else statusText.innerText = "Error " + xhr.status; };
+            // C. Handlers
+            xhr.onload = () => { if(xhr.status < 400) saveToDB(); else statusText.innerText = "Error " + xhr.status; };
             
-            // CORS Bypass
+            // D. CORS Bypass (The Magic)
             xhr.onerror = async () => {
+                 console.warn("⚠️ CORS blocked response. Verifying on server...");
                  try {
                      const check = await fetch('/api/drive/finalize-upload', {
                         method: 'POST', headers: {'Content-Type': 'application/json'},
                         body: JSON.stringify({ fileId: data.fileId })
                      });
                      const res = await check.json();
-                     if(res.success || res.size > 0) finishProcess();
-                     else throw new Error("Verification Failed");
+                     if(res.success || res.size > 0) {
+                         console.log("✅ Server confirmed file exists.");
+                         saveToDB(); // Proceed to save
+                     } else {
+                         throw new Error("Verification Failed");
+                     }
                  } catch(e) {
                      statusText.innerText = "Network Error";
                      alert("Upload Failed");
@@ -662,31 +668,38 @@
     }
 
     // ========================================
-    // 🔥 VIDEO PLAYER (Iframe Preview Mode)
+    // 🔥 4. VIDEO PLAYER (Direct Stream - No Iframe)
     // ========================================
-    function openTheater(link, title) {
+    function openTheater(link, title, fileId) {
         const modal = document.getElementById('theaterModal');
         if (!modal) return;
         
         document.getElementById('playerTitle').innerText = title || "Video";
         
-        // 🔥 LINK CLEANER: Force '/preview' mode
-        // Ye link ko clean karta hai taaki 401 Error na aaye
-        let embedLink = link;
-        if (link.includes('drive.google.com')) {
-            embedLink = link.replace(/\/view.*/, '/preview');
-            embedLink = embedLink.replace(/\/edit.*/, '/preview');
+        // 1. Extract File ID if missing
+        let finalId = fileId;
+        if (!finalId && link) {
+            try {
+                // Try to get ID from link structure
+                if (link.includes('/d/')) finalId = link.split('/d/')[1].split('/')[0];
+                else if (link.includes('id=')) finalId = link.split('id=')[1].split('&')[0];
+            } catch(e) {}
         }
 
-        console.log("▶️ Playing via Iframe:", embedLink);
+        if(!finalId) return alert("Error: Invalid Video Link");
 
+        // 2. Direct Stream URL 
+        const streamUrl = `https://drive.google.com/uc?export=view&id=${finalId}`;
+        console.log("▶️ Playing Direct Stream:", streamUrl);
+
+        // 3. Native Video Tag (Bypasses 401 Error)
         document.getElementById('playerContainer').innerHTML = `
-            <iframe 
-                src="${embedLink}" 
-                class="w-full h-full border-0 rounded-lg" 
-                allow="autoplay; fullscreen" 
-                allowfullscreen>
-            </iframe>`;
+            <video controls autoplay class="w-full h-full bg-black rounded outline-none shadow-2xl">
+                <source src="${streamUrl}" type="video/mp4">
+                <source src="${streamUrl}" type="video/quicktime">
+                <source src="${streamUrl}" type="video/x-matroska">
+                <p class="text-white text-center mt-10">Your browser cannot play this video directly.</p>
+            </video>`;
         
         modal.classList.remove('hidden');
         modal.classList.add('flex');
@@ -704,58 +717,8 @@
     }
 
     // ========================================
-    // 🔥 RENDERER (Blob Error Proof)
+    // 🔥 5. UI & RENDERERS
     // ========================================
-    function renderVideos() {
-        const gridShorts = document.getElementById('gridShorts');
-        const gridLongs = document.getElementById('gridLongs');
-        if (!gridShorts || !gridLongs) return;
-        
-        gridShorts.innerHTML = '';
-        gridLongs.innerHTML = '';
-
-        if (rawClips.length === 0) {
-            gridLongs.innerHTML = '<div class="col-span-full text-center text-gray-500 py-10">No videos found. Upload one now!</div>';
-            return;
-        }
-
-        rawClips.forEach((vid, idx) => {
-            const div = document.createElement('div');
-            const aspectRatio = vid.type === 'shorts' ? 'aspect-[9/16]' : 'aspect-video';
-            
-            // 🛡️ SANITIZER: Agar purana Blob link database me hai, to use Placeholder se replace karo
-            let safeThumb = vid.thumb;
-            if (safeThumb && safeThumb.startsWith('blob:')) {
-                safeThumb = "https://placehold.co/320x180/1a1a1a/FFFFFF/png?text=VIDEO";
-            }
-
-            div.className = `group relative bg-[#1a1a1a] rounded-xl overflow-hidden border border-white/10 hover:border-orange-500/50 transition shadow-lg ${aspectRatio}`;
-            
-            div.innerHTML = `
-                <div onclick="openTheater('${vid.link}', '${vid.title}')" class="w-full h-full cursor-pointer relative group">
-                    <img src="${safeThumb}" class="w-full h-full object-cover opacity-80 group-hover:opacity-100 transition duration-500" onerror="this.src='https://placehold.co/320x180/000/FFF?text=PLAY'">
-                    
-                    <div class="absolute inset-0 flex items-center justify-center">
-                        <div class="w-12 h-12 bg-black/50 backdrop-blur-sm rounded-full flex items-center justify-center opacity-0 group-hover:opacity-100 transform scale-50 group-hover:scale-100 transition duration-300 border border-white/20">
-                            <svg class="w-5 h-5 text-white ml-1" fill="currentColor" viewBox="0 0 24 24"><path d="M8 5v14l11-7z"/></svg>
-                        </div>
-                    </div>
-                    
-                    <div class="absolute top-2 right-2 px-2 py-0.5 bg-black/60 backdrop-blur-md rounded text-[10px] text-white font-bold uppercase border border-white/10">
-                        ${vid.type === 'shorts' ? 'SHORT' : 'VIDEO'}
-                    </div>
-
-                    <div class="absolute bottom-0 inset-x-0 bg-gradient-to-t from-black via-black/80 to-transparent p-3 pt-6">
-                        <h4 class="text-white text-sm font-medium truncate">${vid.title}</h4>
-                        <button onclick="event.stopPropagation(); deleteClip(${idx})" class="text-gray-500 hover:text-red-500 text-xs mt-1">Delete</button>
-                    </div>
-                </div>`;
-            
-            if (vid.type === 'shorts') gridShorts.appendChild(div);
-            else gridLongs.appendChild(div);
-        });
-    }
-
     function switchType(type) {
         const shortGrid = document.getElementById('gridShorts');
         const longGrid = document.getElementById('gridLongs');
@@ -774,6 +737,51 @@
             if(btnShorts) btnShorts.className = "type-btn text-gray-400 hover:text-white font-bold pb-2 transition border-b-2 border-transparent";
         }
         renderVideos();
+    }
+
+    function renderVideos() {
+        const gridShorts = document.getElementById('gridShorts');
+        const gridLongs = document.getElementById('gridLongs');
+        if (!gridShorts || !gridLongs) return;
+        
+        gridShorts.innerHTML = '';
+        gridLongs.innerHTML = '';
+
+        if (rawClips.length === 0) {
+            gridLongs.innerHTML = '<div class="col-span-full text-center text-gray-500 py-10">No videos found. Upload one now!</div>';
+            return;
+        }
+
+        rawClips.forEach((vid, idx) => {
+            const div = document.createElement('div');
+            const aspectRatio = vid.type === 'shorts' ? 'aspect-[9/16]' : 'aspect-video';
+            
+            // Clean Thumb Logic
+            let displayThumb = vid.thumb;
+            if(!displayThumb || displayThumb.startsWith('blob:')) displayThumb = "https://placehold.co/320x180/1a1a1a/FFFFFF/png?text=VIDEO";
+
+            div.className = `group relative bg-[#1a1a1a] rounded-xl overflow-hidden border border-white/10 hover:border-orange-500/50 transition shadow-lg ${aspectRatio}`;
+            
+            div.innerHTML = `
+                <div onclick="openTheater('${vid.link}', '${vid.title}', '${vid.fileId}')" class="w-full h-full cursor-pointer relative group">
+                    <img src="${displayThumb}" class="w-full h-full object-cover opacity-80 group-hover:opacity-100 transition duration-500">
+                    <div class="absolute inset-0 flex items-center justify-center">
+                        <div class="w-12 h-12 bg-black/50 backdrop-blur-sm rounded-full flex items-center justify-center opacity-0 group-hover:opacity-100 transform scale-50 group-hover:scale-100 transition duration-300 border border-white/20">
+                            <svg class="w-5 h-5 text-white ml-1" fill="currentColor" viewBox="0 0 24 24"><path d="M8 5v14l11-7z"/></svg>
+                        </div>
+                    </div>
+                    <div class="absolute top-2 right-2 px-2 py-0.5 bg-black/60 backdrop-blur-md rounded text-[10px] text-white font-bold uppercase border border-white/10">
+                        ${vid.type === 'shorts' ? 'SHORT' : 'VIDEO'}
+                    </div>
+                    <div class="absolute bottom-0 inset-x-0 bg-gradient-to-t from-black via-black/80 to-transparent p-3 pt-6">
+                        <h4 class="text-white text-sm font-medium truncate">${vid.title}</h4>
+                        <button onclick="event.stopPropagation(); deleteClip(${idx})" class="text-gray-500 hover:text-red-500 text-xs mt-1">Delete</button>
+                    </div>
+                </div>`;
+            
+            if (vid.type === 'shorts') gridShorts.appendChild(div);
+            else gridLongs.appendChild(div);
+        });
     }
 
     function openUploadModal() {
