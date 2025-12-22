@@ -1334,7 +1334,68 @@ app.use((err, req, res, next) => {
   });
 });
 
+// ==========================================
+// 🚀 IMRAN SQUARE STREAMING ENGINE (The Netflix Core)
+// ==========================================
+app.get('/api/stream/:fileId', async (req, res) => {
+    try {
+        const fileId = req.params.fileId;
+        const range = req.headers.range;
 
+        // 1. File Metadata nikalo (Size pata karne ke liye)
+        const metadata = await drive.files.get({
+            fileId: fileId,
+            fields: 'size, mimeType, name'
+        });
+        
+        const fileSize = parseInt(metadata.data.size);
+        
+        // 2. Agar Browser ne "Range" maanga hai (Seeking/Skipping)
+        if (range) {
+            const parts = range.replace(/bytes=/, "").split("-");
+            const start = parseInt(parts[0], 10);
+            const end = parts[1] ? parseInt(parts[1], 10) : fileSize - 1;
+            const chunksize = (end - start) + 1;
+
+            // Headers set karo taaki Browser ko lage ye pro server hai
+            const head = {
+                'Content-Range': `bytes ${start}-${end}/${fileSize}`,
+                'Accept-Ranges': 'bytes',
+                'Content-Length': chunksize,
+                'Content-Type': metadata.data.mimeType || 'video/mp4',
+            };
+            res.writeHead(206, head); // 206 = Partial Content
+
+            // 3. Google se utna hi tukda mango (Bandwidth bachegi + Fast hoga)
+            const response = await drive.files.get(
+                { fileId: fileId, alt: 'media' },
+                { responseType: 'stream', headers: { 'Range': `bytes=${start}-${end}` } }
+            );
+            
+            // Pipe: Google -> Server -> Browser
+            response.data.pipe(res);
+
+        } else {
+            // Agar Range nahi hai, poori file stream karo (Download)
+            const head = {
+                'Content-Length': fileSize,
+                'Content-Type': metadata.data.mimeType || 'video/mp4',
+            };
+            res.writeHead(200, head);
+            
+            const response = await drive.files.get(
+                { fileId: fileId, alt: 'media' },
+                { responseType: 'stream' }
+            );
+            response.data.pipe(res);
+        }
+
+    } catch (error) {
+        console.error("Streaming Error:", error.message);
+        // Agar file private ho ya deleted ho
+        if (!res.headersSent) res.status(500).send("Error streaming video");
+    }
+});
 
 // ==========================================
 // 🚀 UNIVERSAL UPLOAD ROUTE (Admin Storage)
