@@ -482,49 +482,67 @@
    
 <script>
 
-// 📸 ROBUST THUMBNAIL GENERATOR
+// 📸 SMART THUMBNAIL GENERATOR (Vertical + Horizontal Fix)
     function generateVideoThumbnail(file) {
         return new Promise((resolve) => {
             const video = document.createElement('video');
-            video.preload = 'metadata'; // Metadata load karo
+            video.preload = 'metadata';
             video.src = URL.createObjectURL(file);
             video.muted = true;
             video.playsInline = true;
             
-            // Timeout: Agar 3 second mein thumb na bane, to null bhejo (Infinite wait nahi)
-            const timeout = setTimeout(() => {
-                console.warn("Thumbnail timeout");
-                resolve(null);
-            }, 5000);
+            // Timeout safe-guard (3 sec)
+            const timeout = setTimeout(() => resolve(null), 3000);
 
-            video.onloadeddata = () => {
-                video.currentTime = 0.5; // 1st frame se thoda aage
+            // 1. Metadata Load hone par Seek karo
+            video.onloadedmetadata = () => {
+                // Video ke start ka frame lo (0.5 sec safest hai)
+                // Agar video bohot choti hai (1 sec se kam), to uske beech ka frame lo
+                const seekTime = Math.min(0.5, video.duration / 2);
+                video.currentTime = seekTime;
             };
 
+            // 2. Seek hone par Photo kheecho
             video.onseeked = () => {
                 clearTimeout(timeout);
                 try {
+                    // --- SMART DIMENSIONS CALCULATION ---
+                    const valWidth = video.videoWidth;
+                    const valHeight = video.videoHeight;
+                    const maxDimension = 320; // Max size rakhna hai taaki DB heavy na ho
+
+                    let newWidth, newHeight;
+
+                    // Logic: Jo side badi hai, use 'maxDimension' bana do
+                    if (valWidth > valHeight) {
+                        // Horizontal Video
+                        newWidth = maxDimension;
+                        newHeight = (valHeight / valWidth) * maxDimension;
+                    } else {
+                        // Vertical Video (Shorts) - ✅ YE FIX HAI
+                        newHeight = maxDimension;
+                        newWidth = (valWidth / valHeight) * maxDimension;
+                    }
+
                     const canvas = document.createElement('canvas');
-                    // Size maintain karo par quality compress karo
-                    const scale = 320 / video.videoWidth;
-                    canvas.width = 320;
-                    canvas.height = video.videoHeight * scale;
+                    canvas.width = newWidth;
+                    canvas.height = newHeight;
 
                     const ctx = canvas.getContext('2d');
-                    ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
+                    ctx.drawImage(video, 0, 0, newWidth, newHeight);
                     
-                    // Compress to JPEG 60% quality (Database friendly)
+                    // Compress JPEG
                     const dataUrl = canvas.toDataURL('image/jpeg', 0.6);
                     resolve(dataUrl);
+
                 } catch (e) {
-                    console.error("Canvas Error:", e);
+                    console.error("Thumbnail Error:", e);
                     resolve(null);
                 }
             };
 
             video.onerror = () => {
                 clearTimeout(timeout);
-                console.error("Video Load Error");
                 resolve(null);
             };
         });
