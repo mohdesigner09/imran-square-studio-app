@@ -799,19 +799,19 @@ async function sendToStudio() {
 
     
 
-// 🎥 OPEN THEATER (Final Fix: Cleanup + Visibility + Speed)
+// 🎥 OPEN THEATER (Final High-Speed Fix)
     async function openTheater(link, title, fileId) {
         const modal = document.getElementById('theaterModal');
         if (!modal) return;
-        
-        // 1. CLEANUP: Agar koi purana player zinda hai, to usse maaro
+
+        // 1. Cleanup Old Player
         if (window.currentPlayer) {
-            console.log("🧹 Cleaning up old player...");
             window.currentPlayer.destroy();
             window.currentPlayer = null;
         }
+        document.getElementById('playerContainer').innerHTML = '';
 
-        // 2. CSS FORCE: Plyr ko zabardasti dikhao (Inject Styles)
+        // 2. Inject CSS for Visibility
         if (!document.getElementById('plyr-custom-css')) {
             const style = document.createElement('style');
             style.id = 'plyr-custom-css';
@@ -822,101 +822,63 @@ async function sendToStudio() {
             `;
             document.head.appendChild(style);
         }
-        
-        // 3. Dependency Check (Auto-Inject)
-        if (!document.querySelector('link[href*="plyr.css"]')) {
-            const css = document.createElement('link');
-            css.rel = 'stylesheet';
-            css.href = 'https://cdn.plyr.io/3.7.8/plyr.css';
-            document.head.appendChild(css);
-        }
-        
-        if (typeof Plyr === 'undefined') {
-            await new Promise((resolve) => {
-                const script = document.createElement('script');
-                script.src = 'https://cdn.plyr.io/3.7.8/plyr.js';
-                script.onload = resolve;
-                document.body.appendChild(script);
-            });
-        }
 
-        // 4. UI Reset
+        // 3. Setup UI & Loader
         document.getElementById('playerTitle').innerText = title || "Video";
         const playerContainer = document.getElementById('playerContainer');
-        
-        // Loader UI
         playerContainer.innerHTML = `
             <div class="text-white flex flex-col items-center justify-center h-full gap-3">
-                <svg class="animate-spin h-12 w-12 text-blue-500" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                <svg class="animate-spin h-10 w-10 text-green-500" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
                     <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
                     <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
                 </svg>
-                <p class="text-sm text-gray-400 font-mono tracking-wider">CONNECTING TO HIGH-SPEED SERVER...</p>
+                <p class="text-sm text-gray-400 font-mono">Fetching High-Speed Direct Link...</p>
             </div>`;
         
         modal.classList.remove('hidden');
         modal.classList.add('flex');
-        setTimeout(() => { modal.classList.remove('opacity-0'); modal.classList.add('opacity-100'); }, 10);
+        setTimeout(() => modal.classList.remove('opacity-0'), 10);
+
+        // 4. Extract ID
+        let finalId = fileId;
+        if (!finalId && link) {
+            if(link.includes('/d/')) finalId = link.split('/d/')[1].split('/')[0];
+            else if(link.includes('id=')) finalId = link.split('id=')[1].split('&')[0];
+        }
 
         try {
-            // ID Extraction Logic
-            let finalId = fileId;
-            if (!finalId && link) {
-                if(link.includes('/d/')) finalId = link.split('/d/')[1].split('/')[0];
-                else if(link.includes('id=')) finalId = link.split('id=')[1].split('&')[0];
+            // 5. Ask Server for the "Magic Link"
+            const res = await fetch(`/api/drive/get-stream-url/${finalId}`);
+            const data = await res.json();
+
+            if (!data.success || !data.streamUrl) {
+                throw new Error("Could not fetch direct stream URL.");
             }
 
-            // 5. Token Generation
-            const tokenRes = await fetch('/api/auth/get-playback-token');
-            const tokenData = await tokenRes.json();
-            if(!tokenData.success) throw new Error("Token Failed");
+            console.log("🚀 High Speed Link Acquired!");
 
-            // 6. Direct Link
-            const directStreamUrl = `https://www.googleapis.com/drive/v3/files/${finalId}?alt=media&access_token=${tokenData.token}`;
-            console.log("🚀 Playing:", directStreamUrl);
-
-            // 7. Inject HTML5 Video
+            // 6. Init Player with Magic Link
             playerContainer.innerHTML = `
                 <div class="w-full h-full bg-black relative">
                     <video id="cinemaPlayer" playsinline controls crossorigin class="plyr-video w-full h-full">
-                        <source src="${directStreamUrl}" type="video/mp4" />
+                        <source src="${data.streamUrl}" type="video/mp4" />
                     </video>
                 </div>
             `;
 
-            // 8. Initialize Plyr (Global Variable Store karo)
             window.currentPlayer = new Plyr('#cinemaPlayer', {
+                autoplay: true,
                 controls: ['play-large', 'play', 'progress', 'current-time', 'mute', 'volume', 'fullscreen', 'settings'],
-                settings: ['speed'],
-                autoplay: true, // Config se autoplay
-                keyboard: { focused: true, global: true },
-                ratio: '16:9' // Aspect ratio fallback
+                keyboard: { focused: true, global: true }
             });
 
-            // Safe Play Handler
             window.currentPlayer.on('ready', () => {
-                console.log("✅ Player Ready. Video Visible via CSS Force.");
-                // Error handling for play promise
-                const playPromise = window.currentPlayer.play();
-                if (playPromise !== undefined) {
-                    playPromise.catch(error => {
-                        console.warn("Autoplay prevented by browser (Click play to start).", error);
-                    });
-                }
+                window.currentPlayer.play().catch(e => console.warn("Autoplay blocked:", e));
             });
 
-            // Handle Errors
-            window.currentPlayer.on('error', (event) => {
-                console.error("Plyr Error:", event.detail);
-                // Fallback to Iframe if heavy file fails
-                if(confirm("High-Speed Player failed. Switch to Standard Player?")) {
-                    switchToIframe(finalId);
-                }
-            });
-            
         } catch (error) {
             console.error(error);
-            playerContainer.innerHTML = `<div class="text-red-500 text-center p-10"><h2 class="text-xl font-bold">Playback Error</h2><p>${error.message}</p></div>`;
+            playerContainer.innerHTML = `<div class="text-red-500 text-center p-4">Error: ${error.message}</div>`;
         }
     }
 
