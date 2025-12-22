@@ -800,46 +800,80 @@ async function sendToStudio() {
     
 
 // 🎥 OPEN THEATER (With Animation Fix)
+//
     function openTheater(link, title, fileId) {
         const modal = document.getElementById('theaterModal');
         if (!modal) return;
         
         document.getElementById('playerTitle').innerText = title || "Video";
         
-        // 1. File ID Extraction Logic
+        // 1. File ID Nikalo
         let finalId = fileId;
         if (!finalId && link) {
             if(link.includes('/d/')) finalId = link.split('/d/')[1].split('/')[0];
             else if(link.includes('id=')) finalId = link.split('id=')[1].split('&')[0];
         }
         
-        const embedUrl = `https://drive.google.com/file/d/${finalId}/preview`;
-        
-        // 2. Player UI with Repair Button
-        document.getElementById('playerContainer').innerHTML = `
-            <div class="w-full h-full flex flex-col bg-black relative group">
-                <iframe src="${embedUrl}" class="flex-1 w-full h-full border-0 z-10" allowfullscreen></iframe>
+        // 2. Do Links Banao:
+        // A. Direct Stream (Netflix Style - No Errors)
+        const directStreamUrl = `https://drive.google.com/uc?export=download&id=${finalId}`;
+        // B. Google Backup (Agar Direct fail ho jaye)
+        const backupEmbedUrl = `https://drive.google.com/file/d/${finalId}/preview`;
+
+        // 3. Player UI Generate Karo (Direct <video> tag use karenge)
+        const playerContainer = document.getElementById('playerContainer');
+        playerContainer.innerHTML = `
+            <div class="w-full h-full flex flex-col bg-black relative group justify-center items-center">
                 
+                <video id="mainVideoPlayer" controls autoplay playsinline class="w-full h-full max-h-[85vh] object-contain z-20 shadow-2xl">
+                    <source src="${directStreamUrl}" type="video/mp4">
+                    Your browser does not support the video tag.
+                </video>
+
                 <div class="absolute top-4 right-4 z-50 flex gap-2">
-                     <button onclick="fixPlayback('${finalId}')" class="bg-red-600 hover:bg-red-700 text-white text-xs font-bold px-3 py-1.5 rounded shadow-lg border border-red-400 flex items-center gap-2">
-                        <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z"></path><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"></path></svg>
-                        Fix Playback
+                     <button onclick="switchToIframe('${finalId}')" class="bg-gray-800 hover:bg-gray-700 text-white text-xs font-bold px-3 py-1.5 rounded border border-white/20 flex items-center gap-2">
+                        <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"></path></svg>
+                        Switch Player
                     </button>
-                    <a href="${link}" target="_blank" class="bg-white/10 hover:bg-white/20 text-white text-xs font-bold px-3 py-1.5 rounded border border-white/20">
-                        Open in Drive
-                    </a>
+                    <button onclick="fixPlayback('${finalId}')" class="bg-red-600 hover:bg-red-700 text-white text-xs font-bold px-3 py-1.5 rounded shadow-lg border border-red-400 flex items-center gap-2">
+                        <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z"></path><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"></path></svg>
+                        Fix Permissions
+                    </button>
                 </div>
             </div>`;
+
+        // Video Error Handler (Agar file 100MB+ ho aur Direct Link fail ho jaye)
+        const videoEl = document.getElementById('mainVideoPlayer');
+        videoEl.onerror = () => {
+            console.warn("Direct Stream Failed (Likely large file). Switching to Iframe...");
+            switchToIframe(finalId);
+        };
         
-        // 3. ✨ VISIBILITY MAGIC (Ye missing tha!)
+        // Modal Show Animation
         modal.classList.remove('hidden');
         modal.classList.add('flex');
-        
-        // Thoda delay taaki animation smooth ho
         setTimeout(() => {
             modal.classList.remove('opacity-0');
             modal.classList.add('opacity-100');
         }, 10);
+    }
+
+    // 🔄 FALLBACK: Switch to Old Google Player
+    function switchToIframe(finalId) {
+        const container = document.getElementById('playerContainer');
+        const embedUrl = `https://drive.google.com/file/d/${finalId}/preview`;
+        
+        container.innerHTML = `
+             <div class="w-full h-full flex flex-col bg-black relative group">
+                <iframe src="${embedUrl}" class="flex-1 w-full h-full border-0 z-10" allow="autoplay; encrypted-media" allowfullscreen></iframe>
+                
+                <div class="absolute top-4 right-4 z-50 flex gap-2">
+                     <button onclick="fixPlayback('${finalId}')" class="bg-red-600 hover:bg-red-700 text-white text-xs font-bold px-3 py-1.5 rounded shadow-lg border border-red-400 flex items-center gap-2">
+                        Fix Playback
+                    </button>
+                </div>
+            </div>
+        `;
     }
 
     // 🎥 CLOSE THEATER
