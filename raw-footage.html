@@ -897,8 +897,7 @@ async function sendToStudio() {
 
     
 
-// 🎥 OPEN THEATER (Fastest Engine + Auto-Size UI)
-// 🎥 OPEN THEATER (Smart Hybrid: Direct + Proxy Fallback)
+// 🎥 OPEN THEATER (Final Optimized Version - MP4/MOV)
     async function openTheater(link, title, fileId) {
         const modal = document.getElementById('theaterModal');
         if (!modal) return;
@@ -918,25 +917,27 @@ async function sendToStudio() {
         }
         document.getElementById('playerContainer').innerHTML = '';
 
-        // 3. CSS for Full Size (No Square Box)
+        // 3. Inject CSS (Full Size Video Fix)
         if (!document.getElementById('plyr-custom-css')) {
             const style = document.createElement('style');
             style.id = 'plyr-custom-css';
             style.innerHTML = `
-                #playerContainer { background: black; display: flex; align-items: center; justify-content: center; }
+                #playerContainer { background: black; display: flex; align-items: center; justify-content: center; position: relative; }
                 .plyr { width: 100%; height: 100%; }
                 video { object-fit: contain; max-height: 90vh; width: 100%; }
+                iframe.universal-player { width: 100%; height: 90vh; border: none; }
             `;
             document.head.appendChild(style);
         }
 
-        // 4. Loader
+        // 4. Loading UI
         document.getElementById('playerTitle').innerText = title || "Video";
         const playerContainer = document.getElementById('playerContainer');
+        
         playerContainer.innerHTML = `
             <div class="flex flex-col items-center gap-3">
-                <svg class="animate-spin h-10 w-10 text-white" fill="none" viewBox="0 0 24 24"><circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle><path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path></svg>
-                <span class="text-gray-400 text-xs tracking-widest">ANALYZING VIDEO SOURCE...</span>
+                <svg class="animate-spin h-10 w-10 text-blue-500" fill="none" viewBox="0 0 24 24"><circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle><path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path></svg>
+                <span class="text-gray-400 text-xs tracking-widest">OPENING STUDIO PLAYER...</span>
             </div>`;
         
         modal.classList.remove('hidden');
@@ -944,49 +945,61 @@ async function sendToStudio() {
         setTimeout(() => modal.classList.remove('opacity-0'), 10);
 
         try {
-            // 5. Ask Server for BEST Source
+            // 5. Get Smart Source
             const res = await fetch(`/api/drive/get-video-source/${finalId}`);
             const data = await res.json();
             
             if(!data.success) throw new Error("Source Failed");
 
-            console.log(`🎬 Mode: ${data.mode.toUpperCase()}`);
-
-            // 6. Inject Player
+            // 6. Inject Player (Clean & Fast)
             playerContainer.innerHTML = `
-                <video id="cinemaPlayer" playsinline controls crossorigin>
-                    <source src="${data.url}" type="video/mp4" />
-                </video>
+                <div class="w-full h-full relative group">
+                    <video id="cinemaPlayer" playsinline controls crossorigin>
+                        <source src="${data.url}" type="video/mp4" />
+                    </video>
+
+                    <button onclick="switchToUniversalPlayer('${finalId}')" class="absolute top-4 right-4 z-[50] bg-white/10 hover:bg-blue-600 text-white text-[10px] font-bold px-3 py-1.5 rounded backdrop-blur-md border border-white/20 transition opacity-0 group-hover:opacity-100 duration-300">
+                        Fix Playback
+                    </button>
+                </div>
             `;
 
             // 7. Init Plyr
             window.currentPlayer = new Plyr('#cinemaPlayer', {
                 autoplay: true,
                 controls: ['play-large', 'play', 'progress', 'current-time', 'mute', 'volume', 'fullscreen', 'settings'],
-                ratio: null, // Auto Aspect Ratio
+                ratio: null, // Full Size Magic
                 keyboard: { focused: true, global: true }
             });
 
-            // Autoplay Handler (Browser Block Fix)
             window.currentPlayer.on('ready', () => {
-                const playPromise = window.currentPlayer.play();
-                if (playPromise) {
-                    playPromise.catch(() => {
-                        console.warn("Autoplay blocked. User interaction needed.");
-                        // Show a big play button overlay if needed, but Plyr handles this well usually
-                    });
-                }
+                window.currentPlayer.play().catch(() => {});
             });
 
-            window.currentPlayer.on('error', (e) => {
-                console.error("Playback Error:", e);
-                alert("Playback failed. Try refreshing.");
+            // Auto-fallback
+            window.currentPlayer.on('error', () => {
+                if(confirm("Video load error. Switch to Universal Player?")) {
+                    switchToUniversalPlayer(finalId);
+                }
             });
 
         } catch (error) {
             console.error(error);
             playerContainer.innerHTML = `<div class="text-red-500 p-4">Error: ${error.message}</div>`;
         }
+    }
+
+    // 🔄 UNIVERSAL PLAYER (Isse bhi zaroor add/replace kar lena)
+    function switchToUniversalPlayer(fileId) {
+        if (window.currentPlayer) window.currentPlayer.destroy();
+        
+        const container = document.getElementById('playerContainer');
+        container.innerHTML = `
+            <div class="w-full h-full flex flex-col items-center justify-center bg-black relative">
+                <iframe src="https://drive.google.com/file/d/${fileId}/preview" class="universal-player" allow="autoplay; encrypted-media" allowfullscreen></iframe>
+                <button onclick="document.getElementById('theaterModal').classList.add('hidden')" class="absolute top-4 right-4 bg-red-600 hover:bg-red-700 text-white px-3 py-1 rounded text-xs z-50">Close Player</button>
+            </div>
+        `;
     }
 
     // Close par destroy zaroor karein
