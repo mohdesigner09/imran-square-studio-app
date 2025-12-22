@@ -280,9 +280,9 @@
                 <input type="text" id="videoSearchInput" class="search-input" placeholder="Search clips...">
             </div>
             
-            <button id="editModeToggle" class="p-2 rounded-full hover:bg-white/10 text-gray-400 hover:text-white transition">
-                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z"></path></svg>
-            </button>
+           <button id="topEditBtn" onclick="toggleEditMode()" class="p-2 rounded-full hover:bg-white/10 text-gray-400 hover:text-white transition" title="Edit Mode">
+    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z"></path></svg>
+</button>
         </div>
     </header>
 
@@ -491,6 +491,23 @@
 
    
 <script>
+
+    // 🌍 GLOBAL STATE
+    let isEditMode = false; // By default OFF rahega
+
+    // 🔄 TOGGLE EDIT MODE (Top-Right Icon par lagana hai)
+    function toggleEditMode() {
+        isEditMode = !isEditMode; // Switch ON/OFF
+        
+        // UI Feedback (Button Active/Inactive dikhane ke liye)
+        const editBtn = document.getElementById('topEditBtn'); 
+        if(editBtn) {
+            if(isEditMode) editBtn.classList.add('text-blue-500', 'bg-white/10');
+            else editBtn.classList.remove('text-blue-500', 'bg-white/10');
+        }
+
+        renderVideos(); // Grid refresh karo taaki inputs dikh sakein
+    }
     // ==========================================
     // 🎨 TITAN UI ENGINE (v15.0 - Final Fix)
     // ==========================================
@@ -598,36 +615,57 @@
             // Decide aspect ratio
             const isShort = vid.type === 'shorts';
             const aspectRatio = isShort ? 'aspect-[9/16]' : 'aspect-video';
-            const displayThumb = vid.thumb || "https://placehold.co/320x180/1a1a1a/FFFFFF/png?text=VIDEO";
+            const displayThumb = vid.thumb || "https://placehold.co/320x180/1a1a1a/FFFFFF/png?text=VIDEO"; 
 
-            div.className = `group relative bg-[#1a1a1a] rounded-xl overflow-hidden border border-white/10 hover:border-orange-500/50 transition shadow-lg ${aspectRatio}`;
+            // 🔥 EDIT MODE LOGIC
+            let titleHTML = '';
+            let deleteBtnHTML = '';
+            let borderClass = '';
+
+            if (isEditMode) {
+                // EDIT MODE ON: Show Input Field & Red Border
+                borderClass = 'border-blue-500/50 shadow-[0_0_15px_rgba(59,130,246,0.3)]';
+                titleHTML = `
+                    <input type="text" 
+                           value="${vid.title}" 
+                           onblur="saveInlineRename('${vid.fileId}', this.value)" 
+                           onkeypress="handleEnter(event, '${vid.fileId}', this.value)"
+                           onclick="event.stopPropagation()"
+                           class="w-full bg-black/50 border border-blue-400 text-white text-sm px-2 py-1 rounded focus:outline-none focus:bg-black transition"
+                    >`;
+                
+                // Show Delete Button (Only in Edit Mode)
+                deleteBtnHTML = `
+                    <button onclick="event.stopPropagation(); deleteVideoPermanently('${vid.fileId}')" class="text-red-500 hover:text-white hover:bg-red-600 p-1.5 rounded transition shadow-lg border border-red-500/30 ml-2" title="Delete Forever">
+                        <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"></path></svg>
+                    </button>`;
+            } else {
+                // NORMAL MODE: Show Simple Text
+                borderClass = 'border-white/10 hover:border-orange-500/50';
+                titleHTML = `<h4 class="text-white text-sm font-medium truncate">${vid.title}</h4>`;
+                deleteBtnHTML = ''; // Hide delete button normally
+            }
+
+            // MAIN CARD HTML
+            div.className = `group relative bg-[#1a1a1a] rounded-xl overflow-hidden border transition shadow-lg ${aspectRatio} ${borderClass}`;
             
-         div.innerHTML = `
-                <div onclick="openTheater('${vid.link}', '${vid.title}', '${vid.fileId}')" class="w-full h-full cursor-pointer relative group">
+            div.innerHTML = `
+                <div onclick="${isEditMode ? '' : `openTheater('${vid.link}', '${vid.title}', '${vid.fileId}')`}" class="w-full h-full cursor-pointer relative group">
                     <img src="${displayThumb}" class="w-full h-full object-cover opacity-80 group-hover:opacity-100 transition duration-500">
-                    
-                    <div class="absolute inset-0 flex items-center justify-center">
-                        <div class="w-12 h-12 bg-black/50 backdrop-blur-sm rounded-full flex items-center justify-center opacity-0 group-hover:opacity-100 transform scale-50 group-hover:scale-100 transition duration-300 border border-white/20">
-                            <svg class="w-5 h-5 text-white ml-1" fill="currentColor" viewBox="0 0 24 24"><path d="M8 5v14l11-7z"/></svg>
-                        </div>
-                    </div>
                     
                     <div class="absolute top-2 right-2 px-2 py-0.5 bg-black/60 backdrop-blur-md rounded text-[10px] text-white font-bold uppercase border border-white/10">
                         ${vid.type === 'shorts' ? 'SHORT' : 'VIDEO'}
                     </div>
 
-                    <div class="absolute bottom-0 inset-x-0 bg-gradient-to-t from-black via-black/80 to-transparent p-3 pt-6">
-                        <h4 class="text-white text-sm font-medium truncate">${vid.title}</h4>
-                        <div class="flex justify-between items-center mt-1">
-                            <span class="text-[10px] text-gray-400">Synced</span>
-                            
-                            <button onclick="event.stopPropagation(); openEditMenu('${vid.fileId}', '${vid.title}')" class="text-gray-400 hover:text-blue-400 p-1 rounded hover:bg-white/10 transition" title="Edit Video">
-                                <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z" />
-                                </svg>
-                            </button>
-
+                    <div class="absolute bottom-0 inset-x-0 bg-gradient-to-t from-black via-black/90 to-transparent p-3 pt-8">
+                        <div class="flex items-center justify-between gap-2">
+                            <div class="flex-1 min-w-0">
+                                ${titleHTML}
+                            </div>
+                            ${deleteBtnHTML}
                         </div>
+                        
+                        ${!isEditMode ? '<div class="text-[10px] text-gray-400 mt-1">Synced</div>' : ''}
                     </div>
                 </div>`;
             
@@ -1064,108 +1102,80 @@ async function sendToStudio() {
         }
     }
 
-    // 🌍 GLOBAL VARIABLES FOR EDIT
-    let currentEditingVideo = null;
 
-    // 1. OPEN EDIT MODAL
-    // Is function ko apne "Edit Icon" ke onclick par lagana hai
-    function openEditMenu(fileId, currentTitle) {
-        const modal = document.getElementById('editControlModal');
-        const input = document.getElementById('editVideoTitle');
-        const idField = document.getElementById('editVideoId');
+// 💾 INLINE RENAME (Jab user bahar click kare ya Enter dabaye)
+    async function saveInlineRename(fileId, newName) {
+        // Validation: Empty name mat lo
+        if (!newName || newName.trim() === "") return;
 
-        // Data Set karo
-        currentEditingVideo = currentRawClips.find(v => v.fileId === fileId);
-        input.value = currentTitle || "Untitled Video";
-        idField.value = fileId;
+        const video = currentRawClips.find(v => v.fileId === fileId);
+        if(video && video.title === newName) return; // Agar change nahi hua to kuch mat karo
 
-        // Modal Dikhao
-        modal.classList.remove('hidden');
-    }
-
-    function closeEditModal() {
-        document.getElementById('editControlModal').classList.add('hidden');
-    }
-
-    // 2. SAVE RENAME (Permanent)
-    async function saveVideoRename() {
-        const fileId = document.getElementById('editVideoId').value;
-        const newName = document.getElementById('editVideoTitle').value;
-        const btn = document.getElementById('btnSaveRename');
-
-        if(!newName) return alert("Title cannot be empty!");
-
-        btn.innerHTML = `<svg class="animate-spin h-5 w-5 text-white" fill="none" viewBox="0 0 24 24"><circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle><path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path></svg> Saving...`;
+        console.log("Renaming to:", newName);
 
         try {
-            // A. Update in Google Drive
+            // 1. Server Call
             await fetch('/api/drive/rename-file', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({ fileId, newName })
             });
 
-            // B. Update in Database (Firestore)
-            // Array se purana object hatao aur naya daalo (ya update karo)
-            const updatedClips = currentRawClips.map(clip => {
-                if (clip.fileId === fileId) {
-                    return { ...clip, title: newName }; // Update Title
-                }
-                return clip;
-            });
-
-            // Save to DB
+            // 2. Local Update
+            currentRawClips = currentRawClips.map(v => v.fileId === fileId ? {...v, title: newName} : v);
+            
+            // 3. Database Update
             await window.db.collection('projects').doc(PROJECT_ID).update({
-                footageLib: updatedClips
+                footageLib: currentRawClips
             });
 
-            // C. Refresh UI
-            currentRawClips = updatedClips; // Local update
-            renderVideos();
-            closeEditModal();
-            btn.innerHTML = "Save Changes";
-            alert("Title Updated Successfully!");
-
+            console.log("✅ Renamed Successfully");
+            
         } catch (error) {
-            console.error(error);
-            alert("Update Failed: " + error.message);
-            btn.innerHTML = "Save Changes";
+            console.error("Rename Error:", error);
+            alert("Rename failed! Check console.");
         }
     }
 
-    // 3. DELETE VIDEO (Permanent)
-    async function deleteVideoPermanently() {
-        const fileId = document.getElementById('editVideoId').value;
-        
-        if(!confirm("⚠️ WARNING: Are you sure?\n\nThis will permanently delete this video from Google Drive and this App. This cannot be undone.")) return;
+    // Helper for Enter Key
+    function handleEnter(e, id, val) {
+        if(e.key === 'Enter') {
+            e.target.blur(); // Focus hatao taaki save trigger ho
+        }
+    }
+
+    // 🗑️ DELETE FUNCTION (Fixed & Robust)
+    async function deleteVideoPermanently(fileId) {
+        if(!confirm("⚠️ Delete this video permanently from Drive & App?")) return;
 
         try {
-            // A. Delete from Google Drive
-            await fetch('/api/drive/delete-file', {
+            // 1. Server Call (Drive se udaao)
+            const res = await fetch('/api/drive/delete-file', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({ fileId })
             });
+            
+            const data = await res.json();
+            if(!data.success) throw new Error(data.error || "Drive delete failed");
 
-            // B. Delete from Database (Firestore)
-            const updatedClips = currentRawClips.filter(clip => clip.fileId !== fileId);
-
+            // 2. Local & Database Update
+            const updatedClips = currentRawClips.filter(c => c.fileId !== fileId);
+            
             await window.db.collection('projects').doc(PROJECT_ID).update({
                 footageLib: updatedClips
             });
 
-            // C. Refresh UI
+            // 3. Refresh UI
             currentRawClips = updatedClips;
             renderVideos();
-            closeEditModal();
-            alert("Video Deleted Permanently.");
+            alert("Deleted Successfully!");
 
         } catch (error) {
-            console.error(error);
-            alert("Delete Failed: " + error.message);
+            console.error("Delete Error:", error);
+            alert("Delete Error: " + error.message);
         }
     }
-
 </script>
 <script src="https://cdn.plyr.io/3.7.8/plyr.js"></script>
 </body>
