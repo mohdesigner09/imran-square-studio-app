@@ -25,7 +25,7 @@ const __dirname = path.dirname(__filename);
 const app = express();
 app.use(express.json());
 const router = express.Router();
-
+const axios = require('axios');
 
 const ADMIN_EMAIL = 'mohdesigner09@gmail.com';
 
@@ -1553,22 +1553,36 @@ app.post('/api/drive/repair-permissions', async (req, res) => {
 // ==========================================
 
 // 1. RENAME FILE ROUTE
+// ==========================================
+// 🛠️ EDIT CONTROL CENTER (Fixed Routes)
+// ==========================================
+
+// 1. RENAME FILE ROUTE
 app.post('/api/drive/rename-file', async (req, res) => {
     try {
         const { fileId, newName } = req.body;
+        console.log(`📝 Renaming File ${fileId} to "${newName}"`);
+        
         const tokenResponse = await oauth2Client.getAccessToken();
 
-        // Google Drive par naam badlo
-        await axios.patch(
+        // Google Drive Call
+        const response = await axios.patch(
             `https://www.googleapis.com/drive/v3/files/${fileId}`,
             { name: newName },
-            { headers: { 'Authorization': `Bearer ${tokenResponse.token}`, 'Content-Type': 'application/json' } }
+            { 
+                headers: { 
+                    'Authorization': `Bearer ${tokenResponse.token}`, 
+                    'Content-Type': 'application/json' 
+                } 
+            }
         );
 
+        console.log("✅ Rename Success on Drive");
         res.json({ success: true, message: "File renamed successfully!" });
     } catch (error) {
-        console.error("Rename Error:", error.message);
-        res.status(500).json({ success: false, error: "Rename failed" });
+        // Detailed Error Logging
+        console.error("❌ Rename Failed:", error.response ? error.response.data : error.message);
+        res.status(500).json({ success: false, error: "Rename failed on Server" });
     }
 });
 
@@ -1576,18 +1590,21 @@ app.post('/api/drive/rename-file', async (req, res) => {
 app.post('/api/drive/delete-file', async (req, res) => {
     try {
         const { fileId } = req.body;
+        console.log(`🗑️ Deleting File ${fileId}`);
+
         const tokenResponse = await oauth2Client.getAccessToken();
 
-        // Google Drive se delete karo
+        // Google Drive Call
         await axios.delete(
             `https://www.googleapis.com/drive/v3/files/${fileId}`,
             { headers: { 'Authorization': `Bearer ${tokenResponse.token}` } }
         );
 
+        console.log("✅ Delete Success on Drive");
         res.json({ success: true, message: "File deleted successfully!" });
     } catch (error) {
-        console.error("Delete Error:", error.message);
-        res.status(500).json({ success: false, error: "Delete failed" });
+        console.error("❌ Delete Failed:", error.response ? error.response.data : error.message);
+        res.status(500).json({ success: false, error: "Delete failed on Server" });
     }
 });
 
