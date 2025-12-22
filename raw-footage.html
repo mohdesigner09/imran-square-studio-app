@@ -802,59 +802,105 @@ async function sendToStudio() {
 // 🎥 OPEN THEATER (With Animation Fix)
 //
 // 🎥 OPEN THEATER (The "Direct-Drive" Engine)
+// 🎥 OPEN THEATER (Auto-Injects Dependencies + High Speed Stream)
     async function openTheater(link, title, fileId) {
         const modal = document.getElementById('theaterModal');
         if (!modal) return;
         
-        document.getElementById('playerTitle').innerText = title || "Video";
+        // 1. Check & Inject Plyr CSS/JS (Agar aapne Head me nahi lagaya)
+        if (!document.querySelector('link[href*="plyr.css"]')) {
+            console.log("⚠️ Plyr CSS missing. Injecting automatically...");
+            const css = document.createElement('link');
+            css.rel = 'stylesheet';
+            css.href = 'https://cdn.plyr.io/3.7.8/plyr.css';
+            document.head.appendChild(css);
+        }
         
-        // 1. File ID Extraction
-        let finalId = fileId;
-        if (!finalId && link) {
-            if(link.includes('/d/')) finalId = link.split('/d/')[1].split('/')[0];
-            else if(link.includes('id=')) finalId = link.split('id=')[1].split('&')[0];
+        if (typeof Plyr === 'undefined') {
+            console.log("⚠️ Plyr JS missing. Injecting automatically...");
+            await new Promise((resolve) => {
+                const script = document.createElement('script');
+                script.src = 'https://cdn.plyr.io/3.7.8/plyr.js';
+                script.onload = resolve;
+                document.body.appendChild(script);
+            });
         }
 
-        // Loading State dikhao
+        // 2. UI Setup
+        document.getElementById('playerTitle').innerText = title || "Video";
         const playerContainer = document.getElementById('playerContainer');
-        playerContainer.innerHTML = `<div class="text-white flex flex-col items-center justify-center h-full"><svg class="animate-spin h-8 w-8 text-orange-500 mb-4" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24"><circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle><path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path></svg><p class="text-xs text-gray-400">Fetching High-Speed Link...</p></div>`;
+        
+        // Loading Spinner
+        playerContainer.innerHTML = `
+            <div class="text-white flex flex-col items-center justify-center h-full gap-3">
+                <svg class="animate-spin h-10 w-10 text-orange-500" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                    <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+                    <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                </svg>
+                <p class="text-sm text-gray-400 font-mono">Connecting to High-Speed Server...</p>
+            </div>`;
         
         modal.classList.remove('hidden');
         modal.classList.add('flex');
         setTimeout(() => { modal.classList.remove('opacity-0'); modal.classList.add('opacity-100'); }, 10);
 
         try {
-            // 2. Server se V.I.P Token mango
+            // 3. ID Extraction
+            let finalId = fileId;
+            if (!finalId && link) {
+                if(link.includes('/d/')) finalId = link.split('/d/')[1].split('/')[0];
+                else if(link.includes('id=')) finalId = link.split('id=')[1].split('&')[0];
+            }
+            console.log("🎬 Playing File ID:", finalId);
+
+            // 4. Server se V.I.P Token mango
             const tokenRes = await fetch('/api/auth/get-playback-token');
             const tokenData = await tokenRes.json();
             
-            if(!tokenData.success) throw new Error("Could not get playback token");
+            if(!tokenData.success) throw new Error("Token generation failed");
 
-            // 3. 🔥 DIRECT GOOGLE API LINK (No Proxy, Raw Speed)
-            // alt=media: Raw Video File
-            // access_token: Security Pass (Virus Scan Bypass)
+            // 5. 🔥 DIRECT LINK GENERATION
             const directStreamUrl = `https://www.googleapis.com/drive/v3/files/${finalId}?alt=media&access_token=${tokenData.token}`;
+            console.log("🚀 Stream Link Generated:", directStreamUrl);
 
-            // 4. Player UI Setup
+            // 6. Player Inject
             playerContainer.innerHTML = `
-                <div class="w-full h-full flex flex-col bg-black justify-center items-center rounded-lg overflow-hidden shadow-2xl relative">
-                    <video id="cinemaPlayer" playsinline controls autoplay class="plyr-video w-full h-full object-contain">
+                <div class="w-full h-full bg-black rounded-lg overflow-hidden shadow-2xl relative">
+                    <video id="cinemaPlayer" playsinline controls class="plyr-video w-full h-full object-contain">
                         <source src="${directStreamUrl}" type="video/mp4" />
                     </video>
                 </div>
             `;
 
-            // ✨ Initialize Plyr (Netflix Look)
+            // 7. Initialize Plyr
             const player = new Plyr('#cinemaPlayer', {
                 controls: ['play-large', 'play', 'progress', 'current-time', 'mute', 'volume', 'fullscreen', 'settings'],
                 settings: ['speed'],
-                keyboard: { focused: true, global: true },
-                autoplay: true
+                autoplay: true,
+                keyboard: { focused: true, global: true }
+            });
+
+            // Auto Play Force
+            player.on('ready', () => {
+                console.log("✅ Player Ready. Starting playback...");
+                player.play();
+            });
+
+            // Error Logging
+            player.on('error', (event) => {
+                console.error("❌ Plyr Error:", event.detail);
+                alert("Video Playback Error. Check Console.");
             });
             
         } catch (error) {
             console.error(error);
-            playerContainer.innerHTML = `<div class="text-red-500 text-center"><p class="text-xl font-bold mb-2">Playback Error</p><p class="text-sm">${error.message}</p></div>`;
+            playerContainer.innerHTML = `
+                <div class="text-red-500 text-center p-4">
+                    <p class="text-2xl mb-2">⚠️</p>
+                    <p class="text-lg font-bold">Playback Error</p>
+                    <p class="text-xs font-mono mt-2 bg-gray-900 p-2 rounded text-red-300">${error.message}</p>
+                    <button onclick="closeTheater()" class="mt-4 px-4 py-2 bg-white/10 hover:bg-white/20 rounded text-sm text-white">Close</button>
+                </div>`;
         }
     }
 
