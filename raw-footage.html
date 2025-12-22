@@ -995,9 +995,11 @@
                 footageLib: firebase.firestore.FieldValue.arrayUnion(newVid)
             }, { merge: true });
 
-            currentRawClips.push(newVid);
+            // ✅ CHANGE: 'push' hata kar 'unshift' lagaya (Add to Top)
+          
+            currentRawClips.unshift(newVid); // <--- NAYA (Video Top pe aayegi)
             
-            // Grid Refresh
+            // Auto Switch & Render
             if (vType === 'shorts' && currentTab !== 'shorts') {
                 switchType('shorts');
             } else if (vType === 'long' && currentTab !== 'long') {
@@ -1056,7 +1058,12 @@
                 const data = doc.data();
                 if (data.footageLib && Array.isArray(data.footageLib)) {
                     // Global variable update karo
-                    currentRawClips = data.footageLib;
+                    // ✅ SORTING LOGIC: Newest Date First
+                // Agar date nahi hai (purani video), to wo neeche jayegi
+                let rawData = data.footageLib || [];
+                currentRawClips = rawData.sort((a, b) => {
+                    return new Date(b.uploadDate || 0) - new Date(a.uploadDate || 0);
+                });
                     
                     // Grid Refresh karo
                     console.log(`✅ Loaded ${currentRawClips.length} videos.`);
