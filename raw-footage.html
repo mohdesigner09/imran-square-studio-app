@@ -836,71 +836,118 @@ async function sendToStudio() {
 
     
 
-// 🎥 OPEN THEATER (Auto-Ratio + Fast Stream)
+// 🎥 OPEN THEATER (Fastest Engine + Auto-Size UI)
     async function openTheater(link, title, fileId) {
         const modal = document.getElementById('theaterModal');
         if (!modal) return;
 
-        if (window.currentPlayer) {
-            window.currentPlayer.destroy();
-            window.currentPlayer = null;
-        }
-        document.getElementById('playerContainer').innerHTML = '';
-
-        // ✨ CSS FIX: Flexible Height & Width (No Fixed Square)
-        if (!document.getElementById('plyr-custom-css')) {
-            const style = document.createElement('style');
-            style.id = 'plyr-custom-css';
-            style.innerHTML = `
-                .plyr { height: 100% !important; width: 100% !important; background: transparent; }
-                .plyr__video-wrapper { height: 100% !important; width: 100% !important; display: flex; align-items: center; justify-content: center; background: #000; }
-                video { max-height: 90vh !important; max-width: 100% !important; width: auto !important; height: auto !important; object-fit: contain !important; }
-            `;
-            document.head.appendChild(style);
-        }
-
-        document.getElementById('playerTitle').innerText = title || "Video";
-        const playerContainer = document.getElementById('playerContainer');
-        playerContainer.innerHTML = `<div class="text-white flex flex-col items-center justify-center h-full"><p class="animate-pulse">Loading Stream...</p></div>`;
-        
-        modal.classList.remove('hidden');
-        modal.classList.add('flex');
-        setTimeout(() => modal.classList.remove('opacity-0'), 10);
-
+        // 1. ID Extraction & Validation (Fix 'undefined' error)
         let finalId = fileId;
         if (!finalId && link) {
             if(link.includes('/d/')) finalId = link.split('/d/')[1].split('/')[0];
             else if(link.includes('id=')) finalId = link.split('id=')[1].split('&')[0];
         }
 
-        try {
-            const res = await fetch(`/api/drive/get-stream-url/${finalId}`);
-            const data = await res.json();
-            let videoSrc = (data.success && data.mode === 'direct') ? data.streamUrl : `/api/stream/${finalId}`;
+        if (!finalId || finalId === 'undefined') {
+            alert("Error: Invalid Video ID. Please re-upload.");
+            return;
+        }
 
+        // 2. CLEANUP: Purana player hatao
+        if (window.currentPlayer) {
+            window.currentPlayer.destroy();
+            window.currentPlayer = null;
+        }
+        document.getElementById('playerContainer').innerHTML = '';
+
+        // 3. UI: CSS Injection (SQUARE BOX REMOVER)
+        // Ye CSS player ko bolti hai: "Video ke hisab se size adjust kar, dabba mat bana"
+        if (!document.getElementById('plyr-custom-css')) {
+            const style = document.createElement('style');
+            style.id = 'plyr-custom-css';
+            style.innerHTML = `
+                /* Container full screen le */
+                #playerContainer { display: flex; align-items: center; justify-content: center; background: black; }
+                
+                /* Plyr wrapper ko loose chodo */
+                .plyr { width: auto !important; height: auto !important; max-width: 100%; max-height: 100%; }
+                
+                /* Video ko aspect ratio maintain karne do */
+                .plyr__video-wrapper { width: auto !important; height: auto !important; }
+                
+                /* Asli video tag ko control karo */
+                video { 
+                    max-width: 100vw !important; 
+                    max-height: 90vh !important; 
+                    object-fit: contain !important; /* Shorts lamba dikhega, Movie chaudi */
+                    width: auto !important;
+                    height: auto !important;
+                }
+            `;
+            document.head.appendChild(style);
+        }
+
+        // 4. Loading UI
+        document.getElementById('playerTitle').innerText = title || "Video";
+        const playerContainer = document.getElementById('playerContainer');
+        playerContainer.innerHTML = `
+            <div class="flex flex-col items-center gap-2">
+                <svg class="animate-spin h-8 w-8 text-blue-500" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                    <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+                    <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                </svg>
+                <span class="text-gray-400 text-xs tracking-widest">CONNECTING TO HIGH-SPEED VAULT...</span>
+            </div>`;
+        
+        modal.classList.remove('hidden');
+        modal.classList.add('flex');
+        setTimeout(() => modal.classList.remove('opacity-0'), 10);
+
+        try {
+            // 5. TOKEN FETCH (Server se bas "Pass" mango)
+            // Ye process 0.2s leta hai.
+            const tokenRes = await fetch('/api/auth/get-playback-token');
+            const tokenData = await tokenRes.json();
+            
+            if(!tokenData.success) throw new Error("Access Token Failed");
+
+            // 6. DIRECT LINK (No Server Processing)
+            // Google Virus Scan Bypass Link
+            const directStreamUrl = `https://www.googleapis.com/drive/v3/files/${finalId}?alt=media&access_token=${tokenData.token}`;
+            
+            console.log("🚀 Launching Direct Stream:", finalId);
+
+            // 7. PLAYER INJECT
             playerContainer.innerHTML = `
-                <div class="w-full h-full relative flex justify-center items-center">
-                    <video id="cinemaPlayer" playsinline controls crossorigin class="plyr-video">
-                        <source src="${videoSrc}" type="video/mp4" />
-                    </video>
-                </div>
+                <video id="cinemaPlayer" playsinline controls crossorigin>
+                    <source src="${directStreamUrl}" type="video/mp4" />
+                </video>
             `;
 
+            // 8. PLYR INIT (Without Fixed Ratio)
             window.currentPlayer = new Plyr('#cinemaPlayer', {
                 autoplay: true,
                 controls: ['play-large', 'play', 'progress', 'current-time', 'mute', 'volume', 'fullscreen', 'settings'],
-                ratio: null, // ⚡ IMPORTANT: Disable fixed ratio
+                ratio: null, // 🔥 IMP: Ratio null rakhne se player video ke size ka ho jata hai
                 keyboard: { focused: true, global: true }
             });
 
+            // Auto Play Force
             window.currentPlayer.on('ready', () => {
                 const playPromise = window.currentPlayer.play();
-                if (playPromise) playPromise.catch(e => console.warn("Autoplay blocked:", e));
+                if (playPromise) playPromise.catch(e => console.warn("Autoplay needs interaction", e));
+            });
+
+            // Error Fallback
+            window.currentPlayer.on('error', (e) => {
+                console.error("Direct Play Failed:", e);
+                // Agar 12GB file par token expire ho jaye to retry logic lagaya ja sakta hai
+                alert("Playback interrupted. Reopening...");
             });
 
         } catch (error) {
             console.error(error);
-            playerContainer.innerHTML = `<div class="text-red-500">Error loading video</div>`;
+            playerContainer.innerHTML = `<div class="text-red-500 p-4">Error: ${error.message}</div>`;
         }
     }
 
