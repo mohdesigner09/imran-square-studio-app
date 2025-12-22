@@ -482,37 +482,50 @@
    
 <script>
 
-// 📸 MAGIC THUMBNAIL GENERATOR
+// 📸 ROBUST THUMBNAIL GENERATOR
     function generateVideoThumbnail(file) {
         return new Promise((resolve) => {
             const video = document.createElement('video');
+            video.preload = 'metadata'; // Metadata load karo
             video.src = URL.createObjectURL(file);
             video.muted = true;
             video.playsInline = true;
-            video.currentTime = 1; // 1st Second ka frame lenge
+            
+            // Timeout: Agar 3 second mein thumb na bane, to null bhejo (Infinite wait nahi)
+            const timeout = setTimeout(() => {
+                console.warn("Thumbnail timeout");
+                resolve(null);
+            }, 5000);
 
             video.onloadeddata = () => {
-                // Wait for seek
+                video.currentTime = 0.5; // 1st frame se thoda aage
             };
 
             video.onseeked = () => {
-                // Canvas banao
-                const canvas = document.createElement('canvas');
-                // Size thoda chhota rakho taaki DB heavy na ho (Max width 320px)
-                const scale = 320 / video.videoWidth;
-                canvas.width = 320;
-                canvas.height = video.videoHeight * scale;
+                clearTimeout(timeout);
+                try {
+                    const canvas = document.createElement('canvas');
+                    // Size maintain karo par quality compress karo
+                    const scale = 320 / video.videoWidth;
+                    canvas.width = 320;
+                    canvas.height = video.videoHeight * scale;
 
-                const ctx = canvas.getContext('2d');
-                ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
-                
-                // Image Data nikalo (JPEG format, 70% quality)
-                const dataUrl = canvas.toDataURL('image/jpeg', 0.7);
-                resolve(dataUrl);
+                    const ctx = canvas.getContext('2d');
+                    ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
+                    
+                    // Compress to JPEG 60% quality (Database friendly)
+                    const dataUrl = canvas.toDataURL('image/jpeg', 0.6);
+                    resolve(dataUrl);
+                } catch (e) {
+                    console.error("Canvas Error:", e);
+                    resolve(null);
+                }
             };
 
             video.onerror = () => {
-                resolve(null); // Agar fail hua to null
+                clearTimeout(timeout);
+                console.error("Video Load Error");
+                resolve(null);
             };
         });
     }
@@ -912,30 +925,40 @@
         });
     }
 
-    // E. FINALIZE (Using Detected Type)
+// E. FINALIZE (Wait for Thumbnail & Save)
     async function finalizeBatchSuccess(item, data, uName) {
         const statusEl = document.getElementById(`status-${item.id}`);
         const row = document.getElementById(`row-${item.id}`);
         
-        statusEl.innerText = "SAVING...";
+        statusEl.innerText = "FINALIZING...";
+        statusEl.className = "text-[10px] font-bold text-blue-400 animate-pulse";
         
         const finalTitle = item.customTitle || item.file.name;
-        
-        // ✅ USE DETECTED TYPE (From Intelligence Engine)
         const vType = item.detectedType || 'long';
 
-        // Thumb Placeholder Logic
-        // Immediate upload ke liye hum generic placeholder use karenge
-        // Kyunki real thumb aane me Google time leta hai
-        const thumbPlaceholder = vType === 'shorts' 
-            ? "https://placehold.co/180x320/2a2a2a/FFFFFF/png?text=SHORT"
-            : "https://placehold.co/320x180/1a1a1a/FFFFFF/png?text=VIDEO";
+        // 🔥 CRITICAL: Wait for Thumbnail Generation if not ready
+        let finalThumb = item.thumbData;
+        if (!finalThumb && item.thumbPromise) {
+            try {
+                console.log("📸 Waiting for thumbnail generator...");
+                finalThumb = await item.thumbPromise; // RUKO ZARA!
+            } catch (e) {
+                console.error("Thumb Gen Error:", e);
+            }
+        }
+
+        // Fallback agar abhi bhi fail hua
+        if (!finalThumb) {
+             finalThumb = vType === 'shorts' 
+                ? "https://placehold.co/180x320/2a2a2a/FFFFFF/png?text=NO_PREVIEW" 
+                : "https://placehold.co/320x180/1a1a1a/FFFFFF/png?text=NO_PREVIEW";
+        }
 
         const newVid = {
             title: finalTitle, 
             link: data.viewLink || "",
             fileId: data.fileId,
-            thumb: thumbPlaceholder, 
+            thumb: finalThumb, // ✅ Ab ye hamesha bhara hua hoga
             type: vType,
             uploadedBy: uName, 
             uploadDate: new Date().toISOString()
@@ -948,7 +971,7 @@
 
             currentRawClips.push(newVid);
             
-            // Auto Switch & Render
+            // Grid Refresh
             if (vType === 'shorts' && currentTab !== 'shorts') {
                 switchType('shorts');
             } else if (vType === 'long' && currentTab !== 'long') {
@@ -963,7 +986,9 @@
             row.classList.add('border-green-500/30', 'bg-green-500/5');
 
         } catch (error) {
+            console.error("DB Error", error);
             statusEl.innerText = "DB ERROR";
+            statusEl.className = "text-[10px] font-bold text-red-500";
         }
     }
 
