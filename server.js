@@ -1574,19 +1574,33 @@ app.post('/api/drive/rename-file', async (req, res) => {
     }
 });
 
-// 2. DELETE FILE ROUTE
+// 2. DELETE FILE ROUTE (Smart Ghost Handling)
 app.post('/api/drive/delete-file', async (req, res) => {
     try {
         const { fileId } = req.body;
-        console.log(`🗑️ Deleting File ${fileId}`);
+        console.log(`🗑️ Deleting File request: ${fileId}`);
 
-        // Seedha 'drive' client use karo (No Axios needed)
-        await drive.files.delete({
-            fileId: fileId
-        });
+        try {
+            // Google Drive se delete karne ki koshish karo
+            await drive.files.delete({
+                fileId: fileId
+            });
+            console.log("✅ Delete Success on Drive");
+        } catch (driveError) {
+            // 🕵️‍♂️ GHOST FILE CHECK
+            // Agar Drive bole "File not found" (404), to iska matlab wo pehle hi delete ho chuki hai.
+            // Ise hum 'Success' maanege taaki Database se bhi safai ho sake.
+            if (driveError.code === 404 || driveError.message.includes('not found')) {
+                console.warn("⚠️ File already missing from Drive (Ghost File). Proceeding to clean DB.");
+            } else {
+                // Agar koi aur error hai (jaise Permission/Auth), to use asli error maano
+                throw driveError;
+            }
+        }
 
-        console.log("✅ Delete Success");
-        res.json({ success: true, message: "File deleted successfully!" });
+        // Agar hum yahan tak pahuche, matlab ya to delete hua, ya file pehle se gayab thi.
+        // Dono case mein Database update karne ke liye Success bhejo.
+        res.json({ success: true, message: "File processed successfully!" });
 
     } catch (error) {
         console.error("❌ Delete Failed:", error.message);
