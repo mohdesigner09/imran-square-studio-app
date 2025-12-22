@@ -319,20 +319,20 @@
     </div>
 
         
-  <div class="mt-8 mb-24">
+<div class="mt-8 mb-24">
     
     <div class="flex gap-6 mb-6 border-b border-white/10 pb-4">
-        <button id="tab-shorts" onclick="switchType('shorts')" class="text-gray-400 hover:text-white font-bold pb-2 border-b-2 border-transparent transition text-sm uppercase tracking-wider">
+        <button id="tab-shorts" onclick="switchType('shorts')" class="text-white font-bold pb-2 border-b-2 border-orange-500 transition text-sm uppercase tracking-wider">
             Shorts / Reels
         </button>
-        <button id="tab-long" onclick="switchType('long')" class="text-white font-bold pb-2 border-b-2 border-orange-500 transition text-sm uppercase tracking-wider">
+        <button id="tab-long" onclick="switchType('long')" class="text-gray-400 hover:text-white font-bold pb-2 border-b-2 border-transparent transition text-sm uppercase tracking-wider">
             Long Videos
         </button>
     </div>
 
-    <div id="gridShorts" class="hidden grid grid-cols-2 md:grid-cols-4 lg:grid-cols-5 gap-4"></div>
+    <div id="gridShorts" class="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-5 gap-4"></div>
 
-    <div id="gridLongs" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6"></div>
+    <div id="gridLongs" class="hidden grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6"></div>
 
 </div>
 
@@ -489,8 +489,7 @@
     let currentUser = null;
     let selectedFile = null;
     let currentRawClips = [];
-    let currentTab = 'long'; // Default
-
+   
     if (!PROJECT_ID) {
         alert("⚠️ No Project ID.");
         window.location.href = 'index.html';
@@ -652,11 +651,12 @@
         });
     }
 
- // ==========================================
-    // 5. 🚀 BATCH UPLOAD ENGINE (Multi-File + Titles)
+// ==========================================
+    // 5. 🚀 INTELLIGENT BATCH UPLOAD (Auto-Sort & Metadata)
     // ==========================================
     
-    let uploadQueue = []; // Stores file objects and metadata
+    let uploadQueue = [];
+    let currentTab = 'shorts'; // ✅ DEFAULT ACTIVE TAB CHANGED TO SHORTS
 
     // A. File Selection Listener
     const fileInput = document.getElementById('fileInput');
@@ -668,42 +668,42 @@
         const files = Array.from(e.target.files);
         if (files.length === 0) return;
 
-        // Add to Queue
         files.forEach(file => {
-            // Generate unique ID for tracking
             const queueId = Date.now() + Math.random().toString(36).substr(2, 9);
             
             uploadQueue.push({
                 id: queueId,
                 file: file,
-                customTitle: file.name.split('.').slice(0, -1).join('.'), // Remove extension for title
-                status: 'pending' // pending, uploading, done, error
+                customTitle: file.name.split('.').slice(0, -1).join('.'),
+                status: 'pending',
+                detectedType: 'long' // Default, will update automatically
             });
         });
 
         renderUploadList();
         
-        // Show Upload Button
         const btn = document.getElementById('btnStartUpload');
         if(btn && uploadQueue.length > 0) btn.classList.remove('hidden');
     }
 
-    // B. Render the List (Thumbnails + Title Inputs)
+    // B. Render List & Detect Dimensions
     function renderUploadList() {
         const list = document.getElementById('uploadList');
         list.innerHTML = '';
 
-        uploadQueue.forEach((item, index) => {
+        uploadQueue.forEach((item) => {
             const div = document.createElement('div');
             div.className = "flex items-center gap-3 bg-white/5 p-3 rounded-lg border border-white/10 relative overflow-hidden group";
             div.id = `row-${item.id}`;
 
-            // Create Thumbnail Blob
             const videoUrl = URL.createObjectURL(item.file);
 
             div.innerHTML = `
                 <div class="w-16 h-10 bg-black rounded overflow-hidden flex-shrink-0 relative border border-white/10">
-                    <video src="${videoUrl}" class="w-full h-full object-cover opacity-80" onloadeddata="this.currentTime=1"></video>
+                    <video src="${videoUrl}" 
+                           class="w-full h-full object-cover opacity-80" 
+                           onloadedmetadata="detectVideoType('${item.id}', this)"
+                           onloadeddata="this.currentTime=1"></video>
                 </div>
 
                 <div class="flex-1 min-w-0 z-10">
@@ -715,7 +715,10 @@
                     
                     <div class="flex justify-between items-center mt-1">
                         <span class="text-[10px] text-gray-500 font-mono">${(item.file.size / (1024*1024)).toFixed(1)} MB</span>
-                        <span id="status-${item.id}" class="text-[10px] font-bold text-gray-400">READY</span>
+                        <div class="flex gap-2">
+                            <span id="type-badge-${item.id}" class="text-[9px] font-bold px-1.5 py-0.5 rounded bg-gray-700 text-gray-300">DETECTING...</span>
+                            <span id="status-${item.id}" class="text-[10px] font-bold text-gray-400">READY</span>
+                        </div>
                     </div>
                 </div>
 
@@ -729,49 +732,70 @@
         });
     }
 
-    // Helper: Update Title in Queue
+    // 🧠 BRAIN OF THE SYSTEM: Detect Vertical vs Horizontal
+    function detectVideoType(id, videoEl) {
+        const item = uploadQueue.find(i => i.id === id);
+        if (!item) return;
+
+        const width = videoEl.videoWidth;
+        const height = videoEl.videoHeight;
+        const badge = document.getElementById(`type-badge-${id}`);
+
+        // Logic: Agar Height zyada hai Width se = Vertical (Shorts)
+        if (height > width) {
+            item.detectedType = 'shorts';
+            if(badge) {
+                badge.innerText = "SHORT";
+                badge.className = "text-[9px] font-bold px-1.5 py-0.5 rounded bg-purple-600 text-white";
+            }
+        } else {
+            item.detectedType = 'long';
+            if(badge) {
+                badge.innerText = "LONG";
+                badge.className = "text-[9px] font-bold px-1.5 py-0.5 rounded bg-blue-600 text-white";
+            }
+        }
+        console.log(`🧠 Analyzed ${item.file.name}: ${width}x${height} -> ${item.detectedType.toUpperCase()}`);
+    }
+
     function updateQueueTitle(id, newTitle) {
         const item = uploadQueue.find(i => i.id === id);
         if(item) item.customTitle = newTitle || item.file.name;
     }
 
-    // Helper: Remove from Queue
     function removeFromQueue(id) {
         uploadQueue = uploadQueue.filter(i => i.id !== id);
         renderUploadList();
         if(uploadQueue.length === 0) document.getElementById('btnStartUpload').classList.add('hidden');
     }
 
-    // C. START BATCH UPLOAD (The Engine)
+    // C. START BATCH UPLOAD
     async function startBatchUpload() {
         const btn = document.getElementById('btnStartUpload');
         btn.disabled = true;
         btn.innerHTML = `<svg class="animate-spin w-4 h-4 text-white" fill="none" viewBox="0 0 24 24"><circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle><path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path></svg> Processing...`;
 
-        // Process sequentially to prevent crashing
         for (const item of uploadQueue) {
-            if (item.status === 'done') continue; // Skip finished
-
+            if (item.status === 'done') continue;
             await uploadSingleFile(item);
         }
 
         btn.disabled = false;
         btn.innerHTML = "Upload Complete";
         setTimeout(() => {
-            // Close modal if all done
             if(uploadQueue.every(i => i.status === 'done')) {
                 closeUploadModal();
-                uploadQueue = []; // Reset
+                uploadQueue = [];
                 document.getElementById('uploadList').innerHTML = '';
                 btn.classList.add('hidden');
-                btn.innerHTML = `<span>Start Upload</span>...`; // Reset Text
+                btn.innerHTML = `<span>Start Upload</span>`;
             }
         }, 1500);
     }
 
-    // D. SINGLE UPLOAD LOGIC
+    // D. SINGLE UPLOAD
     function uploadSingleFile(item) {
-        return new Promise(async (resolve, reject) => {
+        return new Promise(async (resolve) => {
             const statusEl = document.getElementById(`status-${item.id}`);
             const progressEl = document.getElementById(`progress-${item.id}`);
             const row = document.getElementById(`row-${item.id}`);
@@ -783,21 +807,19 @@
             const uName = currentUser ? currentUser.email : "Guest";
 
             try {
-                // 1. Get Ticket
                 const response = await fetch('/api/drive/init-upload', {
                     method: 'POST', 
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify({ 
                         userName: uName, 
                         projectName: "Raw_Footage", 
-                        fileName: item.file.name, // Original name for Drive
+                        fileName: item.file.name,
                         fileType: item.file.type 
                     })
                 });
                 const data = await response.json();
                 if(!data.success) throw new Error("Init Failed");
 
-                // 2. Upload XHR
                 const xhr = new XMLHttpRequest();
                 xhr.open("PUT", data.uploadUrl, true);
                 xhr.setRequestHeader("Content-Type", item.file.type);
@@ -815,17 +837,14 @@
                         await finalizeBatchSuccess(item, data, uName);
                         resolve();
                     } else {
-                        // Verification Fallback
                         await verifyAndFinalizeBatch(item, data, uName);
                         resolve();
                     }
                 };
-
                 xhr.onerror = async () => {
                     await verifyAndFinalizeBatch(item, data, uName);
                     resolve();
                 };
-
                 xhr.send(item.file);
 
             } catch (error) {
@@ -833,54 +852,56 @@
                 statusEl.innerText = "FAILED";
                 statusEl.className = "text-[10px] font-bold text-red-500";
                 item.status = 'error';
-                resolve(); // Resolve anyway to continue queue
+                resolve();
             }
         });
     }
 
-    // E. FINALIZE BATCH ITEM
+    // E. FINALIZE (Using Detected Type)
     async function finalizeBatchSuccess(item, data, uName) {
         const statusEl = document.getElementById(`status-${item.id}`);
         const row = document.getElementById(`row-${item.id}`);
         
         statusEl.innerText = "SAVING...";
         
-        // Use CUSTOM TITLE from Input
         const finalTitle = item.customTitle || item.file.name;
+        
+        // ✅ USE DETECTED TYPE (From Intelligence Engine)
+        const vType = item.detectedType || 'long';
 
-        // Detect Type
-        let vType = 'long';
-        // Simple logic: if file size < 50MB assume short, or if name contains 'short'
-        // Better logic: The video preview element has dimensions. 
-        // But for batch, let's trust filename or default to long.
-        if (finalTitle.toLowerCase().includes('short') || finalTitle.toLowerCase().includes('reel')) {
-            vType = 'shorts';
-        }
+        // Thumb Placeholder Logic
+        // Immediate upload ke liye hum generic placeholder use karenge
+        // Kyunki real thumb aane me Google time leta hai
+        const thumbPlaceholder = vType === 'shorts' 
+            ? "https://placehold.co/180x320/2a2a2a/FFFFFF/png?text=SHORT"
+            : "https://placehold.co/320x180/1a1a1a/FFFFFF/png?text=VIDEO";
 
         const newVid = {
             title: finalTitle, 
             link: data.viewLink || "",
             fileId: data.fileId,
-            thumb: "https://placehold.co/320x180/1a1a1a/FFFFFF/png?text=VIDEO", // Placeholder for now, real thumb takes time
+            thumb: thumbPlaceholder, 
             type: vType,
             uploadedBy: uName, 
             uploadDate: new Date().toISOString()
         };
 
         try {
-            // Update Database
             await window.db.collection('projects').doc(PROJECT_ID).set({
                 footageLib: firebase.firestore.FieldValue.arrayUnion(newVid)
             }, { merge: true });
 
-            // Update Local UI
             currentRawClips.push(newVid);
-            // Render only if tab matches to avoid jumping
-            if((vType === 'shorts' && currentTab === 'shorts') || (vType === 'long' && currentTab === 'long')) {
+            
+            // Auto Switch & Render
+            if (vType === 'shorts' && currentTab !== 'shorts') {
+                switchType('shorts');
+            } else if (vType === 'long' && currentTab !== 'long') {
+                switchType('long');
+            } else {
                 renderVideos();
             }
 
-            // UI Feedback
             item.status = 'done';
             statusEl.innerText = "DONE";
             statusEl.className = "text-[10px] font-bold text-green-500";
@@ -888,11 +909,9 @@
 
         } catch (error) {
             statusEl.innerText = "DB ERROR";
-            console.error(error);
         }
     }
 
-    // Verification Fallback for Batch
     async function verifyAndFinalizeBatch(item, data, uName) {
         try {
             const res = await fetch('/api/drive/finalize-upload', {
