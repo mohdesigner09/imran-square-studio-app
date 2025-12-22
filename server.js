@@ -1548,12 +1548,7 @@ app.post('/api/drive/repair-permissions', async (req, res) => {
 });
 
 // ==========================================
-// 🛠️ EDIT CONTROL CENTER (Rename & Delete)
-// ==========================================
-
-// 1. RENAME FILE ROUTE
-// ==========================================
-// 🛠️ EDIT CONTROL CENTER (Fixed Routes)
+// 🛠️ EDIT CONTROL CENTER (Native Drive Client - Stable)
 // ==========================================
 
 // 1. RENAME FILE ROUTE
@@ -1561,27 +1556,21 @@ app.post('/api/drive/rename-file', async (req, res) => {
     try {
         const { fileId, newName } = req.body;
         console.log(`📝 Renaming File ${fileId} to "${newName}"`);
-        
-        const tokenResponse = await oauth2Client.getAccessToken();
 
-        // Google Drive Call
-        const response = await axios.patch(
-            `https://www.googleapis.com/drive/v3/files/${fileId}`,
-            { name: newName },
-            { 
-                headers: { 
-                    'Authorization': `Bearer ${tokenResponse.token}`, 
-                    'Content-Type': 'application/json' 
-                } 
+        // Seedha 'drive' client use karo (No Axios needed)
+        await drive.files.update({
+            fileId: fileId,
+            requestBody: {
+                name: newName
             }
-        );
+        });
 
-        console.log("✅ Rename Success on Drive");
+        console.log("✅ Rename Success");
         res.json({ success: true, message: "File renamed successfully!" });
+
     } catch (error) {
-        // Detailed Error Logging
-        console.error("❌ Rename Failed:", error.response ? error.response.data : error.message);
-        res.status(500).json({ success: false, error: "Rename failed on Server" });
+        console.error("❌ Rename Failed:", error.message);
+        res.status(500).json({ success: false, error: error.message });
     }
 });
 
@@ -1591,19 +1580,17 @@ app.post('/api/drive/delete-file', async (req, res) => {
         const { fileId } = req.body;
         console.log(`🗑️ Deleting File ${fileId}`);
 
-        const tokenResponse = await oauth2Client.getAccessToken();
+        // Seedha 'drive' client use karo (No Axios needed)
+        await drive.files.delete({
+            fileId: fileId
+        });
 
-        // Google Drive Call
-        await axios.delete(
-            `https://www.googleapis.com/drive/v3/files/${fileId}`,
-            { headers: { 'Authorization': `Bearer ${tokenResponse.token}` } }
-        );
-
-        console.log("✅ Delete Success on Drive");
+        console.log("✅ Delete Success");
         res.json({ success: true, message: "File deleted successfully!" });
+
     } catch (error) {
-        console.error("❌ Delete Failed:", error.response ? error.response.data : error.message);
-        res.status(500).json({ success: false, error: "Delete failed on Server" });
+        console.error("❌ Delete Failed:", error.message);
+        res.status(500).json({ success: false, error: error.message });
     }
 });
 
