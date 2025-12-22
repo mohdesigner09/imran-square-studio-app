@@ -341,41 +341,16 @@
         <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"/></svg>
     </button>
 
-    <!-- THEATER MODAL (Updated) -->
- <div id="theaterModal" class="fixed inset-0 bg-black/95 z-[999] hidden items-center justify-center p-4 backdrop-blur-md opacity-0 transition-opacity duration-300">
-    <div class="theater-content relative w-full h-full max-w-7xl flex items-center justify-center rounded-xl overflow-hidden">
-        
-        <button onclick="closeTheater()" class="absolute top-6 right-6 z-[1000] text-white/70 hover:text-white bg-black/50 hover:bg-red-600 p-2 rounded-full transition border border-white/10 shadow-2xl backdrop-blur-sm">
-            <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path></svg>
-        </button>
+<div id="theaterModal" class="fixed inset-0 bg-black/95 z-[999] hidden items-center justify-center backdrop-blur-md opacity-0 transition-opacity duration-300">
+    
+    <button onclick="closeTheater()" class="absolute top-6 right-6 z-[1000] text-white/70 hover:text-white bg-black/50 hover:bg-red-600 p-3 rounded-full transition border border-white/10 shadow-lg group">
+        <svg class="w-6 h-6 group-hover:rotate-90 transition-transform duration-300" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path></svg>
+    </button>
 
-        <div id="playerContainer" class="w-full h-full flex items-center justify-center">
-            </div>
-
-    </div>
-</div>
-
-            <!-- PLAYER -->
-            <div class="aspect-video bg-black flex items-center justify-center" id="playerContainer"></div>
-
-            <!-- METADATA STRIP -->
-            <div class="p-5 border-t border-white/10 flex justify-between items-center bg-[#050505]">
-                <div>
-                    <h3 class="text-lg font-display font-bold text-white" id="playerTitle">Video Title</h3>
-                    <p id="playerMeta" class="text-[11px] text-gray-400 mt-1 font-mono">Meta info</p>
-                </div>
-                <div class="flex items-center gap-3">
-                    <span id="playerFormatBadge" class="px-2 py-1 rounded text-[10px] font-bold border border-white/20 text-gray-300">LONG</span>
-                    <select id="playbackSpeed" class="bg-white/10 border border-white/10 text-white text-xs rounded px-2 py-1 outline-none hover:bg-white/20 transition">
-                        <option value="0.5">0.5x</option>
-                        <option value="1" selected>1x</option>
-                        <option value="1.5">1.5x</option>
-                        <option value="2">2x</option>
-                    </select>
-                </div>
-            </div>
+    <div id="playerContainer" class="w-full h-full flex items-center justify-center relative p-4">
         </div>
-    </div>
+
+</div>
 
     <!-- UPLOAD MODAL (Updated) -->
 <div id="uploadFootageModal" class="hidden fixed inset-0 bg-black/90 backdrop-blur-md z-50 flex items-center justify-center p-4">
@@ -902,12 +877,12 @@ async function sendToStudio() {
 
     
 
-// 🎥 OPEN THEATER (Button Position Fixed: Left)
+// 🎥 OPEN THEATER (Clean & Direct)
     async function openTheater(link, title, fileId) {
         const modal = document.getElementById('theaterModal');
         if (!modal) return;
 
-        // 1. Validate ID
+        // 1. ID Validation
         let finalId = fileId;
         if (!finalId && link) {
             if(link.includes('/d/')) finalId = link.split('/d/')[1].split('/')[0];
@@ -915,50 +890,52 @@ async function sendToStudio() {
         }
         if (!finalId || finalId === 'undefined') return alert("Invalid Video ID");
 
-        // 2. Clean Old Player
+        // 2. Cleanup Old
         if (window.currentPlayer) {
             window.currentPlayer.destroy();
             window.currentPlayer = null;
         }
         document.getElementById('playerContainer').innerHTML = '';
 
-        // 3. Setup CSS
+        // 3. CSS Injection (Vertical/Fit Fix)
         if (!document.getElementById('plyr-custom-css')) {
             const style = document.createElement('style');
             style.id = 'plyr-custom-css';
             style.innerHTML = `
-                #playerContainer { background: black; display: flex; align-items: center; justify-content: center; position: relative; }
+                /* Player ko poora faila do */
+                #playerContainer { width: 100%; height: 100%; display: flex; align-items: center; justify-content: center; }
                 .plyr { width: 100%; height: 100%; }
-                video { object-fit: contain; max-height: 90vh; width: 100%; }
-                iframe.universal-player { width: 100%; height: 90vh; border: none; }
+                
+                /* Video ko original ratio maintain karne do (Vertical Shorts Vertical hi rahenge) */
+                video { object-fit: contain; max-height: 95vh; max-width: 100%; width: auto; height: auto; }
+                
+                /* Iframe Fix */
+                iframe.universal-player { width: 100%; height: 95vh; border: none; }
             `;
             document.head.appendChild(style);
         }
 
-        // 4. Loader
-        document.getElementById('playerTitle').innerText = title || "Video";
+        // 4. Loading State
         const playerContainer = document.getElementById('playerContainer');
-        
         playerContainer.innerHTML = `
             <div class="flex flex-col items-center gap-3">
-                <svg class="animate-spin h-10 w-10 text-blue-500" fill="none" viewBox="0 0 24 24"><circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle><path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path></svg>
-                <span class="text-gray-400 text-xs tracking-widest">OPENING STUDIO PLAYER...</span>
+                <svg class="animate-spin h-12 w-12 text-blue-500" fill="none" viewBox="0 0 24 24"><circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle><path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path></svg>
             </div>`;
         
+        // Show Modal
         modal.classList.remove('hidden');
         modal.classList.add('flex');
         setTimeout(() => modal.classList.remove('opacity-0'), 10);
 
         try {
-            // 5. Get Source
+            // 5. Source Fetch
             const res = await fetch(`/api/drive/get-video-source/${finalId}`);
             const data = await res.json();
-            
             if(!data.success) throw new Error("Source Failed");
 
-            // 6. Inject Player (Button Moved to LEFT)
+            // 6. Inject Video (No Extra Buttons/Text)
             playerContainer.innerHTML = `
-                <div class="w-full h-full relative group">
+                <div class="w-full h-full flex items-center justify-center relative group">
                     <video id="cinemaPlayer" playsinline controls crossorigin>
                         <source src="${data.url}" type="video/mp4" />
                     </video>
@@ -973,7 +950,7 @@ async function sendToStudio() {
             window.currentPlayer = new Plyr('#cinemaPlayer', {
                 autoplay: true,
                 controls: ['play-large', 'play', 'progress', 'current-time', 'mute', 'volume', 'fullscreen', 'settings'],
-                ratio: null,
+                ratio: null, // Critical for Vertical Videos
                 keyboard: { focused: true, global: true }
             });
 
@@ -982,14 +959,12 @@ async function sendToStudio() {
             });
 
             window.currentPlayer.on('error', () => {
-                if(confirm("Video load error. Switch to Universal Player?")) {
-                    switchToUniversalPlayer(finalId);
-                }
+                if(confirm("Video load error. Switch to Universal Player?")) switchToUniversalPlayer(finalId);
             });
 
         } catch (error) {
             console.error(error);
-            playerContainer.innerHTML = `<div class="text-red-500 p-4">Error: ${error.message}</div>`;
+            playerContainer.innerHTML = `<div class="text-red-500">Error: ${error.message}</div>`;
         }
     }
 
