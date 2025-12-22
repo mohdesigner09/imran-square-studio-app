@@ -799,19 +799,19 @@ async function sendToStudio() {
 
     
 
-// 🎥 OPEN THEATER (Final High-Speed Fix)
+// 🎥 OPEN THEATER (Hybrid: Direct Link + Proxy Backup)
     async function openTheater(link, title, fileId) {
         const modal = document.getElementById('theaterModal');
         if (!modal) return;
 
-        // 1. Cleanup Old Player
+        // 1. Clean Old Player
         if (window.currentPlayer) {
             window.currentPlayer.destroy();
             window.currentPlayer = null;
         }
         document.getElementById('playerContainer').innerHTML = '';
 
-        // 2. Inject CSS for Visibility
+        // 2. Inject CSS
         if (!document.getElementById('plyr-custom-css')) {
             const style = document.createElement('style');
             style.id = 'plyr-custom-css';
@@ -823,16 +823,16 @@ async function sendToStudio() {
             document.head.appendChild(style);
         }
 
-        // 3. Setup UI & Loader
+        // 3. UI Loader
         document.getElementById('playerTitle').innerText = title || "Video";
         const playerContainer = document.getElementById('playerContainer');
         playerContainer.innerHTML = `
             <div class="text-white flex flex-col items-center justify-center h-full gap-3">
-                <svg class="animate-spin h-10 w-10 text-green-500" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                <svg class="animate-spin h-10 w-10 text-purple-500" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
                     <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
                     <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
                 </svg>
-                <p class="text-sm text-gray-400 font-mono">Fetching High-Speed Direct Link...</p>
+                <p class="text-sm text-gray-400 font-mono">Optimizing Stream...</p>
             </div>`;
         
         modal.classList.remove('hidden');
@@ -847,21 +847,25 @@ async function sendToStudio() {
         }
 
         try {
-            // 5. Ask Server for the "Magic Link"
+            // 5. Ask Server: "Best Rasta Batao"
             const res = await fetch(`/api/drive/get-stream-url/${finalId}`);
             const data = await res.json();
 
-            if (!data.success || !data.streamUrl) {
-                throw new Error("Could not fetch direct stream URL.");
+            let videoSrc = "";
+            
+            if (data.success && data.mode === 'direct' && data.streamUrl) {
+                console.log("🚀 Mode: Direct High-Speed");
+                videoSrc = data.streamUrl;
+            } else {
+                console.log("🐢 Mode: Proxy Stream (No Direct Link Available)");
+                videoSrc = `/api/stream/${finalId}`;
             }
 
-            console.log("🚀 High Speed Link Acquired!");
-
-            // 6. Init Player with Magic Link
+            // 6. Init Player
             playerContainer.innerHTML = `
                 <div class="w-full h-full bg-black relative">
                     <video id="cinemaPlayer" playsinline controls crossorigin class="plyr-video w-full h-full">
-                        <source src="${data.streamUrl}" type="video/mp4" />
+                        <source src="${videoSrc}" type="video/mp4" />
                     </video>
                 </div>
             `;
@@ -873,12 +877,22 @@ async function sendToStudio() {
             });
 
             window.currentPlayer.on('ready', () => {
-                window.currentPlayer.play().catch(e => console.warn("Autoplay blocked:", e));
+                const playPromise = window.currentPlayer.play();
+                if (playPromise) playPromise.catch(e => console.warn("Autoplay blocked:", e));
+            });
+
+            window.currentPlayer.on('error', (e) => {
+                console.error("Player Error:", e);
+                // Last Resort: Switch to Iframe if everything fails
+                if(confirm("Playback failed. Try standard player?")) {
+                    // Logic for iframe fallback (optional)
+                    window.open(link, '_blank');
+                }
             });
 
         } catch (error) {
             console.error(error);
-            playerContainer.innerHTML = `<div class="text-red-500 text-center p-4">Error: ${error.message}</div>`;
+            playerContainer.innerHTML = `<div class="text-red-500 text-center p-4">Connection Error. Please retry.</div>`;
         }
     }
 

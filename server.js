@@ -1335,65 +1335,87 @@ app.use((err, req, res, next) => {
 });
 
 // ==========================================
-// 🚀 IMRAN SQUARE STREAMING ENGINE (The Netflix Core)
+// 🚀 HYBRID STREAMING ENGINE (Final Solution)
 // ==========================================
+
+// 1. INTELLIGENT LINK SNIFFER (Detects Redirect vs Content)
+app.get('/api/drive/get-stream-url/:fileId', async (req, res) => {
+    try {
+        const fileId = req.params.fileId;
+        const tokenResponse = await oauth2Client.getAccessToken();
+
+        try {
+            // Google se pucho: "Link doge ya File?"
+            const response = await axios.get(
+                `https://www.googleapis.com/drive/v3/files/${fileId}?alt=media`,
+                {
+                    headers: { 'Authorization': `Bearer ${tokenResponse.token}` },
+                    maxRedirects: 0, // Redirect mat hona, humein pakadna hai
+                    validateStatus: status => status >= 200 && status < 400
+                }
+            );
+
+            // CASE 1: Agar Google ne Redirect (Link) diya (Status 302/303/307)
+            if (response.status === 302 || response.status === 303 || response.status === 307) {
+                 return res.json({ success: true, streamUrl: response.headers.location, mode: 'direct' });
+            }
+
+            // CASE 2: Agar Google ne 200 OK diya (Matlab Direct Link nahi hai)
+            // To hum Proxy Mode use karenge
+            return res.json({ success: true, mode: 'proxy' });
+
+        } catch (axiosError) {
+             // Axios kabhi kabhi Redirect par error fekta hai, use yahan pakdo
+             if (axiosError.response && (axiosError.response.status === 302 || axiosError.response.status === 303 || axiosError.response.status === 307)) {
+                return res.json({ success: true, streamUrl: axiosError.response.headers.location, mode: 'direct' });
+             }
+             throw axiosError;
+        }
+
+    } catch (error) {
+        console.error("Sniffer Error:", error.message);
+        // Agar kuch bhi fail ho, to safe side Proxy use karo
+        res.json({ success: true, mode: 'proxy' });
+    }
+});
+
+// 2. PROXY STREAMING ROUTE (Backup for files with no direct link)
 app.get('/api/stream/:fileId', async (req, res) => {
     try {
         const fileId = req.params.fileId;
         const range = req.headers.range;
 
-        // 1. File Metadata nikalo (Size pata karne ke liye)
-        const metadata = await drive.files.get({
-            fileId: fileId,
-            fields: 'size, mimeType, name'
-        });
-        
+        const metadata = await drive.files.get({ fileId: fileId, fields: 'size, mimeType' });
         const fileSize = parseInt(metadata.data.size);
         
-        // 2. Agar Browser ne "Range" maanga hai (Seeking/Skipping)
         if (range) {
             const parts = range.replace(/bytes=/, "").split("-");
             const start = parseInt(parts[0], 10);
             const end = parts[1] ? parseInt(parts[1], 10) : fileSize - 1;
             const chunksize = (end - start) + 1;
 
-            // Headers set karo taaki Browser ko lage ye pro server hai
-            const head = {
+            res.writeHead(206, {
                 'Content-Range': `bytes ${start}-${end}/${fileSize}`,
                 'Accept-Ranges': 'bytes',
                 'Content-Length': chunksize,
                 'Content-Type': metadata.data.mimeType || 'video/mp4',
-            };
-            res.writeHead(206, head); // 206 = Partial Content
+            });
 
-            // 3. Google se utna hi tukda mango (Bandwidth bachegi + Fast hoga)
             const response = await drive.files.get(
                 { fileId: fileId, alt: 'media' },
                 { responseType: 'stream', headers: { 'Range': `bytes=${start}-${end}` } }
             );
-            
-            // Pipe: Google -> Server -> Browser
             response.data.pipe(res);
-
         } else {
-            // Agar Range nahi hai, poori file stream karo (Download)
-            const head = {
+            res.writeHead(200, {
                 'Content-Length': fileSize,
                 'Content-Type': metadata.data.mimeType || 'video/mp4',
-            };
-            res.writeHead(200, head);
-            
-            const response = await drive.files.get(
-                { fileId: fileId, alt: 'media' },
-                { responseType: 'stream' }
-            );
+            });
+            const response = await drive.files.get({ fileId: fileId, alt: 'media' }, { responseType: 'stream' });
             response.data.pipe(res);
         }
-
     } catch (error) {
-        console.error("Streaming Error:", error.message);
-        // Agar file private ho ya deleted ho
-        if (!res.headersSent) res.status(500).send("Error streaming video");
+        if (!res.headersSent) res.status(500).send("Stream Error");
     }
 });
 
@@ -1504,37 +1526,7 @@ app.post('/api/drive/repair-permissions', async (req, res) => {
     }
 });
 
-// ✅ NEW: Get Direct Stream URL (Bypassing CORS)
-app.get('/api/drive/get-stream-url/:fileId', async (req, res) => {
-    try {
-        const fileId = req.params.fileId;
-        const tokenResponse = await oauth2Client.getAccessToken();
 
-        // 1. Google API ko call karo, lekin REDIRECT mat follow karo
-        const response = await axios.get(
-            `https://www.googleapis.com/drive/v3/files/${fileId}?alt=media`,
-            {
-                headers: { 'Authorization': `Bearer ${tokenResponse.token}` },
-                maxRedirects: 0, // 🛑 Redirect mat hona!
-                validateStatus: status => status >= 200 && status < 400 // 302/303 is okay
-            }
-        );
-
-        // Ye code kabhi nahi chalega agar redirect mil gaya (jo ki good hai)
-        res.json({ success: false, error: "No redirect URL found (File might be too small or cached)" });
-
-    } catch (error) {
-        // 2. Catch the Redirect! (Asli maal yahan hai)
-        if (error.response && (error.response.status === 302 || error.response.status === 303 || error.response.status === 307)) {
-            const finalLink = error.response.headers.location;
-            console.log("🔗 Captured Direct Link!");
-            return res.json({ success: true, streamUrl: finalLink });
-        }
-        
-        console.error("Stream URL Error:", error.message);
-        res.status(500).json({ success: false, error: "Could not fetch stream URL" });
-    }
-});
 // ===== SERVER START =====
 const PORT = process.env.PORT || 10000;
 app.listen(PORT, () => {
