@@ -989,37 +989,57 @@ async function sendToStudio() {
         }
     }
 
-    // 🔄 UNIVERSAL PLAYER (Isse bhi zaroor add/replace kar lena)
+    /// 🔄 UNIVERSAL PLAYER (Backup Mode)
     function switchToUniversalPlayer(fileId) {
-        if (window.currentPlayer) window.currentPlayer.destroy();
+        // 1. Purana Plyr saaf karo
+        if (window.currentPlayer) {
+            try {
+                window.currentPlayer.destroy();
+            } catch (e) { console.log("Switch destroy error ignored"); }
+            window.currentPlayer = null;
+        }
         
         const container = document.getElementById('playerContainer');
+        
+        // 2. Iframe Inject karo
+        // Note: Close button ab seedha 'closeTheater()' call karega
         container.innerHTML = `
             <div class="w-full h-full flex flex-col items-center justify-center bg-black relative">
+                <p class="text-gray-500 text-[10px] absolute top-2 animate-pulse">Compatibility Mode Active</p>
+                
                 <iframe src="https://drive.google.com/file/d/${fileId}/preview" class="universal-player" allow="autoplay; encrypted-media" allowfullscreen></iframe>
-                <button onclick="document.getElementById('theaterModal').classList.add('hidden')" class="absolute top-4 right-4 bg-red-600 hover:bg-red-700 text-white px-3 py-1 rounded text-xs z-50">Close Player</button>
+                
+                <button onclick="closeTheater()" class="absolute top-4 right-4 bg-red-600 hover:bg-red-700 text-white px-4 py-1.5 rounded-full text-xs font-bold shadow-lg z-50 flex items-center gap-1">
+                    <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path></svg>
+                    Close
+                </button>
             </div>
         `;
     }
 
-    // Close par destroy zaroor karein
+// ❌ CLOSE THEATER (Master Close - Instant)
     function closeTheater() {
         const modal = document.getElementById('theaterModal');
-        if (modal) {
-            modal.classList.remove('opacity-100');
-            modal.classList.add('opacity-0');
-            setTimeout(() => {
-                modal.classList.add('hidden');
-                modal.classList.remove('flex');
-                
-                // CRITICAL: Memory cleanup
-                if (window.currentPlayer) {
-                    window.currentPlayer.destroy();
-                    window.currentPlayer = null;
-                }
-                document.getElementById('playerContainer').innerHTML = '';
-            }, 300);
+        if (!modal) return;
+
+        // 1. Sabse pehle user ke liye Modal gayab karo (Instant Feel)
+        modal.classList.remove('opacity-100');
+        modal.classList.add('opacity-0');
+        modal.classList.add('hidden');
+        modal.classList.remove('flex');
+
+        // 2. Player Destroy karo (Agar Plyr chal raha hai)
+        if (window.currentPlayer) {
+            try {
+                window.currentPlayer.destroy();
+            } catch (e) { console.log("Player destroy error ignored"); }
+            window.currentPlayer = null;
         }
+
+        // 3. Container Khali karo (Iframe/Video sab uda do)
+        // Ye step Iframe ko kill karega aur wo 401 Errors aana band ho jayenge
+        const container = document.getElementById('playerContainer');
+        if (container) container.innerHTML = ''; 
     }
     
    // ✅ MISSING FUNCTION ADDED HERE
