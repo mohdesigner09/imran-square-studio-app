@@ -482,6 +482,41 @@
    
 <script>
 
+// 📸 MAGIC THUMBNAIL GENERATOR
+    function generateVideoThumbnail(file) {
+        return new Promise((resolve) => {
+            const video = document.createElement('video');
+            video.src = URL.createObjectURL(file);
+            video.muted = true;
+            video.playsInline = true;
+            video.currentTime = 1; // 1st Second ka frame lenge
+
+            video.onloadeddata = () => {
+                // Wait for seek
+            };
+
+            video.onseeked = () => {
+                // Canvas banao
+                const canvas = document.createElement('canvas');
+                // Size thoda chhota rakho taaki DB heavy na ho (Max width 320px)
+                const scale = 320 / video.videoWidth;
+                canvas.width = 320;
+                canvas.height = video.videoHeight * scale;
+
+                const ctx = canvas.getContext('2d');
+                ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
+                
+                // Image Data nikalo (JPEG format, 70% quality)
+                const dataUrl = canvas.toDataURL('image/jpeg', 0.7);
+                resolve(dataUrl);
+            };
+
+            video.onerror = () => {
+                resolve(null); // Agar fail hua to null
+            };
+        });
+    }
+
        // ==========================================
     // 🎨 TITAN UI ENGINE (v15.0 - Final Fix)
     // ==========================================
@@ -652,7 +687,7 @@
     }
 
 // ==========================================
-    // 5. 🚀 INTELLIGENT BATCH UPLOAD (Auto-Sort & Metadata)
+    // 5. 
     // ==========================================
     
     let uploadQueue = [];
@@ -664,26 +699,44 @@
         fileInput.addEventListener('change', handleFileSelect);
     }
 
-    function handleFileSelect(e) {
+   async function handleFileSelect(e) {
         const files = Array.from(e.target.files);
         if (files.length === 0) return;
 
-        files.forEach(file => {
+        // Show Upload Button immediately
+        const btn = document.getElementById('btnStartUpload');
+        if(btn) btn.classList.remove('hidden');
+
+        for (const file of files) {
             const queueId = Date.now() + Math.random().toString(36).substr(2, 9);
             
-            uploadQueue.push({
+            // Placeholder object add karo taaki list turant dikhe
+            const queueItem = {
                 id: queueId,
                 file: file,
                 customTitle: file.name.split('.').slice(0, -1).join('.'),
                 status: 'pending',
-                detectedType: 'long' // Default, will update automatically
-            });
-        });
+                detectedType: 'long',
+                thumbData: null // Abhi khali hai
+            };
+            
+            uploadQueue.push(queueItem);
+            renderUploadList(); // List dikhao
 
-        renderUploadList();
-        
-        const btn = document.getElementById('btnStartUpload');
-        if(btn && uploadQueue.length > 0) btn.classList.remove('hidden');
+            // 📸 Background mein Thumbnail Generate karo
+            generateVideoThumbnail(file).then((base64Thumb) => {
+                const item = uploadQueue.find(i => i.id === queueId);
+                if (item && base64Thumb) {
+                    item.thumbData = base64Thumb; // Data store karo
+                    
+                    // UI mein update karo
+                    const imgTag = document.querySelector(`#row-${queueId} video`); 
+                    // Hum video tag ki jagah ab IMG tag use kar sakte hain agar chahein, 
+                    // lekin renderUploadList mein humne video rakha hai preview ke liye.
+                    // Hum final save ke liye 'thumbData' use karenge.
+                }
+            });
+        }
     }
 
     // B. Render List & Detect Dimensions
