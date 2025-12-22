@@ -699,41 +699,43 @@
         fileInput.addEventListener('change', handleFileSelect);
     }
 
-   async function handleFileSelect(e) {
+ // A. FILE SELECT (With Thumbnail Promise Tracker)
+    async function handleFileSelect(e) {
         const files = Array.from(e.target.files);
         if (files.length === 0) return;
 
-        // Show Upload Button immediately
         const btn = document.getElementById('btnStartUpload');
         if(btn) btn.classList.remove('hidden');
 
         for (const file of files) {
             const queueId = Date.now() + Math.random().toString(36).substr(2, 9);
             
-            // Placeholder object add karo taaki list turant dikhe
+            // 1. Thumbnail Generation Start karo (Promise Store karo)
+            const thumbPromise = generateVideoThumbnail(file);
+
             const queueItem = {
                 id: queueId,
                 file: file,
                 customTitle: file.name.split('.').slice(0, -1).join('.'),
                 status: 'pending',
-                detectedType: 'long',
-                thumbData: null // Abhi khali hai
+                detectedType: 'long', // Default
+                thumbPromise: thumbPromise, // 🔥 Store Promise (Wait karne ke liye)
+                thumbData: null 
             };
             
             uploadQueue.push(queueItem);
-            renderUploadList(); // List dikhao
+            
+            // UI Render
+            renderUploadList(); 
 
-            // 📸 Background mein Thumbnail Generate karo
-            generateVideoThumbnail(file).then((base64Thumb) => {
+            // Background mein jab thumb ready ho, to UI update kar dena (List ke liye)
+            thumbPromise.then(base64 => {
                 const item = uploadQueue.find(i => i.id === queueId);
-                if (item && base64Thumb) {
-                    item.thumbData = base64Thumb; // Data store karo
-                    
-                    // UI mein update karo
-                    const imgTag = document.querySelector(`#row-${queueId} video`); 
-                    // Hum video tag ki jagah ab IMG tag use kar sakte hain agar chahein, 
-                    // lekin renderUploadList mein humne video rakha hai preview ke liye.
-                    // Hum final save ke liye 'thumbData' use karenge.
+                if(item) {
+                    item.thumbData = base64;
+                    // Detect Type based on dimensions (Agar generator ne detect kiya ho)
+                    // Note: generateVideoThumbnail can be updated to return dims too, 
+                    // but for now let's stick to base64 to keep it simple.
                 }
             });
         }
