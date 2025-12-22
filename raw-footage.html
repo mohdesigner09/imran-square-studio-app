@@ -801,49 +801,61 @@ async function sendToStudio() {
 
 // 🎥 OPEN THEATER (With Animation Fix)
 //
-// 🎥 OPEN THEATER (Uses Custom Stream Engine)
-    function openTheater(link, title, fileId) {
+// 🎥 OPEN THEATER (The "Direct-Drive" Engine)
+    async function openTheater(link, title, fileId) {
         const modal = document.getElementById('theaterModal');
         if (!modal) return;
         
         document.getElementById('playerTitle').innerText = title || "Video";
         
-        // ID Extraction
+        // 1. File ID Extraction
         let finalId = fileId;
         if (!finalId && link) {
             if(link.includes('/d/')) finalId = link.split('/d/')[1].split('/')[0];
             else if(link.includes('id=')) finalId = link.split('id=')[1].split('&')[0];
         }
-        
-        // 🔥 THE MAGIC LINK (Apne Server ka Stream URL)
-        const streamUrl = `/api/stream/${finalId}`;
 
-        // Player UI (Plyr HTML5 Video)
+        // Loading State dikhao
         const playerContainer = document.getElementById('playerContainer');
-        playerContainer.innerHTML = `
-            <div class="w-full h-full flex flex-col bg-black justify-center items-center rounded-lg overflow-hidden shadow-2xl">
-                <video id="cinemaPlayer" playsinline controls class="plyr-video w-full h-full">
-                    <source src="${streamUrl}" type="video/mp4" />
-                </video>
-            </div>
-        `;
-
-        // ✨ Initialize Plyr (Netflix Look)
-        const player = new Plyr('#cinemaPlayer', {
-            controls: ['play-large', 'play', 'progress', 'current-time', 'mute', 'volume', 'fullscreen'],
-            keyboard: { focused: true, global: true },
-            tooltips: { controls: true, seek: true }
-        });
-
-        // Show Modal
+        playerContainer.innerHTML = `<div class="text-white flex flex-col items-center justify-center h-full"><svg class="animate-spin h-8 w-8 text-orange-500 mb-4" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24"><circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle><path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path></svg><p class="text-xs text-gray-400">Fetching High-Speed Link...</p></div>`;
+        
         modal.classList.remove('hidden');
         modal.classList.add('flex');
-        setTimeout(() => {
-            modal.classList.remove('opacity-0');
-            modal.classList.add('opacity-100');
-            // Auto Play
-            player.play();
-        }, 100);
+        setTimeout(() => { modal.classList.remove('opacity-0'); modal.classList.add('opacity-100'); }, 10);
+
+        try {
+            // 2. Server se V.I.P Token mango
+            const tokenRes = await fetch('/api/auth/get-playback-token');
+            const tokenData = await tokenRes.json();
+            
+            if(!tokenData.success) throw new Error("Could not get playback token");
+
+            // 3. 🔥 DIRECT GOOGLE API LINK (No Proxy, Raw Speed)
+            // alt=media: Raw Video File
+            // access_token: Security Pass (Virus Scan Bypass)
+            const directStreamUrl = `https://www.googleapis.com/drive/v3/files/${finalId}?alt=media&access_token=${tokenData.token}`;
+
+            // 4. Player UI Setup
+            playerContainer.innerHTML = `
+                <div class="w-full h-full flex flex-col bg-black justify-center items-center rounded-lg overflow-hidden shadow-2xl relative">
+                    <video id="cinemaPlayer" playsinline controls autoplay class="plyr-video w-full h-full object-contain">
+                        <source src="${directStreamUrl}" type="video/mp4" />
+                    </video>
+                </div>
+            `;
+
+            // ✨ Initialize Plyr (Netflix Look)
+            const player = new Plyr('#cinemaPlayer', {
+                controls: ['play-large', 'play', 'progress', 'current-time', 'mute', 'volume', 'fullscreen', 'settings'],
+                settings: ['speed'],
+                keyboard: { focused: true, global: true },
+                autoplay: true
+            });
+            
+        } catch (error) {
+            console.error(error);
+            playerContainer.innerHTML = `<div class="text-red-500 text-center"><p class="text-xl font-bold mb-2">Playback Error</p><p class="text-sm">${error.message}</p></div>`;
+        }
     }
 
     // 🔄 FALLBACK: Switch to Old Google Player

@@ -1397,6 +1397,23 @@ app.get('/api/stream/:fileId', async (req, res) => {
     }
 });
 
+// ✅ NEW: Direct Access Token Endpoint (For High-Speed Streaming)
+app.get('/api/auth/get-playback-token', async (req, res) => {
+    try {
+        // Google se naya taaza token mango
+        const tokenResponse = await oauth2Client.getAccessToken();
+        
+        if (!tokenResponse.token) {
+            throw new Error("Failed to generate token");
+        }
+
+        res.json({ success: true, token: tokenResponse.token });
+    } catch (error) {
+        console.error("Token Error:", error.message);
+        res.status(500).json({ success: false, error: error.message });
+    }
+});
+
 // ==========================================
 // 🚀 UNIVERSAL UPLOAD ROUTE (Admin Storage)
 // ==========================================
