@@ -482,63 +482,71 @@
    
 <script>
 
-// 📸 SMART THUMBNAIL GENERATOR (Vertical + Horizontal Fix)
+// 📸 THUMBNAIL GENERATOR (Fixed for Small/Short Videos)
     function generateVideoThumbnail(file) {
         return new Promise((resolve) => {
             const video = document.createElement('video');
-            video.preload = 'metadata';
             video.src = URL.createObjectURL(file);
             video.muted = true;
             video.playsInline = true;
+            video.preload = 'auto'; // Force load data
             
-            // Timeout safe-guard (3 sec)
+            // Timeout: 3 sec mein na bane to null
             const timeout = setTimeout(() => resolve(null), 3000);
 
-            // 1. Metadata Load hone par Seek karo
-            video.onloadedmetadata = () => {
-                // Video ke start ka frame lo (0.5 sec safest hai)
-                // Agar video bohot choti hai (1 sec se kam), to uske beech ka frame lo
-                const seekTime = Math.min(0.5, video.duration / 2);
+            // 1. Jab Video Data Load ho jaye (Metadata nahi, asli Data)
+            video.onloadeddata = () => {
+                // Logic: Agar video 2 second se chhoti hai, to shuru ka frame lo
+                // Agar badi hai, to 1 second aage ka frame lo
+                const seekTime = video.duration < 2 ? 0.0 : 1.0;
                 video.currentTime = seekTime;
             };
 
-            // 2. Seek hone par Photo kheecho
+            // 2. Seek hone ke baad (Frame Ready)
             video.onseeked = () => {
-                clearTimeout(timeout);
-                try {
-                    // --- SMART DIMENSIONS CALCULATION ---
-                    const valWidth = video.videoWidth;
-                    const valHeight = video.videoHeight;
-                    const maxDimension = 320; // Max size rakhna hai taaki DB heavy na ho
+                // 🛑 Thoda sa wait karo taaki frame paint ho jaye (Crucial for small files)
+                setTimeout(() => {
+                    clearTimeout(timeout);
+                    try {
+                        const valWidth = video.videoWidth;
+                        const valHeight = video.videoHeight;
+                        
+                        // Agar dimensions 0 hain (Corrupt file), to fail karo
+                        if(valWidth === 0 || valHeight === 0) {
+                            resolve(null);
+                            return;
+                        }
 
-                    let newWidth, newHeight;
+                        // Smart Scaling (Vertical/Horizontal)
+                        const maxDimension = 320;
+                        let newWidth, newHeight;
 
-                    // Logic: Jo side badi hai, use 'maxDimension' bana do
-                    if (valWidth > valHeight) {
-                        // Horizontal Video
-                        newWidth = maxDimension;
-                        newHeight = (valHeight / valWidth) * maxDimension;
-                    } else {
-                        // Vertical Video (Shorts) - ✅ YE FIX HAI
-                        newHeight = maxDimension;
-                        newWidth = (valWidth / valHeight) * maxDimension;
+                        if (valWidth > valHeight) {
+                            // Horizontal
+                            newWidth = maxDimension;
+                            newHeight = (valHeight / valWidth) * maxDimension;
+                        } else {
+                            // Vertical
+                            newHeight = maxDimension;
+                            newWidth = (valWidth / valHeight) * maxDimension;
+                        }
+
+                        const canvas = document.createElement('canvas');
+                        canvas.width = newWidth;
+                        canvas.height = newHeight;
+
+                        const ctx = canvas.getContext('2d');
+                        ctx.drawImage(video, 0, 0, newWidth, newHeight);
+                        
+                        // High Quality JPEG
+                        const dataUrl = canvas.toDataURL('image/jpeg', 0.8);
+                        resolve(dataUrl);
+
+                    } catch (e) {
+                        console.error("Thumbnail Error:", e);
+                        resolve(null);
                     }
-
-                    const canvas = document.createElement('canvas');
-                    canvas.width = newWidth;
-                    canvas.height = newHeight;
-
-                    const ctx = canvas.getContext('2d');
-                    ctx.drawImage(video, 0, 0, newWidth, newHeight);
-                    
-                    // Compress JPEG
-                    const dataUrl = canvas.toDataURL('image/jpeg', 0.6);
-                    resolve(dataUrl);
-
-                } catch (e) {
-                    console.error("Thumbnail Error:", e);
-                    resolve(null);
-                }
+                }, 200); // 200ms delay for small files to render
             };
 
             video.onerror = () => {
