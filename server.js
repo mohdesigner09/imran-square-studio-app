@@ -25,7 +25,6 @@ const __dirname = path.dirname(__filename);
 const app = express();
 app.use(express.json());
 const router = express.Router();
-const axios = require('axios');
 
 const ADMIN_EMAIL = 'mohdesigner09@gmail.com';
 
