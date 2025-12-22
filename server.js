@@ -1548,6 +1548,48 @@ app.post('/api/drive/repair-permissions', async (req, res) => {
     }
 });
 
+// ==========================================
+// 🛠️ EDIT CONTROL CENTER (Rename & Delete)
+// ==========================================
+
+// 1. RENAME FILE ROUTE
+app.post('/api/drive/rename-file', async (req, res) => {
+    try {
+        const { fileId, newName } = req.body;
+        const tokenResponse = await oauth2Client.getAccessToken();
+
+        // Google Drive par naam badlo
+        await axios.patch(
+            `https://www.googleapis.com/drive/v3/files/${fileId}`,
+            { name: newName },
+            { headers: { 'Authorization': `Bearer ${tokenResponse.token}`, 'Content-Type': 'application/json' } }
+        );
+
+        res.json({ success: true, message: "File renamed successfully!" });
+    } catch (error) {
+        console.error("Rename Error:", error.message);
+        res.status(500).json({ success: false, error: "Rename failed" });
+    }
+});
+
+// 2. DELETE FILE ROUTE
+app.post('/api/drive/delete-file', async (req, res) => {
+    try {
+        const { fileId } = req.body;
+        const tokenResponse = await oauth2Client.getAccessToken();
+
+        // Google Drive se delete karo
+        await axios.delete(
+            `https://www.googleapis.com/drive/v3/files/${fileId}`,
+            { headers: { 'Authorization': `Bearer ${tokenResponse.token}` } }
+        );
+
+        res.json({ success: true, message: "File deleted successfully!" });
+    } catch (error) {
+        console.error("Delete Error:", error.message);
+        res.status(500).json({ success: false, error: "Delete failed" });
+    }
+});
 
 // ===== SERVER START =====
 const PORT = process.env.PORT || 10000;
