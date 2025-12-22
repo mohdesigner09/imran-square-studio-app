@@ -1335,59 +1335,74 @@ app.use((err, req, res, next) => {
 });
 
 // ==========================================
-// 🚀 HYBRID STREAMING ENGINE (Final Solution)
+// 🚀 FINAL HYBRID STREAMING ENGINE (The Solution)
 // ==========================================
 
-// 1. INTELLIGENT LINK SNIFFER (Super Fast - No Download)
-app.get('/api/drive/get-stream-url/:fileId', async (req, res) => {
+// 1. SMART ROUTE: Decide karo Link dena hai ya Proxy
+app.get('/api/drive/get-video-source/:fileId', async (req, res) => {
     try {
         const fileId = req.params.fileId;
         const tokenResponse = await oauth2Client.getAccessToken();
 
         try {
-            // Google se pucho, par DATA mat mango (stream mode)
+            // Google se pucho: "Redirect Link doge?"
             const response = await axios.get(
                 `https://www.googleapis.com/drive/v3/files/${fileId}?alt=media`,
                 {
                     headers: { 'Authorization': `Bearer ${tokenResponse.token}` },
-                    maxRedirects: 0,
-                    validateStatus: status => status >= 200 && status < 400,
-                    responseType: 'stream' // ⚡ KEY FIX: Don't download body!
+                    maxRedirects: 0, // 🛑 Redirect mat hona!
+                    validateStatus: status => status >= 200 && status < 400, // 302 allow karo
+                    responseType: 'stream' // Body mat download karna
                 }
             );
 
-            // CASE 1: Redirect Link Mila (Fastest)
+            // CASE A: Badi File (Redirect Link Mila) -> Super Fast
             if (response.status === 302 || response.status === 303 || response.status === 307) {
-                 // Stream turant band karo, humein bas link chahiye tha
-                 if(response.data && response.data.destroy) response.data.destroy();
-                 return res.json({ success: true, streamUrl: response.headers.location, mode: 'direct' });
+                // Connection close karo taaki server hang na ho
+                if(response.data && typeof response.data.destroy === 'function') response.data.destroy();
+                
+                return res.json({ 
+                    success: true, 
+                    mode: 'direct', 
+                    url: response.headers.location 
+                });
             }
 
-            // CASE 2: File Data Mila (Matlab Direct Link nahi hai)
-            // Stream band karo aur Proxy Mode batao
-            if(response.data && response.data.destroy) response.data.destroy();
-            return res.json({ success: true, mode: 'proxy' });
+            // CASE B: Chhoti File (200 OK Mila) -> Use Proxy
+            if(response.data && typeof response.data.destroy === 'function') response.data.destroy();
+            
+            return res.json({ 
+                success: true, 
+                mode: 'proxy', 
+                url: `/api/stream/${fileId}` 
+            });
 
         } catch (axiosError) {
-             // Agar error mein link chhupa ho
-             if (axiosError.response && (axiosError.response.status === 302 || axiosError.response.status === 303 || axiosError.response.status === 307)) {
-                return res.json({ success: true, streamUrl: axiosError.response.headers.location, mode: 'direct' });
+             // Kabhi kabhi error mein link hota hai
+             if (axiosError.response && (axiosError.response.status === 302 || axiosError.response.status === 307)) {
+                return res.json({ 
+                    success: true, 
+                    mode: 'direct', 
+                    url: axiosError.response.headers.location 
+                });
              }
-             throw axiosError;
+             // Agar kuch aur error hai, to Proxy try karo
+             return res.json({ success: true, mode: 'proxy', url: `/api/stream/${fileId}` });
         }
 
     } catch (error) {
-        console.error("Sniffer Error:", error.message);
-        res.json({ success: true, mode: 'proxy' });
+        console.error("Source Error:", error.message);
+        res.status(500).json({ success: false, error: "Failed to determine video source" });
     }
 });
 
-// 2. PROXY STREAMING ROUTE (Backup for files with no direct link)
+// 2. PROXY STREAMING (Backup Engine for Small Files)
 app.get('/api/stream/:fileId', async (req, res) => {
     try {
         const fileId = req.params.fileId;
         const range = req.headers.range;
 
+        // Metadata for Size
         const metadata = await drive.files.get({ fileId: fileId, fields: 'size, mimeType' });
         const fileSize = parseInt(metadata.data.size);
         
@@ -1414,11 +1429,15 @@ app.get('/api/stream/:fileId', async (req, res) => {
                 'Content-Length': fileSize,
                 'Content-Type': metadata.data.mimeType || 'video/mp4',
             });
-            const response = await drive.files.get({ fileId: fileId, alt: 'media' }, { responseType: 'stream' });
+            const response = await drive.files.get(
+                { fileId: fileId, alt: 'media' }, 
+                { responseType: 'stream' }
+            );
             response.data.pipe(res);
         }
     } catch (error) {
-        if (!res.headersSent) res.status(500).send("Stream Error");
+        // Quietly fail
+        if (!res.headersSent) res.end(); 
     }
 });
 

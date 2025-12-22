@@ -837,66 +837,45 @@ async function sendToStudio() {
     
 
 // 🎥 OPEN THEATER (Fastest Engine + Auto-Size UI)
+// 🎥 OPEN THEATER (Smart Hybrid: Direct + Proxy Fallback)
     async function openTheater(link, title, fileId) {
         const modal = document.getElementById('theaterModal');
         if (!modal) return;
 
-        // 1. ID Extraction & Validation (Fix 'undefined' error)
+        // 1. Validate ID
         let finalId = fileId;
         if (!finalId && link) {
             if(link.includes('/d/')) finalId = link.split('/d/')[1].split('/')[0];
             else if(link.includes('id=')) finalId = link.split('id=')[1].split('&')[0];
         }
+        if (!finalId || finalId === 'undefined') return alert("Invalid Video ID");
 
-        if (!finalId || finalId === 'undefined') {
-            alert("Error: Invalid Video ID. Please re-upload.");
-            return;
-        }
-
-        // 2. CLEANUP: Purana player hatao
+        // 2. Clean Old Player
         if (window.currentPlayer) {
             window.currentPlayer.destroy();
             window.currentPlayer = null;
         }
         document.getElementById('playerContainer').innerHTML = '';
 
-        // 3. UI: CSS Injection (SQUARE BOX REMOVER)
-        // Ye CSS player ko bolti hai: "Video ke hisab se size adjust kar, dabba mat bana"
+        // 3. CSS for Full Size (No Square Box)
         if (!document.getElementById('plyr-custom-css')) {
             const style = document.createElement('style');
             style.id = 'plyr-custom-css';
             style.innerHTML = `
-                /* Container full screen le */
-                #playerContainer { display: flex; align-items: center; justify-content: center; background: black; }
-                
-                /* Plyr wrapper ko loose chodo */
-                .plyr { width: auto !important; height: auto !important; max-width: 100%; max-height: 100%; }
-                
-                /* Video ko aspect ratio maintain karne do */
-                .plyr__video-wrapper { width: auto !important; height: auto !important; }
-                
-                /* Asli video tag ko control karo */
-                video { 
-                    max-width: 100vw !important; 
-                    max-height: 90vh !important; 
-                    object-fit: contain !important; /* Shorts lamba dikhega, Movie chaudi */
-                    width: auto !important;
-                    height: auto !important;
-                }
+                #playerContainer { background: black; display: flex; align-items: center; justify-content: center; }
+                .plyr { width: 100%; height: 100%; }
+                video { object-fit: contain; max-height: 90vh; width: 100%; }
             `;
             document.head.appendChild(style);
         }
 
-        // 4. Loading UI
+        // 4. Loader
         document.getElementById('playerTitle').innerText = title || "Video";
         const playerContainer = document.getElementById('playerContainer');
         playerContainer.innerHTML = `
-            <div class="flex flex-col items-center gap-2">
-                <svg class="animate-spin h-8 w-8 text-blue-500" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
-                    <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
-                    <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
-                </svg>
-                <span class="text-gray-400 text-xs tracking-widest">CONNECTING TO HIGH-SPEED VAULT...</span>
+            <div class="flex flex-col items-center gap-3">
+                <svg class="animate-spin h-10 w-10 text-white" fill="none" viewBox="0 0 24 24"><circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle><path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path></svg>
+                <span class="text-gray-400 text-xs tracking-widest">ANALYZING VIDEO SOURCE...</span>
             </div>`;
         
         modal.classList.remove('hidden');
@@ -904,45 +883,43 @@ async function sendToStudio() {
         setTimeout(() => modal.classList.remove('opacity-0'), 10);
 
         try {
-            // 5. TOKEN FETCH (Server se bas "Pass" mango)
-            // Ye process 0.2s leta hai.
-            const tokenRes = await fetch('/api/auth/get-playback-token');
-            const tokenData = await tokenRes.json();
+            // 5. Ask Server for BEST Source
+            const res = await fetch(`/api/drive/get-video-source/${finalId}`);
+            const data = await res.json();
             
-            if(!tokenData.success) throw new Error("Access Token Failed");
+            if(!data.success) throw new Error("Source Failed");
 
-            // 6. DIRECT LINK (No Server Processing)
-            // Google Virus Scan Bypass Link
-            const directStreamUrl = `https://www.googleapis.com/drive/v3/files/${finalId}?alt=media&access_token=${tokenData.token}`;
-            
-            console.log("🚀 Launching Direct Stream:", finalId);
+            console.log(`🎬 Mode: ${data.mode.toUpperCase()}`);
 
-            // 7. PLAYER INJECT
+            // 6. Inject Player
             playerContainer.innerHTML = `
                 <video id="cinemaPlayer" playsinline controls crossorigin>
-                    <source src="${directStreamUrl}" type="video/mp4" />
+                    <source src="${data.url}" type="video/mp4" />
                 </video>
             `;
 
-            // 8. PLYR INIT (Without Fixed Ratio)
+            // 7. Init Plyr
             window.currentPlayer = new Plyr('#cinemaPlayer', {
                 autoplay: true,
                 controls: ['play-large', 'play', 'progress', 'current-time', 'mute', 'volume', 'fullscreen', 'settings'],
-                ratio: null, // 🔥 IMP: Ratio null rakhne se player video ke size ka ho jata hai
+                ratio: null, // Auto Aspect Ratio
                 keyboard: { focused: true, global: true }
             });
 
-            // Auto Play Force
+            // Autoplay Handler (Browser Block Fix)
             window.currentPlayer.on('ready', () => {
                 const playPromise = window.currentPlayer.play();
-                if (playPromise) playPromise.catch(e => console.warn("Autoplay needs interaction", e));
+                if (playPromise) {
+                    playPromise.catch(() => {
+                        console.warn("Autoplay blocked. User interaction needed.");
+                        // Show a big play button overlay if needed, but Plyr handles this well usually
+                    });
+                }
             });
 
-            // Error Fallback
             window.currentPlayer.on('error', (e) => {
-                console.error("Direct Play Failed:", e);
-                // Agar 12GB file par token expire ho jaye to retry logic lagaya ja sakta hai
-                alert("Playback interrupted. Reopening...");
+                console.error("Playback Error:", e);
+                alert("Playback failed. Try refreshing.");
             });
 
         } catch (error) {
