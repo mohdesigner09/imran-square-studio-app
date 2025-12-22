@@ -722,6 +722,43 @@ async function sendToStudio() {
         }
     }
 
+    // 💾 LOAD DATA ON REFRESH
+    async function loadProjectData() {
+        console.log("🔄 Fetching videos from Database...");
+        try {
+            // Project ID verify karo
+            if (!PROJECT_ID) {
+                console.warn("No Project ID found.");
+                return;
+            }
+
+            const doc = await window.db.collection('projects').doc(PROJECT_ID).get();
+            if (doc.exists) {
+                const data = doc.data();
+                if (data.footageLib && Array.isArray(data.footageLib)) {
+                    // Global variable update karo
+                    currentRawClips = data.footageLib;
+                    
+                    // Grid Refresh karo
+                    console.log(`✅ Loaded ${currentRawClips.length} videos.`);
+                    renderVideos(); 
+                    updateStats();
+                }
+            } else {
+                console.log("No saved data found for this project.");
+            }
+        } catch (error) {
+            console.error("Error loading data:", error);
+        }
+    }
+
+    // 🔥 PAGE LOAD TRIGGER
+    // Ye line script ke end mein add karein taaki refresh par code chale
+    window.addEventListener('DOMContentLoaded', () => {
+        // Auth check ke baad load karo (thoda delay safe rehta hai)
+        setTimeout(loadProjectData, 1000);
+    });
+
     // 💾 HELPER: Database Save Logic
 // 💾 HELPER: Database Save + Instant UI Update
     async function finalizeSuccess(data, uName, fileName) {
@@ -799,47 +836,37 @@ async function sendToStudio() {
 
     
 
-// 🎥 OPEN THEATER (Hybrid: Direct Link + Proxy Backup)
+// 🎥 OPEN THEATER (Auto-Ratio + Fast Stream)
     async function openTheater(link, title, fileId) {
         const modal = document.getElementById('theaterModal');
         if (!modal) return;
 
-        // 1. Clean Old Player
         if (window.currentPlayer) {
             window.currentPlayer.destroy();
             window.currentPlayer = null;
         }
         document.getElementById('playerContainer').innerHTML = '';
 
-        // 2. Inject CSS
+        // ✨ CSS FIX: Flexible Height & Width (No Fixed Square)
         if (!document.getElementById('plyr-custom-css')) {
             const style = document.createElement('style');
             style.id = 'plyr-custom-css';
             style.innerHTML = `
-                .plyr { height: 100% !important; width: 100% !important; min-height: 400px; }
-                .plyr__video-wrapper { height: 100% !important; width: 100% !important; background: #000; }
-                video { object-fit: contain !important; }
+                .plyr { height: 100% !important; width: 100% !important; background: transparent; }
+                .plyr__video-wrapper { height: 100% !important; width: 100% !important; display: flex; align-items: center; justify-content: center; background: #000; }
+                video { max-height: 90vh !important; max-width: 100% !important; width: auto !important; height: auto !important; object-fit: contain !important; }
             `;
             document.head.appendChild(style);
         }
 
-        // 3. UI Loader
         document.getElementById('playerTitle').innerText = title || "Video";
         const playerContainer = document.getElementById('playerContainer');
-        playerContainer.innerHTML = `
-            <div class="text-white flex flex-col items-center justify-center h-full gap-3">
-                <svg class="animate-spin h-10 w-10 text-purple-500" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
-                    <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
-                    <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
-                </svg>
-                <p class="text-sm text-gray-400 font-mono">Optimizing Stream...</p>
-            </div>`;
+        playerContainer.innerHTML = `<div class="text-white flex flex-col items-center justify-center h-full"><p class="animate-pulse">Loading Stream...</p></div>`;
         
         modal.classList.remove('hidden');
         modal.classList.add('flex');
         setTimeout(() => modal.classList.remove('opacity-0'), 10);
 
-        // 4. Extract ID
         let finalId = fileId;
         if (!finalId && link) {
             if(link.includes('/d/')) finalId = link.split('/d/')[1].split('/')[0];
@@ -847,24 +874,13 @@ async function sendToStudio() {
         }
 
         try {
-            // 5. Ask Server: "Best Rasta Batao"
             const res = await fetch(`/api/drive/get-stream-url/${finalId}`);
             const data = await res.json();
+            let videoSrc = (data.success && data.mode === 'direct') ? data.streamUrl : `/api/stream/${finalId}`;
 
-            let videoSrc = "";
-            
-            if (data.success && data.mode === 'direct' && data.streamUrl) {
-                console.log("🚀 Mode: Direct High-Speed");
-                videoSrc = data.streamUrl;
-            } else {
-                console.log("🐢 Mode: Proxy Stream (No Direct Link Available)");
-                videoSrc = `/api/stream/${finalId}`;
-            }
-
-            // 6. Init Player
             playerContainer.innerHTML = `
-                <div class="w-full h-full bg-black relative">
-                    <video id="cinemaPlayer" playsinline controls crossorigin class="plyr-video w-full h-full">
+                <div class="w-full h-full relative flex justify-center items-center">
+                    <video id="cinemaPlayer" playsinline controls crossorigin class="plyr-video">
                         <source src="${videoSrc}" type="video/mp4" />
                     </video>
                 </div>
@@ -873,6 +889,7 @@ async function sendToStudio() {
             window.currentPlayer = new Plyr('#cinemaPlayer', {
                 autoplay: true,
                 controls: ['play-large', 'play', 'progress', 'current-time', 'mute', 'volume', 'fullscreen', 'settings'],
+                ratio: null, // ⚡ IMPORTANT: Disable fixed ratio
                 keyboard: { focused: true, global: true }
             });
 
@@ -881,18 +898,9 @@ async function sendToStudio() {
                 if (playPromise) playPromise.catch(e => console.warn("Autoplay blocked:", e));
             });
 
-            window.currentPlayer.on('error', (e) => {
-                console.error("Player Error:", e);
-                // Last Resort: Switch to Iframe if everything fails
-                if(confirm("Playback failed. Try standard player?")) {
-                    // Logic for iframe fallback (optional)
-                    window.open(link, '_blank');
-                }
-            });
-
         } catch (error) {
             console.error(error);
-            playerContainer.innerHTML = `<div class="text-red-500 text-center p-4">Connection Error. Please retry.</div>`;
+            playerContainer.innerHTML = `<div class="text-red-500">Error loading video</div>`;
         }
     }
 

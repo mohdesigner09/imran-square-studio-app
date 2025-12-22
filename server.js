@@ -1338,34 +1338,38 @@ app.use((err, req, res, next) => {
 // 🚀 HYBRID STREAMING ENGINE (Final Solution)
 // ==========================================
 
-// 1. INTELLIGENT LINK SNIFFER (Detects Redirect vs Content)
+// 1. INTELLIGENT LINK SNIFFER (Super Fast - No Download)
 app.get('/api/drive/get-stream-url/:fileId', async (req, res) => {
     try {
         const fileId = req.params.fileId;
         const tokenResponse = await oauth2Client.getAccessToken();
 
         try {
-            // Google se pucho: "Link doge ya File?"
+            // Google se pucho, par DATA mat mango (stream mode)
             const response = await axios.get(
                 `https://www.googleapis.com/drive/v3/files/${fileId}?alt=media`,
                 {
                     headers: { 'Authorization': `Bearer ${tokenResponse.token}` },
-                    maxRedirects: 0, // Redirect mat hona, humein pakadna hai
-                    validateStatus: status => status >= 200 && status < 400
+                    maxRedirects: 0,
+                    validateStatus: status => status >= 200 && status < 400,
+                    responseType: 'stream' // ⚡ KEY FIX: Don't download body!
                 }
             );
 
-            // CASE 1: Agar Google ne Redirect (Link) diya (Status 302/303/307)
+            // CASE 1: Redirect Link Mila (Fastest)
             if (response.status === 302 || response.status === 303 || response.status === 307) {
+                 // Stream turant band karo, humein bas link chahiye tha
+                 if(response.data && response.data.destroy) response.data.destroy();
                  return res.json({ success: true, streamUrl: response.headers.location, mode: 'direct' });
             }
 
-            // CASE 2: Agar Google ne 200 OK diya (Matlab Direct Link nahi hai)
-            // To hum Proxy Mode use karenge
+            // CASE 2: File Data Mila (Matlab Direct Link nahi hai)
+            // Stream band karo aur Proxy Mode batao
+            if(response.data && response.data.destroy) response.data.destroy();
             return res.json({ success: true, mode: 'proxy' });
 
         } catch (axiosError) {
-             // Axios kabhi kabhi Redirect par error fekta hai, use yahan pakdo
+             // Agar error mein link chhupa ho
              if (axiosError.response && (axiosError.response.status === 302 || axiosError.response.status === 303 || axiosError.response.status === 307)) {
                 return res.json({ success: true, streamUrl: axiosError.response.headers.location, mode: 'direct' });
              }
@@ -1374,7 +1378,6 @@ app.get('/api/drive/get-stream-url/:fileId', async (req, res) => {
 
     } catch (error) {
         console.error("Sniffer Error:", error.message);
-        // Agar kuch bhi fail ho, to safe side Proxy use karo
         res.json({ success: true, mode: 'proxy' });
     }
 });
