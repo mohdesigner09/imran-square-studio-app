@@ -799,17 +799,32 @@ async function sendToStudio() {
 
     
 
-// 🎥 OPEN THEATER (With Animation Fix)
-//
-// 🎥 OPEN THEATER (The "Direct-Drive" Engine)
-// 🎥 OPEN THEATER (Auto-Injects Dependencies + High Speed Stream)
+// 🎥 OPEN THEATER (Final Fix: Cleanup + Visibility + Speed)
     async function openTheater(link, title, fileId) {
         const modal = document.getElementById('theaterModal');
         if (!modal) return;
         
-        // 1. Check & Inject Plyr CSS/JS (Agar aapne Head me nahi lagaya)
+        // 1. CLEANUP: Agar koi purana player zinda hai, to usse maaro
+        if (window.currentPlayer) {
+            console.log("🧹 Cleaning up old player...");
+            window.currentPlayer.destroy();
+            window.currentPlayer = null;
+        }
+
+        // 2. CSS FORCE: Plyr ko zabardasti dikhao (Inject Styles)
+        if (!document.getElementById('plyr-custom-css')) {
+            const style = document.createElement('style');
+            style.id = 'plyr-custom-css';
+            style.innerHTML = `
+                .plyr { height: 100% !important; width: 100% !important; min-height: 400px; }
+                .plyr__video-wrapper { height: 100% !important; width: 100% !important; background: #000; }
+                video { object-fit: contain !important; }
+            `;
+            document.head.appendChild(style);
+        }
+        
+        // 3. Dependency Check (Auto-Inject)
         if (!document.querySelector('link[href*="plyr.css"]')) {
-            console.log("⚠️ Plyr CSS missing. Injecting automatically...");
             const css = document.createElement('link');
             css.rel = 'stylesheet';
             css.href = 'https://cdn.plyr.io/3.7.8/plyr.css';
@@ -817,7 +832,6 @@ async function sendToStudio() {
         }
         
         if (typeof Plyr === 'undefined') {
-            console.log("⚠️ Plyr JS missing. Injecting automatically...");
             await new Promise((resolve) => {
                 const script = document.createElement('script');
                 script.src = 'https://cdn.plyr.io/3.7.8/plyr.js';
@@ -826,18 +840,18 @@ async function sendToStudio() {
             });
         }
 
-        // 2. UI Setup
+        // 4. UI Reset
         document.getElementById('playerTitle').innerText = title || "Video";
         const playerContainer = document.getElementById('playerContainer');
         
-        // Loading Spinner
+        // Loader UI
         playerContainer.innerHTML = `
             <div class="text-white flex flex-col items-center justify-center h-full gap-3">
-                <svg class="animate-spin h-10 w-10 text-orange-500" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                <svg class="animate-spin h-12 w-12 text-blue-500" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
                     <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
                     <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
                 </svg>
-                <p class="text-sm text-gray-400 font-mono">Connecting to High-Speed Server...</p>
+                <p class="text-sm text-gray-400 font-mono tracking-wider">CONNECTING TO HIGH-SPEED SERVER...</p>
             </div>`;
         
         modal.classList.remove('hidden');
@@ -845,98 +859,85 @@ async function sendToStudio() {
         setTimeout(() => { modal.classList.remove('opacity-0'); modal.classList.add('opacity-100'); }, 10);
 
         try {
-            // 3. ID Extraction
+            // ID Extraction Logic
             let finalId = fileId;
             if (!finalId && link) {
                 if(link.includes('/d/')) finalId = link.split('/d/')[1].split('/')[0];
                 else if(link.includes('id=')) finalId = link.split('id=')[1].split('&')[0];
             }
-            console.log("🎬 Playing File ID:", finalId);
 
-            // 4. Server se V.I.P Token mango
+            // 5. Token Generation
             const tokenRes = await fetch('/api/auth/get-playback-token');
             const tokenData = await tokenRes.json();
-            
-            if(!tokenData.success) throw new Error("Token generation failed");
+            if(!tokenData.success) throw new Error("Token Failed");
 
-            // 5. 🔥 DIRECT LINK GENERATION
+            // 6. Direct Link
             const directStreamUrl = `https://www.googleapis.com/drive/v3/files/${finalId}?alt=media&access_token=${tokenData.token}`;
-            console.log("🚀 Stream Link Generated:", directStreamUrl);
+            console.log("🚀 Playing:", directStreamUrl);
 
-            // 6. Player Inject
+            // 7. Inject HTML5 Video
             playerContainer.innerHTML = `
-                <div class="w-full h-full bg-black rounded-lg overflow-hidden shadow-2xl relative">
-                    <video id="cinemaPlayer" playsinline controls class="plyr-video w-full h-full object-contain">
+                <div class="w-full h-full bg-black relative">
+                    <video id="cinemaPlayer" playsinline controls crossorigin class="plyr-video w-full h-full">
                         <source src="${directStreamUrl}" type="video/mp4" />
                     </video>
                 </div>
             `;
 
-            // 7. Initialize Plyr
-            const player = new Plyr('#cinemaPlayer', {
+            // 8. Initialize Plyr (Global Variable Store karo)
+            window.currentPlayer = new Plyr('#cinemaPlayer', {
                 controls: ['play-large', 'play', 'progress', 'current-time', 'mute', 'volume', 'fullscreen', 'settings'],
                 settings: ['speed'],
-                autoplay: true,
-                keyboard: { focused: true, global: true }
+                autoplay: true, // Config se autoplay
+                keyboard: { focused: true, global: true },
+                ratio: '16:9' // Aspect ratio fallback
             });
 
-            // Auto Play Force
-            player.on('ready', () => {
-                console.log("✅ Player Ready. Starting playback...");
-                player.play();
+            // Safe Play Handler
+            window.currentPlayer.on('ready', () => {
+                console.log("✅ Player Ready. Video Visible via CSS Force.");
+                // Error handling for play promise
+                const playPromise = window.currentPlayer.play();
+                if (playPromise !== undefined) {
+                    playPromise.catch(error => {
+                        console.warn("Autoplay prevented by browser (Click play to start).", error);
+                    });
+                }
             });
 
-            // Error Logging
-            player.on('error', (event) => {
-                console.error("❌ Plyr Error:", event.detail);
-                alert("Video Playback Error. Check Console.");
+            // Handle Errors
+            window.currentPlayer.on('error', (event) => {
+                console.error("Plyr Error:", event.detail);
+                // Fallback to Iframe if heavy file fails
+                if(confirm("High-Speed Player failed. Switch to Standard Player?")) {
+                    switchToIframe(finalId);
+                }
             });
             
         } catch (error) {
             console.error(error);
-            playerContainer.innerHTML = `
-                <div class="text-red-500 text-center p-4">
-                    <p class="text-2xl mb-2">⚠️</p>
-                    <p class="text-lg font-bold">Playback Error</p>
-                    <p class="text-xs font-mono mt-2 bg-gray-900 p-2 rounded text-red-300">${error.message}</p>
-                    <button onclick="closeTheater()" class="mt-4 px-4 py-2 bg-white/10 hover:bg-white/20 rounded text-sm text-white">Close</button>
-                </div>`;
+            playerContainer.innerHTML = `<div class="text-red-500 text-center p-10"><h2 class="text-xl font-bold">Playback Error</h2><p>${error.message}</p></div>`;
         }
     }
 
-    // 🔄 FALLBACK: Switch to Old Google Player
-    function switchToIframe(finalId) {
-        const container = document.getElementById('playerContainer');
-        const embedUrl = `https://drive.google.com/file/d/${finalId}/preview`;
-        
-        container.innerHTML = `
-             <div class="w-full h-full flex flex-col bg-black relative group">
-                <iframe src="${embedUrl}" class="flex-1 w-full h-full border-0 z-10" allow="autoplay; encrypted-media" allowfullscreen></iframe>
-                
-                <div class="absolute top-4 right-4 z-50 flex gap-2">
-                     <button onclick="fixPlayback('${finalId}')" class="bg-red-600 hover:bg-red-700 text-white text-xs font-bold px-3 py-1.5 rounded shadow-lg border border-red-400 flex items-center gap-2">
-                        Fix Playback
-                    </button>
-                </div>
-            </div>
-        `;
-    }
-
-    // 🎥 CLOSE THEATER
+    // Close par destroy zaroor karein
     function closeTheater() {
         const modal = document.getElementById('theaterModal');
-        if (!modal) return;
-
-        // Fade Out first
-        modal.classList.remove('opacity-100');
-        modal.classList.add('opacity-0');
-        
-        // Phir Hide karo
-        setTimeout(() => {
-            modal.classList.add('hidden');
-            modal.classList.remove('flex');
-            document.getElementById('playerContainer').innerHTML = ''; // Stop video
-        }, 300); // 300ms transition time match karega
+        if (modal) {
+            modal.classList.remove('opacity-100');
+            modal.classList.add('opacity-0');
+            setTimeout(() => {
+                modal.classList.add('hidden');
+                modal.classList.remove('flex');
+                
+                // CRITICAL: Memory cleanup
+                if (window.currentPlayer) {
+                    window.currentPlayer.destroy();
+                    window.currentPlayer = null;
+                }
+                document.getElementById('playerContainer').innerHTML = '';
+            }, 300);
+        }
     }
     
    // ✅ MISSING FUNCTION ADDED HERE
