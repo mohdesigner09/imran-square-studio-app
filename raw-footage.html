@@ -353,39 +353,45 @@
 </div>
 
     <!-- UPLOAD MODAL (Updated) -->
-<div id="uploadFootageModal" class="hidden fixed inset-0 bg-black/90 backdrop-blur-md z-50 flex items-center justify-center p-4">
-    <div class="bg-[#0a0a0a] border border-white/10 rounded-2xl max-w-lg w-full p-6 relative shadow-2xl">
+<div id="uploadFootageModal" class="hidden fixed inset-0 bg-black/95 backdrop-blur-md z-50 flex items-center justify-center p-4">
+    <div class="bg-[#0a0a0a] border border-white/10 rounded-2xl max-w-2xl w-full p-6 relative shadow-2xl flex flex-col max-h-[90vh]">
         
-        <button onclick="closeUploadModal()" class="absolute top-4 right-4 text-gray-400 hover:text-white transition z-10">
-            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path></svg>
-        </button>
-<div id="uploadStep1">
-    <h2 class="text-xl font-display font-bold text-white mb-2">Upload Footage</h2>
-    <p class="text-sm text-gray-400 mb-6">Select a video to upload. We will auto-detect if it's a Short or Long video.</p>
-
-    <input type="file" id="fileInput" accept="video/*" class="hidden">
-    
-    <div onclick="document.getElementById('fileInput').click()" class="border-2 border-dashed border-white/10 rounded-xl p-8 text-center cursor-pointer hover:border-orange-500/50 hover:bg-white/5 transition group">
-        <div class="w-12 h-12 mx-auto mb-3 rounded-full bg-white/5 flex items-center justify-center group-hover:scale-110 transition">
-            <svg class="w-6 h-6 text-gray-300 group-hover:text-orange-500 transition" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12"></path></svg>
-        </div>
-        <p class="text-gray-300 font-medium text-sm">Click to choose video</p>
-    </div>
-
-    <div id="filePreview" class="hidden mt-4">
-        <div class="p-3 bg-white/5 rounded-lg border border-white/10 flex items-center gap-3 mb-4">
-            <div class="w-16 h-9 bg-black rounded overflow-hidden flex-shrink-0 border border-white/10">
-                <img id="previewThumbnail" class="w-full h-full object-cover opacity-80" />
+        <div class="flex justify-between items-center mb-4">
+            <div>
+                <h2 class="text-xl font-display font-bold text-white">Upload to Vault</h2>
+                <p class="text-xs text-gray-400">Select multiple clips, rename them, and upload.</p>
             </div>
-            <div class="flex-1 min-w-0 text-left">
-                <p id="previewFileName" class="text-white text-sm font-medium truncate"></p>
-                <span id="detectedBadge" class="inline-block mt-1 px-2 py-0.5 rounded text-[10px] font-bold bg-gray-700 text-gray-300">Detecting...</span>
-            </div>
+            <button onclick="closeUploadModal()" class="text-gray-400 hover:text-white transition">
+                <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path></svg>
+            </button>
         </div>
-        <button onclick="sendToStudio()" class="w-full bg-orange-600 hover:bg-orange-700 text-white font-bold py-2.5 rounded-lg transition text-sm">
-            Start Upload
-        </button>
+
+        <div id="uploadStep1" class="flex-1 overflow-y-auto pr-2 custom-scrollbar">
+            
+            <input type="file" id="fileInput" accept="video/*" multiple class="hidden">
+            
+            <div onclick="document.getElementById('fileInput').click()" class="border-2 border-dashed border-white/10 rounded-xl p-6 text-center cursor-pointer hover:border-orange-500/50 hover:bg-white/5 transition group mb-6">
+                <div class="w-10 h-10 mx-auto mb-2 rounded-full bg-white/5 flex items-center justify-center group-hover:scale-110 transition">
+                    <svg class="w-5 h-5 text-gray-300 group-hover:text-orange-500 transition" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"></path></svg>
+                </div>
+                <p class="text-gray-300 font-medium text-sm">Click to select videos</p>
+            </div>
+
+            <div id="uploadList" class="flex flex-col gap-3">
+                </div>
+
+        </div>
+
+        <div class="mt-4 pt-4 border-t border-white/10 flex justify-end gap-3">
+            <button onclick="closeUploadModal()" class="px-4 py-2 rounded-lg text-sm text-gray-400 hover:text-white hover:bg-white/5 transition">Cancel</button>
+            <button onclick="startBatchUpload()" id="btnStartUpload" class="hidden px-6 py-2 bg-orange-600 hover:bg-orange-700 text-white font-bold rounded-lg text-sm transition flex items-center gap-2">
+                <span>Start Upload</span>
+                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12"></path></svg>
+            </button>
+        </div>
+
     </div>
+</div>
     
     <p id="text" class="mt-3 text-center text-gray-500 text-xs font-mono h-4"></p>
 </div>
@@ -646,122 +652,269 @@
         });
     }
 
-    // 5. UPLOAD & HELPERS (Keep existing logic)
+ // ==========================================
+    // 5. 🚀 BATCH UPLOAD ENGINE (Multi-File + Titles)
+    // ==========================================
+    
+    let uploadQueue = []; // Stores file objects and metadata
+
+    // A. File Selection Listener
     const fileInput = document.getElementById('fileInput');
     if (fileInput) {
-        fileInput.addEventListener('change', (e) => {
-            selectedFile = e.target.files[0];
-            if(selectedFile) {
-                document.getElementById('filePreview').classList.remove('hidden');
-                document.getElementById('previewFileName').innerText = selectedFile.name;
-                const v = document.createElement('video');
-                v.src = URL.createObjectURL(selectedFile);
-                v.onloadedmetadata = () => {
-                    // Logic to update badge based on width/height
-                    const badge = document.getElementById('detectedBadge');
-                    if(v.videoHeight > v.videoWidth) {
-                        badge.innerText = "SHORT";
-                    } else {
-                        badge.innerText = "LONG";
+        fileInput.addEventListener('change', handleFileSelect);
+    }
+
+    function handleFileSelect(e) {
+        const files = Array.from(e.target.files);
+        if (files.length === 0) return;
+
+        // Add to Queue
+        files.forEach(file => {
+            // Generate unique ID for tracking
+            const queueId = Date.now() + Math.random().toString(36).substr(2, 9);
+            
+            uploadQueue.push({
+                id: queueId,
+                file: file,
+                customTitle: file.name.split('.').slice(0, -1).join('.'), // Remove extension for title
+                status: 'pending' // pending, uploading, done, error
+            });
+        });
+
+        renderUploadList();
+        
+        // Show Upload Button
+        const btn = document.getElementById('btnStartUpload');
+        if(btn && uploadQueue.length > 0) btn.classList.remove('hidden');
+    }
+
+    // B. Render the List (Thumbnails + Title Inputs)
+    function renderUploadList() {
+        const list = document.getElementById('uploadList');
+        list.innerHTML = '';
+
+        uploadQueue.forEach((item, index) => {
+            const div = document.createElement('div');
+            div.className = "flex items-center gap-3 bg-white/5 p-3 rounded-lg border border-white/10 relative overflow-hidden group";
+            div.id = `row-${item.id}`;
+
+            // Create Thumbnail Blob
+            const videoUrl = URL.createObjectURL(item.file);
+
+            div.innerHTML = `
+                <div class="w-16 h-10 bg-black rounded overflow-hidden flex-shrink-0 relative border border-white/10">
+                    <video src="${videoUrl}" class="w-full h-full object-cover opacity-80" onloadeddata="this.currentTime=1"></video>
+                </div>
+
+                <div class="flex-1 min-w-0 z-10">
+                    <input type="text" 
+                        value="${item.customTitle}" 
+                        onchange="updateQueueTitle('${item.id}', this.value)"
+                        class="bg-transparent border-b border-transparent hover:border-white/20 focus:border-orange-500 text-white text-sm font-medium w-full outline-none px-1 py-0.5 transition placeholder-gray-600"
+                        placeholder="Enter Video Title">
+                    
+                    <div class="flex justify-between items-center mt-1">
+                        <span class="text-[10px] text-gray-500 font-mono">${(item.file.size / (1024*1024)).toFixed(1)} MB</span>
+                        <span id="status-${item.id}" class="text-[10px] font-bold text-gray-400">READY</span>
+                    </div>
+                </div>
+
+                <button onclick="removeFromQueue('${item.id}')" class="text-gray-600 hover:text-red-500 z-10 p-2" title="Remove">
+                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path></svg>
+                </button>
+
+                <div id="progress-${item.id}" class="absolute bottom-0 left-0 h-0.5 bg-orange-500 transition-all duration-300 z-0" style="width: 0%"></div>
+            `;
+            list.appendChild(div);
+        });
+    }
+
+    // Helper: Update Title in Queue
+    function updateQueueTitle(id, newTitle) {
+        const item = uploadQueue.find(i => i.id === id);
+        if(item) item.customTitle = newTitle || item.file.name;
+    }
+
+    // Helper: Remove from Queue
+    function removeFromQueue(id) {
+        uploadQueue = uploadQueue.filter(i => i.id !== id);
+        renderUploadList();
+        if(uploadQueue.length === 0) document.getElementById('btnStartUpload').classList.add('hidden');
+    }
+
+    // C. START BATCH UPLOAD (The Engine)
+    async function startBatchUpload() {
+        const btn = document.getElementById('btnStartUpload');
+        btn.disabled = true;
+        btn.innerHTML = `<svg class="animate-spin w-4 h-4 text-white" fill="none" viewBox="0 0 24 24"><circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle><path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path></svg> Processing...`;
+
+        // Process sequentially to prevent crashing
+        for (const item of uploadQueue) {
+            if (item.status === 'done') continue; // Skip finished
+
+            await uploadSingleFile(item);
+        }
+
+        btn.disabled = false;
+        btn.innerHTML = "Upload Complete";
+        setTimeout(() => {
+            // Close modal if all done
+            if(uploadQueue.every(i => i.status === 'done')) {
+                closeUploadModal();
+                uploadQueue = []; // Reset
+                document.getElementById('uploadList').innerHTML = '';
+                btn.classList.add('hidden');
+                btn.innerHTML = `<span>Start Upload</span>...`; // Reset Text
+            }
+        }, 1500);
+    }
+
+    // D. SINGLE UPLOAD LOGIC
+    function uploadSingleFile(item) {
+        return new Promise(async (resolve, reject) => {
+            const statusEl = document.getElementById(`status-${item.id}`);
+            const progressEl = document.getElementById(`progress-${item.id}`);
+            const row = document.getElementById(`row-${item.id}`);
+
+            item.status = 'uploading';
+            statusEl.innerText = "INIT...";
+            statusEl.className = "text-[10px] font-bold text-orange-400 animate-pulse";
+
+            const uName = currentUser ? currentUser.email : "Guest";
+
+            try {
+                // 1. Get Ticket
+                const response = await fetch('/api/drive/init-upload', {
+                    method: 'POST', 
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ 
+                        userName: uName, 
+                        projectName: "Raw_Footage", 
+                        fileName: item.file.name, // Original name for Drive
+                        fileType: item.file.type 
+                    })
+                });
+                const data = await response.json();
+                if(!data.success) throw new Error("Init Failed");
+
+                // 2. Upload XHR
+                const xhr = new XMLHttpRequest();
+                xhr.open("PUT", data.uploadUrl, true);
+                xhr.setRequestHeader("Content-Type", item.file.type);
+
+                xhr.upload.onprogress = (e) => {
+                    if (e.lengthComputable) {
+                        const percent = (e.loaded / e.total) * 100;
+                        progressEl.style.width = `${percent}%`;
+                        statusEl.innerText = `${Math.round(percent)}%`;
                     }
                 };
+
+                xhr.onload = async () => {
+                    if (xhr.status === 200 || xhr.status === 201 || xhr.status === 308) {
+                        await finalizeBatchSuccess(item, data, uName);
+                        resolve();
+                    } else {
+                        // Verification Fallback
+                        await verifyAndFinalizeBatch(item, data, uName);
+                        resolve();
+                    }
+                };
+
+                xhr.onerror = async () => {
+                    await verifyAndFinalizeBatch(item, data, uName);
+                    resolve();
+                };
+
+                xhr.send(item.file);
+
+            } catch (error) {
+                console.error(error);
+                statusEl.innerText = "FAILED";
+                statusEl.className = "text-[10px] font-bold text-red-500";
+                item.status = 'error';
+                resolve(); // Resolve anyway to continue queue
             }
         });
     }
 
-async function sendToStudio() {
-        if (!selectedFile) return alert("Please select a video file!");
+    // E. FINALIZE BATCH ITEM
+    async function finalizeBatchSuccess(item, data, uName) {
+        const statusEl = document.getElementById(`status-${item.id}`);
+        const row = document.getElementById(`row-${item.id}`);
+        
+        statusEl.innerText = "SAVING...";
+        
+        // Use CUSTOM TITLE from Input
+        const finalTitle = item.customTitle || item.file.name;
 
-        // 1. UI Setup
-        document.getElementById('uploadStep1').classList.add('hidden');
-        document.getElementById('uploadStep2').classList.remove('hidden');
-        const statusText = document.querySelector('#uploadStep2 h3');
-        statusText.innerText = "Connecting to Vault...";
+        // Detect Type
+        let vType = 'long';
+        // Simple logic: if file size < 50MB assume short, or if name contains 'short'
+        // Better logic: The video preview element has dimensions. 
+        // But for batch, let's trust filename or default to long.
+        if (finalTitle.toLowerCase().includes('short') || finalTitle.toLowerCase().includes('reel')) {
+            vType = 'shorts';
+        }
 
-        const uName = currentUser ? currentUser.email : "Guest";
-        const safeFileType = selectedFile.type || 'video/mp4'; 
+        const newVid = {
+            title: finalTitle, 
+            link: data.viewLink || "",
+            fileId: data.fileId,
+            thumb: "https://placehold.co/320x180/1a1a1a/FFFFFF/png?text=VIDEO", // Placeholder for now, real thumb takes time
+            type: vType,
+            uploadedBy: uName, 
+            uploadDate: new Date().toISOString()
+        };
 
         try {
-            // 2. Server Call (Ticket Mango)
-            const response = await fetch('/api/drive/init-upload', {
-                method: 'POST', 
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ 
-                    userName: uName, 
-                    projectName: "Raw_Footage", 
-                    fileName: selectedFile.name, 
-                    fileType: safeFileType 
-                })
-            });
-            
-            const data = await response.json();
-            if(!data.success) throw new Error(data.error || "Init failed");
+            // Update Database
+            await window.db.collection('projects').doc(PROJECT_ID).set({
+                footageLib: firebase.firestore.FieldValue.arrayUnion(newVid)
+            }, { merge: true });
 
-            // 3. Upload to Google (Asli Action)
-            const xhr = new XMLHttpRequest();
-            xhr.open("PUT", data.uploadUrl, true);
-            xhr.setRequestHeader("Content-Type", safeFileType);
+            // Update Local UI
+            currentRawClips.push(newVid);
+            // Render only if tab matches to avoid jumping
+            if((vType === 'shorts' && currentTab === 'shorts') || (vType === 'long' && currentTab === 'long')) {
+                renderVideos();
+            }
 
-            xhr.upload.onprogress = (e) => {
-                if (e.lengthComputable) {
-                    const percent = (e.loaded / e.total) * 100;
-                    statusText.innerText = `Uploading... ${Math.round(percent)}%`;
-                }
-            };
+            // UI Feedback
+            item.status = 'done';
+            statusEl.innerText = "DONE";
+            statusEl.className = "text-[10px] font-bold text-green-500";
+            row.classList.add('border-green-500/30', 'bg-green-500/5');
 
-            // ✅ SUCCESS HANDLER (Normal Case)
-            xhr.onload = async () => {
-                if (xhr.status === 200 || xhr.status === 201 || xhr.status === 308) {
-                    console.log("✅ Upload Success (Clean)!");
-                    await finalizeSuccess(data, uName, selectedFile.name);
-                } else {
-                    console.error("Upload Status Error:", xhr.status);
-                    // Agar 200 nahi hai, tab bhi verify try karo (kabhi kabhi 0 aata hai)
-                    verifyAndFinalize(data.fileId, uName, selectedFile.name, data);
-                }
-            };
-
-            // ⚠️ ERROR/CORS HANDLER (The Bypass)
-            xhr.onerror = () => {
-                console.warn("⚠️ CORS Blocked Response (Checking Server Verification...)");
-                statusText.innerText = "Verifying Upload...";
-                // Browser ne block kiya, par file wahan ho sakti hai. Server se confirm karo.
-                verifyAndFinalize(data.fileId, uName, selectedFile.name, data);
-            };
-            
-            xhr.send(selectedFile);
-
-        } catch(e) { 
-            console.error(e);
-            alert("Error: " + e.message); 
-            resetUploadUI();
+        } catch (error) {
+            statusEl.innerText = "DB ERROR";
+            console.error(error);
         }
     }
 
-    // 🔥 HELPER: Server se confirm karo ki file aayi ya nahi
-    async function verifyAndFinalize(fileId, uName, fileName, originalData) {
+    // Verification Fallback for Batch
+    async function verifyAndFinalizeBatch(item, data, uName) {
         try {
-            // Server ki 'finalize-upload' API use karke check karo
             const res = await fetch('/api/drive/finalize-upload', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ fileId: fileId })
+                body: JSON.stringify({ fileId: data.fileId })
             });
             const result = await res.json();
-            
             if (result.success) {
-                console.log("✅ Server Verified: File exists!");
-                // Agar server bole file hai, to DB update kar do
-                await finalizeSuccess(originalData, uName, fileName);
+                await finalizeBatchSuccess(item, data, uName);
             } else {
-                throw new Error("Verification Failed: File not found on Drive.");
+                throw new Error("Not Found");
             }
-        } catch (err) {
-            console.error(err);
-            alert("Upload Failed. Network blocked and file not verified.");
-            resetUploadUI();
+        } catch (e) {
+            const statusEl = document.getElementById(`status-${item.id}`);
+            statusEl.innerText = "NET ERR";
+            statusEl.className = "text-[10px] font-bold text-red-500";
         }
     }
+
+
+
 
     // 💾 LOAD DATA ON REFRESH
     async function loadProjectData() {
@@ -800,82 +953,7 @@ async function sendToStudio() {
         setTimeout(loadProjectData, 1000);
     });
 
-    // 💾 HELPER: Database Save Logic
-// 💾 HELPER: Database Save + Instant UI Update
-    async function finalizeSuccess(data, uName, fileName) {
-        console.log("🎬 Finalizing Video for Grid...");
-
-        // 1. Video Type Detect Karo
-        const badgeElement = document.getElementById('detectedBadge');
-        const badgeText = badgeElement ? badgeElement.innerText : 'LONG'; // Fallback
-        
-        // Agar "Detecting..." phasa reh gaya ho, to filename check kar lo
-        let vType = 'long';
-        if (badgeText.includes('SHORT')) {
-            vType = 'shorts';
-        } else if (fileName.toLowerCase().includes('short') || fileName.toLowerCase().includes('reel')) {
-            vType = 'shorts'; // Extra safety
-        }
-
-        // 2. New Video Object Banao
-        const newVid = {
-            title: fileName, 
-            link: data.viewLink || "", // Link kabhi null na ho
-            fileId: data.fileId,
-            thumb: "https://placehold.co/320x180/1a1a1a/FFFFFF/png?text=PROCESSING", 
-            type: vType,
-            uploadedBy: uName, 
-            uploadDate: new Date().toISOString()
-        };
-
-        try {
-            // 🔥 STEP 3: OPTIMISTIC UPDATE (Turant Dikhao)
-            // Database ka wait mat karo, user ko abhi dikhao
-            currentRawClips.push(newVid); 
-            
-            // Agar user galat tab par hai, to sahi tab par switch kar do
-            if (vType === 'shorts' && currentTab !== 'shorts') {
-                switchType('shorts');
-            } else if (vType === 'long' && currentTab !== 'long') {
-                switchType('long');
-            } else {
-                renderVideos(); // Same tab refresh
-            }
-
-            // Success Message Update
-            const statusText = document.querySelector('#uploadStep2 h3');
-            if(statusText) statusText.innerText = "Finishing Up...";
-
-            // 4. Asli Database Save (Background mein)
-            await window.db.collection('projects').doc(PROJECT_ID).set({
-                footageLib: firebase.firestore.FieldValue.arrayUnion(newVid)
-            }, { merge: true });
-
-            console.log("✅ Database Updated Successfully!");
-
-            // 5. Close Modal
-            setTimeout(() => {
-                document.getElementById('uploadStep2').classList.add('hidden');
-                document.getElementById('uploadStep3').classList.remove('hidden');
-            }, 500); // Thoda delay taaki user process dekh sake
-
-        } catch (error) {
-            console.error("❌ Database Save Failed:", error);
-            alert("Video uploaded to Drive but failed to save in App Database. \nError: " + error.message);
-            
-            // Agar DB fail hua, to local grid se bhi hatao (Rollback)
-            currentRawClips.pop();
-            renderVideos();
-            resetUploadUI();
-        }
-    }
-
-    function resetUploadUI() {
-        document.getElementById('uploadStep2').classList.add('hidden');
-        document.getElementById('uploadStep1').classList.remove('hidden');
-    }
-
-    
+   
 
 // 🎥 OPEN THEATER (Clean & Direct)
     async function openTheater(link, title, fileId) {
