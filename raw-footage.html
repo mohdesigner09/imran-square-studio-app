@@ -563,7 +563,15 @@
     let currentUser = null;
     let selectedFile = null;
     let currentRawClips = [];
-   
+    let renderedClips = [];   // DISPLAY DATA (Filtered copy)
+    
+    // Filter & Search State
+    let activeCategory = 'all';
+    let searchQuery = '';
+    let isEditMode = false;
+
+
+
     if (!PROJECT_ID) {
         alert("⚠️ No Project ID.");
         window.location.href = 'index.html';
@@ -644,7 +652,7 @@
         renderVideos();
     }
 
-    // 4. RENDERER
+// 4. RENDERER (Updated for Search & Filters)
     function renderVideos() {
         const gridShorts = document.getElementById('gridShorts');
         const gridLongs = document.getElementById('gridLongs');
@@ -652,12 +660,22 @@
         gridShorts.innerHTML = '';
         gridLongs.innerHTML = '';
 
-        if (currentRawClips.length === 0) {
-            gridLongs.innerHTML = '<div class="col-span-full text-center text-gray-500 py-10">No videos uploaded yet.</div>';
+        // ✅ CHANGE 1: Ab hum 'renderedClips' (Filtered List) check karenge
+        if (renderedClips.length === 0) {
+            // Agar search kar rahe hain to "No results", nahi to "No videos"
+            const msg = searchQuery ? `No results for "${searchQuery}"` : 'No videos found.';
+            
+            // Jis tab mein hain wahan message dikhao
+            if(currentTab === 'shorts') {
+                gridShorts.innerHTML = `<div class="col-span-full text-center text-gray-500 py-10 text-sm font-mono">${msg}</div>`;
+            } else {
+                gridLongs.innerHTML = `<div class="col-span-full text-center text-gray-500 py-10 text-sm font-mono">${msg}</div>`;
+            }
             return;
         }
 
-        currentRawClips.forEach((vid, idx) => {
+        // ✅ CHANGE 2: Loop bhi ab 'renderedClips' par chalega
+        renderedClips.forEach((vid, idx) => {
             const div = document.createElement('div');
             // Decide aspect ratio
             const isShort = vid.type === 'shorts';
@@ -670,7 +688,7 @@
             let borderClass = '';
 
             if (isEditMode) {
-                // EDIT MODE ON: Show Input Field & Red Border
+                // EDIT MODE ON
                 borderClass = 'border-blue-500/50 shadow-[0_0_15px_rgba(59,130,246,0.3)]';
                 titleHTML = `
                     <input type="text" 
@@ -681,16 +699,15 @@
                            class="w-full bg-black/50 border border-blue-400 text-white text-sm px-2 py-1 rounded focus:outline-none focus:bg-black transition"
                     >`;
                 
-                // Show Delete Button (Only in Edit Mode)
                 deleteBtnHTML = `
                     <button onclick="event.stopPropagation(); deleteVideoPermanently('${vid.fileId}')" class="text-red-500 hover:text-white hover:bg-red-600 p-1.5 rounded transition shadow-lg border border-red-500/30 ml-2" title="Delete Forever">
                         <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"></path></svg>
                     </button>`;
             } else {
-                // NORMAL MODE: Show Simple Text
+                // NORMAL MODE
                 borderClass = 'border-white/10 hover:border-orange-500/50';
                 titleHTML = `<h4 class="text-white text-sm font-medium truncate">${vid.title}</h4>`;
-                deleteBtnHTML = ''; // Hide delete button normally
+                deleteBtnHTML = ''; 
             }
 
             // MAIN CARD HTML
@@ -998,6 +1015,7 @@
             // ✅ CHANGE: 'push' hata kar 'unshift' lagaya (Add to Top)
           
             currentRawClips.unshift(newVid); // <--- NAYA (Video Top pe aayegi)
+            runFilters();
             
             // Auto Switch & Render
             if (vType === 'shorts' && currentTab !== 'shorts') {
@@ -1064,11 +1082,11 @@
                 currentRawClips = rawData.sort((a, b) => {
                     return new Date(b.uploadDate || 0) - new Date(a.uploadDate || 0);
                 });
-                    
+                  
                     // Grid Refresh karo
                     console.log(`✅ Loaded ${currentRawClips.length} videos.`);
-                    renderVideos(); 
-                    updateStats();
+                    runFilters(); // Ye renderedClips ko set karega aur renderVideos call karega
+                     updateStats();
                 }
             } else {
                 console.log("No saved data found for this project.");
@@ -1313,8 +1331,7 @@
     }
 
 
-// 🌍 GLOBAL STATE
-    let isEditMode = false; 
+
 
     // ✅ FIX 1: MISSING FUNCTION (Isse loading error khatam hoga)
     function updateStats() {
@@ -1390,8 +1407,8 @@
 
             // D. UI Refresh
             currentRawClips = updatedClips;
-            renderVideos(); // Card gayab
-            updateStats(); // Stats update
+            runFilters(); // ✅ renderVideos ki jagah runFilters call karo
+            updateStats();
             
             console.log("✅ Deleted Successfully");
 
@@ -1423,6 +1440,108 @@
             console.error("Rename Error:", error);
         }
     }
+
+    // 🧠 THE BRAIN: Filters + Search + Sorting
+    function runFilters() {
+        let results = [...currentRawClips]; // Copy master list
+
+        // 1. Apply Time/Category Filters
+        const now = new Date();
+        if (activeCategory === 'today') {
+            results = results.filter(v => new Date(v.uploadDate).toDateString() === now.toDateString());
+        } else if (activeCategory === 'week') {
+            const lastWeek = new Date();
+            lastWeek.setDate(now.getDate() - 7);
+            results = results.filter(v => new Date(v.uploadDate) >= lastWeek);
+        } else if (activeCategory === 'month') {
+            const lastMonth = new Date();
+            lastMonth.setDate(now.getDate() - 30);
+            results = results.filter(v => new Date(v.uploadDate) >= lastMonth);
+        } else if (activeCategory === 'bts') {
+            // BTS Logic: Title contains 'bts' (Case insensitive)
+            results = results.filter(v => v.title.toLowerCase().includes('bts'));
+        }
+
+        // 2. Apply Search (Smart Ranking)
+        if (searchQuery.trim() !== '') {
+            const query = searchQuery.toLowerCase().trim();
+            
+            // Filter pehle karo
+            results = results.filter(v => v.title.toLowerCase().includes(query));
+
+            // FIR SORT KARO (Ranking Logic)
+            results.sort((a, b) => {
+                const titleA = a.title.toLowerCase();
+                const titleB = b.title.toLowerCase();
+
+                // Rule 1: Agar title query se START hota hai, to wo Top par (Highest Priority)
+                const startA = titleA.startsWith(query);
+                const startB = titleB.startsWith(query);
+                
+                if (startA && !startB) return -1; // A upar
+                if (!startA && startB) return 1;  // B upar
+
+                // Rule 2: Agar title exact match hai
+                if (titleA === query) return -1;
+                if (titleB === query) return 1;
+
+                return 0; // Barabar
+            });
+        }
+
+        // 3. Update Display & Render
+        renderedClips = results;
+        renderVideos(); // Screen update karo
+    }
+
+
+    // 🔍 SEARCH FUNCTIONS
+    
+    // 1. Expand Search Bar (Netflix Style)
+    function expandSearch() {
+        const box = document.getElementById('searchBox');
+        const input = document.getElementById('videoSearchInput');
+        box.classList.add('expanded');
+        input.focus();
+    }
+
+    // 2. Handle Typing (Real-time Filter)
+    document.getElementById('videoSearchInput').addEventListener('input', (e) => {
+        searchQuery = e.target.value; // Query update
+        runFilters(); // 🧠 Brain ko chalao
+    });
+
+    // 3. Close Search if click outside
+    document.addEventListener('click', (e) => {
+        const box = document.getElementById('searchBox');
+        // Agar click box ke bahar hua AND input khali hai
+        if (!box.contains(e.target) && searchQuery === '') {
+            box.classList.remove('expanded');
+        }
+    });
+
+
+    // 💊 FILTER PILLS FUNCTION
+    function filterBy(category, btnElement) {
+        // 1. State Update
+        activeCategory = category;
+
+        // 2. UI Update (Highlight Active Pill)
+        // Sabhi pills se 'active' class hatao
+        document.querySelectorAll('.filter-pill').forEach(btn => {
+            btn.classList.remove('active', 'bg-white', 'text-black', 'font-bold', 'box-shadow');
+            // Reset style classes logic if needed based on your CSS
+            btn.classList.remove('active'); 
+        });
+        
+        // Clicked pill ko active karo
+        btnElement.classList.add('active');
+
+        // 3. Logic Run
+        runFilters();
+    }
+
+
 </script>
 <script src="https://cdn.plyr.io/3.7.8/plyr.js"></script>
 </body>
