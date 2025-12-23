@@ -294,45 +294,48 @@ window.goBackToHub = () => { const id = new URLSearchParams(window.location.sear
 
 
 
-// 🏗️ CREATE NEW PROJECT (Direct Storage Force Mode)
+// 🏗️ CREATE NEW PROJECT (Fixed: userId vs uid Mismatch)
 async function createNewProject(openAfter = false) {
     console.log("🔍 Starting Project Creation...");
 
-    // 1. Force Read from Local Storage (Global variable ignore karo)
+    // 1. Force Read from Local Storage
     let activeUser = null;
     try {
         const stored = localStorage.getItem('imranUser');
         if (stored) {
-            console.log("📂 Raw Storage Found:", stored); // Debugging line
+            console.log("📂 Raw Storage Found:", stored);
             activeUser = JSON.parse(stored);
+
+            // 🔥 CRITICAL FIX: Mapping 'userId' to 'uid'
+            if (activeUser.userId && !activeUser.uid) {
+                console.log("🔧 Fixing ID Mismatch (userId -> uid)");
+                activeUser.uid = activeUser.userId;
+            }
         }
     } catch (e) {
         console.error("❌ Storage Parse Error:", e);
     }
 
-    // 2. Fallback: Agar Local khali hai, to Firebase se maango
+    // 2. Fallback to Firebase Auth
     if ((!activeUser || !activeUser.uid) && window.auth && window.auth.currentUser) {
-        console.log("🔥 Fetching from Firebase Auth...");
         const fbUser = window.auth.currentUser;
         activeUser = {
             uid: fbUser.uid,
             email: fbUser.email,
             displayName: fbUser.displayName || 'Creator'
         };
-        // Future ke liye save kar lo
-        localStorage.setItem('imranUser', JSON.stringify(activeUser));
     }
 
-    // 3. 🚨 FINAL DIAGNOSTIC CHECK
+    // 3. FINAL CHECK
     if (!activeUser || !activeUser.uid) {
-        console.error("❌ FAILURE: Storage is empty or UID missing.");
-        alert("⚠️ User Data Missing!\n\nLocalStorage: " + (localStorage.getItem('imranUser') || "EMPTY") + "\n\nPlease LOGOUT and LOGIN again to fix this.");
+        console.error("❌ FAILURE: Still no UID found.");
+        alert("⚠️ Login Data Issue.\nPlease Logout and Login again to refresh your ID.");
         return;
     }
 
-    console.log("✅ User Verified & Ready:", activeUser.email);
+    console.log("✅ User Verified:", activeUser.email);
 
-    // 4. Inputs Setup
+    // 4. Inputs
     const titleInput = document.getElementById('projectTitle');
     const genreSelect = document.getElementById('projectGenre');
     const modal = document.getElementById('projectModal');
@@ -350,7 +353,7 @@ async function createNewProject(openAfter = false) {
             title: cleanName,
             genre: genreSelect ? genreSelect.value : 'Other',
             ownerEmail: activeUser.email,
-            ownerName: activeUser.displayName || 'Creator',
+            ownerName: activeUser.firstName || activeUser.displayName || 'Creator', // Added firstName support
             uid: activeUser.uid,
             createdAt: new Date().toISOString(),
             folderPath: `users/${safeEmail}/${safeProject}`,
@@ -360,7 +363,6 @@ async function createNewProject(openAfter = false) {
         };
 
         // 6. Save to DB
-        // Connection check with Retry info
         if (!window.db) {
              if(window.firebase) window.db = window.firebase.firestore();
              if(!window.db) throw new Error("Database disconnected. Refresh Page.");
@@ -373,7 +375,6 @@ async function createNewProject(openAfter = false) {
         if (titleInput) titleInput.value = '';
         if (modal) modal.classList.add('hidden');
         
-        // Redirect
         if (openAfter) {
             window.location.href = `project-hub.html?id=${docRef.id}`;
         } else {
