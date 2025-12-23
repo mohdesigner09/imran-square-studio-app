@@ -1284,76 +1284,48 @@ document.addEventListener('DOMContentLoaded', () => {
 });
 
 // ==========================================
-// ☁️ GOOGLE DRIVE AUTOMATION (The Folder Maker)
+// ☁️ GOOGLE DRIVE AUTOMATION (Raw Request Mode)
 // ==========================================
 
-// 1. Helper: Folder Dhoondo ya Banao
-async function findOrCreateFolder(folderName, parentId = null) {
-    if (!gapi.client.drive) return null;
-
-    try {
-        // Query: Folder with this name, not trashed, inside parent (if provided)
-        let query = `mimeType='application/vnd.google-apps.folder' and name='${folderName}' and trashed=false`;
-        if (parentId) {
-            query += ` and '${parentId}' in parents`;
-        }
-
-        const response = await gapi.client.drive.files.list({
-            q: query,
-            fields: 'files(id, name)',
-            spaces: 'drive'
-        });
-
-        // Agar mil gaya, to ID wapis karo
-        if (response.result.files.length > 0) {
-            console.log(`📂 Found existing folder: ${folderName}`);
-            return response.result.files[0].id;
-        }
-
-        // Agar nahi mila, to naya banao
-        console.log(`mw Creating new folder: ${folderName}...`);
-        const fileMetadata = {
-            'name': folderName,
-            'mimeType': 'application/vnd.google-apps.folder'
+// 1. Helper: Raw API Call (Bypasses Library Loading)
+async function makeDriveRequest(method, path, params = {}, body = null) {
+    return new Promise((resolve, reject) => {
+        const requestOptions = {
+            path: path,
+            method: method,
+            params: params
         };
-        if (parentId) {
-            fileMetadata.parents = [parentId];
-        }
+        if (body) requestOptions.body = body;
 
-        const file = await gapi.client.drive.files.create({
-            resource: fileMetadata,
-            fields: 'id'
+        const request = gapi.client.request(requestOptions);
+        request.execute((resp, rawResp) => {
+            if (resp.error) {
+                reject(resp.error);
+            } else {
+                resolve(resp);
+            }
         });
-        
-        return file.result.id;
-
-    } catch (err) {
-        console.error("Drive Error:", err);
-        return null; // Error aane par null return karo taaki code ruke nahi
-    }
+    });
 }
 
-// ==========================================
-// ☁️ GOOGLE DRIVE AUTOMATION (Direct Load Fix)
-// ==========================================
-
-// 1. Helper Function
+// 2. Helper: Find or Create Folder using Raw Requests
 async function findOrCreateFolder(folderName, parentId) {
     try {
+        // A. Search (List)
         let query = `mimeType='application/vnd.google-apps.folder' and name='${folderName}' and trashed=false`;
         if (parentId) query += ` and '${parentId}' in parents`;
 
-        const response = await gapi.client.drive.files.list({
+        const listResp = await makeDriveRequest('GET', '/drive/v3/files', {
             q: query,
-            fields: 'files(id, name)',
-            spaces: 'drive'
+            fields: 'files(id, name)'
         });
 
-        if (response.result.files.length > 0) {
+        if (listResp.files && listResp.files.length > 0) {
             console.log(`📂 Found: ${folderName}`);
-            return response.result.files[0].id;
+            return listResp.files[0].id;
         }
 
+        // B. Create (Post)
         console.log(`✨ Creating: ${folderName}...`);
         const fileMetadata = {
             'name': folderName,
@@ -1361,48 +1333,28 @@ async function findOrCreateFolder(folderName, parentId) {
             'parents': [parentId]
         };
 
-        const file = await gapi.client.drive.files.create({
-            resource: fileMetadata,
-            fields: 'id'
-        });
-        return file.result.id;
+        const createResp = await makeDriveRequest('POST', '/drive/v3/files', {}, fileMetadata);
+        return createResp.id;
+
     } catch (err) {
-        console.error("Drive Error:", err);
+        console.error(`❌ Error with folder ${folderName}:`, err);
         return null;
     }
 }
 
-// 2. Main Setup Function (Updated for 502 Error)
+// 3. Main Setup Function
 async function setupDriveFolders(userName, projectName) {
-    console.log("☁️ Initializing Drive Setup...");
+    console.log("☁️ Initializing Drive Setup (Raw Mode)...");
 
-    // 🔴 STEP 1: FORCE GAPI LOAD (WITHOUT DISCOVERY DOCS)
-    if (!gapi || !gapi.client || !gapi.client.drive) {
-        console.warn("⚠️ GAPI not ready. Force loading...");
-        try {
-            // A. Client Library Load karo
-            await new Promise((resolve, reject) => {
-                gapi.load('client', {callback: resolve, onerror: reject});
-            });
-
-            // B. Init with ONLY API Key (Discovery Docs hata diye)
-            await gapi.client.init({
-                apiKey: API_KEY, 
-            });
-
-            // C. Direct Drive API V3 Load (Ye 502 Error Bypass karega)
-            await gapi.client.load('drive', 'v3');
-            
-            console.log("✅ GAPI & Drive API Loaded!");
-        } catch (error) {
-            console.error("❌ GAPI Failed:", error);
-            return null;
-        }
+    // 🔴 STEP 1: Lightweight Init (Sirf API Key set karo, Load mat karo)
+    if (!gapi.client.getToken && (!gapi.client.apiKey || gapi.client.apiKey !== API_KEY)) {
+        console.log("🔑 Setting API Key...");
+        gapi.client.setApiKey(API_KEY);
     }
 
-    // 🔴 STEP 2: FORCE TOKEN CLIENT LOAD
+    // 🔴 STEP 2: Token Client Check
     if (!tokenClient) {
-        console.warn("⚠️ Token Client missing. Initializing manually...");
+        console.warn("⚠️ Token Client missing. Initializing...");
         try {
             if(typeof google === 'undefined' || !google.accounts) {
                 await new Promise((resolve, reject) => {
@@ -1419,17 +1371,18 @@ async function setupDriveFolders(userName, projectName) {
                 scope: SCOPES,
                 callback: '' 
             });
-            console.log("✅ Token Client Created!");
+            console.log("✅ Token Client Ready!");
         } catch(e) {
-            console.error("❌ Token Init Failed:", e);
-            alert("⚠️ Auth Error: Could not initialize Google Login.");
+            console.error("❌ Auth Init Failed:", e);
+            alert("⚠️ Auth Error. Please refresh.");
             return null;
         }
     }
 
     try {
-        // STEP 3: Create Structure
-        console.log("🚀 Creating Folders...");
+        console.log("🚀 Starting Folder Creation...");
+
+        // STEP 3: Create Structure using Raw Requests
         const userId = await findOrCreateFolder(userName, VAULT_ID);
         if(!userId) throw new Error("Could not create User Folder");
 
@@ -1447,8 +1400,8 @@ async function setupDriveFolders(userName, projectName) {
 
     } catch (e) {
         console.error("❌ Drive Setup Failed:", e);
-        // Permission Error (401)
-        if(e.result && e.result.error && e.result.error.code === 401) {
+        // Permission Error Check
+        if(e.code === 401 || (e.result && e.result.error && e.result.error.code === 401)) {
              console.log("🔒 Permission needed. Requesting popup...");
              tokenClient.requestAccessToken({prompt: 'consent'});
         }
