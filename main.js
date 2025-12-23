@@ -1316,33 +1316,82 @@ async function findOrCreateFolder(folderName, parentId = null) {
     }
 }
 
-// 2. Main Setup: Poora Structure Banao
+// ==========================================
+// ☁️ GOOGLE DRIVE AUTOMATION (Targeting Vault)
+// ==========================================
+
+const VAULT_ID = "1nAz-SdoS9vu3748RgKvlvMU8JZWSz4dt"; // 👈 Ye aapke ImranSquare_Vault ki ID hai
+
+// 1. Helper: Folder Dhoondo ya Banao
+async function findOrCreateFolder(folderName, parentId) {
+    if (!gapi.client.drive) return null;
+
+    try {
+        // Query: Is naam ka folder, jo trash me na ho, aur specific parent ke andar ho
+        let query = `mimeType='application/vnd.google-apps.folder' and name='${folderName}' and trashed=false`;
+        if (parentId) {
+            query += ` and '${parentId}' in parents`;
+        }
+
+        const response = await gapi.client.drive.files.list({
+            q: query,
+            fields: 'files(id, name)',
+            spaces: 'drive'
+        });
+
+        // Agar mil gaya
+        if (response.result.files.length > 0) {
+            console.log(`📂 Found existing folder: ${folderName}`);
+            return response.result.files[0].id;
+        }
+
+        // Agar nahi mila, to naya banao
+        console.log(`✨ Creating new folder: ${folderName} inside ${parentId}...`);
+        const fileMetadata = {
+            'name': folderName,
+            'mimeType': 'application/vnd.google-apps.folder',
+            'parents': [parentId] // ✅ Ab ye parent ID use karega
+        };
+
+        const file = await gapi.client.drive.files.create({
+            resource: fileMetadata,
+            fields: 'id'
+        });
+        
+        return file.result.id;
+
+    } catch (err) {
+        console.error("Drive Error:", err);
+        return null; 
+    }
+}
+
+// 2. Main Setup: Structure -> Vault > User > Project > [Script, Footage]
 async function setupDriveFolders(userName, projectName) {
-    console.log("☁️ Setting up Drive Architecture...");
+    console.log("☁️ Setting up Drive in Vault...");
     
-    // Check agar GAPI ready hai
     if(!gapiInited || !gapi.client.drive) {
-        console.warn("⚠️ Google Drive API not ready. Skipping Folder Creation.");
+        console.warn("⚠️ Drive API not ready.");
         return null;
     }
 
     try {
-        // A. Root Folder (User Name)
-        const rootId = await findOrCreateFolder(userName);
-        if(!rootId) throw new Error("Could not create Root User Folder");
+        // STEP A: User Name Folder (Inside ImranSquare_Vault)
+        // Hum seedha VAULT_ID use karenge parent ke roop mein
+        const userId = await findOrCreateFolder(userName, VAULT_ID);
+        if(!userId) throw new Error("Could not create User Folder inside Vault");
 
-        // B. Project Folder (Inside User Name)
-        const projectId = await findOrCreateFolder(projectName, rootId);
+        // STEP B: Project Folder (Inside User Name)
+        const projectId = await findOrCreateFolder(projectName, userId);
         
-        // C. Sub-Folders (Inside Project)
+        // STEP C: Sub-Folders (Inside Project)
         const scriptId = await findOrCreateFolder("Script", projectId);
         const footageId = await findOrCreateFolder("Raw Footage", projectId);
 
-        console.log("✅ Drive Structure Ready!");
+        console.log("✅ Drive Structure Ready inside Vault!");
         
-        // Return IDs Object
         return {
-            rootFolderId: rootId,
+            rootFolderId: userId,    // User ka folder
             projectFolderId: projectId,
             scriptFolderId: scriptId,
             footageFolderId: footageId
