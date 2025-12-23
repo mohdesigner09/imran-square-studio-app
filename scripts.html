@@ -346,12 +346,13 @@
                 Export PDF
             </button>
             
-            <button onclick="addNewScene(); closeMobileMenu();" class="w-full py-3 px-4 bg-white/5 hover:bg-white/10 text-white rounded-lg text-sm font-medium border border-white/10 transition-all flex items-center gap-3">
-                <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"/>
-                </svg>
-                Add New Scene
-            </button>
+           <div class="hidden md:flex items-center gap-3">
+        <button onclick="openAddSectionModal()" class="px-4 py-2 bg-white/10 border border-white/20 text-white text-xs font-bold rounded-lg hover:bg-white/20 transition flex items-center gap-2">
+            <i class="fa-solid fa-folder-plus"></i> Add Section
+        </button>
+        
+        <button id="editorActionBtn" onclick="exportPDF()" class="px-4 py-2 bg-white text-black text-xs font-bold rounded-lg hover:bg-gray-200 transition">Export PDF</button>
+    </div>
             
             <button onclick="goBackToHub(); closeMobileMenu();" class="w-full py-3 px-4 bg-white/5 hover:bg-white/10 text-white rounded-lg text-sm font-medium border border-white/10 transition-all flex items-center gap-3">
                 <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -706,16 +707,16 @@ He pulls out a crumpled photograph.
     <input type="file" id="fileInput" class="hidden" accept=".pdf,.doc,.docx,.txt">
 
 <script>
-    // ✅ FINAL SCRIPT EDITOR LOGIC (Cloud Sync + Status + Files)
+    // ✅ FINAL SCRIPT ENGINE (Merged: AI + Real Upload + Add Section + Navigation)
 
     // --- 1. GLOBAL VARIABLES ---
     let currentProjectID = null;
     let currentUser = null;
     let sectionsData = []; 
     const FILES_PER_SECTION = 10;
-    let saveTimer; // Timer for auto-save debounce
+    let saveTimer; // Auto-save debounce
     
-    // Status UI Element Create Karo
+    // Status UI Element
     const statusLabel = document.createElement('div');
     statusLabel.id = 'saveStatus';
     statusLabel.className = 'fixed bottom-4 right-4 text-xs font-mono font-bold opacity-0 transition-opacity duration-500';
@@ -724,37 +725,39 @@ He pulls out a crumpled photograph.
     // --- 2. INITIALIZATION ---
     document.addEventListener('DOMContentLoaded', async () => {
         
-        // A. Firebase Auth Check (Global from main.js)
-        if(typeof auth !== 'undefined') {
-            auth.onAuthStateChanged(async (user) => {
-                if (user) {
-                    console.log("✅ Editor Connected:", user.email);
-                    currentUser = user;
-                    
-                    // B. Get Project ID
-                    const params = new URLSearchParams(window.location.search);
-                    currentProjectID = params.get('id');
+        // Safety: Ensure Firebase is loaded
+        if(typeof firebase === 'undefined') {
+            console.error("Firebase not loaded");
+            return;
+        }
 
-                    if(currentProjectID) {
-                        await loadProjectFromFirestore(currentProjectID);
-                    } else {
-                        alert("No Project ID Found");
-                        window.location.href = 'index.html';
-                    }
+        // A. Firebase Auth Check
+        firebase.auth().onAuthStateChanged(async (user) => {
+            if (user) {
+                console.log("✅ Editor Connected:", user.email);
+                currentUser = user;
+                
+                // B. Get Project ID
+                const params = new URLSearchParams(window.location.search);
+                currentProjectID = params.get('id');
+
+                if(currentProjectID) {
+                    await loadProjectFromFirestore(currentProjectID);
                 } else {
+                    alert("No Project ID Found");
                     window.location.href = 'index.html';
                 }
-            });
-        }
+            } else {
+                // Redirect if needed
+                // window.location.href = 'index.html';
+            }
+        });
 
         // C. Editor Auto-Save Listeners
         const editor = document.getElementById('scriptEditor');
         if(editor) {
             editor.addEventListener('input', () => {
-                // Typing karte waqt "Saving..." dikhao
                 showStatus("Saving...", "text-yellow-500");
-                
-                // Purana timer roko aur naya shuru karo (2 sec wait)
                 clearTimeout(saveTimer);
                 saveTimer = setTimeout(() => saveToFirestore(true), 2000); 
             });
@@ -770,8 +773,6 @@ He pulls out a crumpled photograph.
     function showStatus(msg, colorClass) {
         statusLabel.innerText = msg;
         statusLabel.className = `fixed bottom-4 right-4 text-xs font-mono font-bold ${colorClass} opacity-100`;
-        
-        // Agar "Saved" hai to 3 sec baad hata do
         if(msg === "Saved") {
             setTimeout(() => { statusLabel.classList.remove('opacity-100'); statusLabel.classList.add('opacity-0'); }, 3000);
         }
@@ -821,12 +822,14 @@ He pulls out a crumpled photograph.
         if(!currentUser || !currentProjectID) return;
 
         const editor = document.getElementById('scriptEditor');
+        if(!editor) return;
+
         const content = editor.innerHTML;
         const plainText = editor.innerText || "";
         const title = document.getElementById('scriptTitle').textContent;
         const wordCount = plainText.split(/\s+/).filter(w => w.length > 0).length;
 
-        // 🔥 Auto-Update "Screenplays" Card Logic
+        // Auto-Update "Screenplays" Card Logic
         if(isAutoSave) {
             updateMainScriptFileEntry(title);
         }
@@ -835,15 +838,14 @@ He pulls out a crumpled photograph.
             await db.collection('projects').doc(currentProjectID).update({
                 content: content,
                 title: title,
-                words: wordCount, // Word count update
+                words: wordCount,
                 sections: sectionsData,
                 lastModified: firebase.firestore.FieldValue.serverTimestamp()
             });
             
-            showStatus("Saved", "text-green-500"); // ✅ Green Signal
+            showStatus("Saved", "text-green-500");
             
-            // Render wapis mat call karo typing ke beech me, warna cursor hil jayega
-            // Sirf files tab update karo agar sections change huye
+            // Files tab ko tabhi refresh karo jab auto-save na ho (cursor jump rokne ke liye)
             if(!isAutoSave) renderSections(); 
 
         } catch (error) {
@@ -852,9 +854,8 @@ He pulls out a crumpled photograph.
         }
     }
 
-    // Helper to update the PDF file entry in cards without refreshing UI
     function updateMainScriptFileEntry(title) {
-        const timestamp = new Date().toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'});
+        const timestamp = new Date().toLocaleDateString();
         const screenplaySection = sectionsData.find(s => s.name === "Screenplays");
         
         if(screenplaySection) {
@@ -875,322 +876,116 @@ He pulls out a crumpled photograph.
         if (!grid) return;
         grid.innerHTML = '';
 
+        if(sectionsData.length === 0) {
+            grid.innerHTML = `<div class="text-gray-500 col-span-full text-center">No sections found. Click 'Add Section' to start.</div>`;
+            return;
+        }
+
         sectionsData.forEach(section => {
-            const count = section.files.length;
+            const files = section.files || [];
+            const count = files.length;
             const percent = (count / FILES_PER_SECTION) * 100;
             const isFull = count >= FILES_PER_SECTION;
-            const ringColor = isFull ? 'ring-full' : 'ring-green';
+            const ringColor = isFull ? 'stroke-red-500' : 'stroke-green-500';
             const dashArray = `${percent}, 100`;
 
             let filesHtml = '';
             if(count === 0) {
-                filesHtml = `<div class="h-full flex flex-col items-center justify-center text-gray-600"><span class="text-[10px]">No files</span></div>`;
+                filesHtml = `<div class="h-full flex flex-col items-center justify-center text-gray-600"><span class="text-[10px]">No files yet</span></div>`;
             } else {
-                [...section.files].reverse().forEach(file => {
-                    const highlight = file.isMainScript ? 'text-orange-400 border-orange-500/30 bg-orange-500/10' : 'text-gray-400 border-white/5 bg-white/5';
-                    const icon = file.isMainScript ? '<i class="fa-solid fa-star text-[10px] mr-1"></i>' : '';
-                    filesHtml += `<div class="file-item ${highlight} p-2 rounded mb-1 border flex justify-between items-center text-xs"><div class="truncate w-[70%]">${icon}${file.name}</div><span class="text-[9px] opacity-60">${file.date}</span></div>`;
+                [...files].reverse().forEach(file => {
+                    const icon = file.isMainScript ? '<i class="fa-solid fa-star text-orange-400 mr-1"></i>' : '<i class="fa-regular fa-file text-gray-400 mr-1"></i>';
+                    const highlight = file.isMainScript ? 'bg-orange-500/10 border-orange-500/20' : 'bg-white/5 border-white/5';
+                    
+                    filesHtml += `
+                    <div class="file-item ${highlight} p-2 rounded mb-1 border flex justify-between items-center text-xs group hover:bg-white/10 transition">
+                        <div class="truncate w-[65%] text-gray-300 group-hover:text-white">${icon}${file.name}</div>
+                        <span class="text-[9px] text-gray-600">${file.date || ''}</span>
+                    </div>`;
                 });
             }
 
             const card = document.createElement('div');
-            card.className = 'section-card';
+            card.className = 'section-card flex flex-col bg-[#111] border border-white/10 rounded-xl p-4 h-80 relative overflow-hidden hover:border-white/30 transition shadow-lg';
+            
             card.innerHTML = `
-                <div class="flex justify-between items-start mb-2">
-                    <div><h3 class="text-sm font-bold text-white uppercase">${section.name}</h3><p class="text-[10px] text-gray-500">${count} Files</p></div>
-                    <div class="capacity-wrapper"><svg class="capacity-svg" viewBox="0 0 36 36"><path class="capacity-circle-bg" d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831" /><path class="capacity-circle-fg ${ringColor}" stroke-dasharray="${dashArray}" d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831" /></svg><div class="capacity-text">${count}/${FILES_PER_SECTION}</div></div>
+                <div class="flex justify-between items-start mb-3 border-b border-white/5 pb-2">
+                    <div>
+                        <h3 class="text-sm font-bold text-white uppercase tracking-wider">${section.name}</h3>
+                        <p class="text-[10px] text-gray-500 mt-0.5">${count}/${FILES_PER_SECTION} Files</p>
+                    </div>
+                    <div class="relative w-8 h-8">
+                        <svg class="w-full h-full transform -rotate-90" viewBox="0 0 36 36">
+                            <path class="text-gray-800" d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831" fill="none" stroke="currentColor" stroke-width="3" />
+                            <path class="${ringColor} drop-shadow-[0_0_5px_rgba(0,255,0,0.5)]" stroke-dasharray="${dashArray}" d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" />
+                        </svg>
+                    </div>
                 </div>
-                <div class="file-list custom-scrollbar h-32 overflow-y-auto">${filesHtml}</div>
-                <button onclick="triggerUpload(${section.id})" class="card-upload-btn" ${isFull ? 'disabled' : ''}>+ Upload</button>
+
+                <div class="file-list flex-1 overflow-y-auto custom-scrollbar mb-3">
+                    ${filesHtml}
+                </div>
+
+                <button onclick="triggerUpload(${section.id})" class="w-full py-2 rounded bg-white/5 hover:bg-white text-white hover:text-black text-xs font-bold transition border border-white/10 flex items-center justify-center gap-2" ${isFull ? 'disabled' : ''}>
+                    <i class="fa-solid fa-cloud-arrow-up"></i> Upload File
+                </button>
             `;
             grid.appendChild(card);
         });
     }
 
-    // --- 7. UPLOAD LOGIC (Legacy Support for Cards) ---
-    function triggerUpload(sectionId) {
-        // Hum main.js ka global uploader use karenge agar available hai
-        // lekin abhi ke liye local logic rakhte hain jo DB se sync kare
-        const input = document.getElementById('fileInput');
-        if(!input) return;
-        
-        // Clean listeners
-        const newInput = input.cloneNode(true);
-        input.parentNode.replaceChild(newInput, input);
-        
-        newInput.onchange = (e) => {
-            const file = e.target.files[0];
-            if(!file) return;
+    // --- 7. NEW SECTION LOGIC (Popup Handlers) ---
+    function openAddSectionModal() {
+        document.getElementById('addSectionModal').classList.remove('hidden');
+        document.getElementById('newSectionName').focus();
+    }
 
-            // UI Feedback
-            addToQueue(`Uploading ${file.name}...`);
-            
-            setTimeout(() => {
-                const sIdx = sectionsData.findIndex(s => s.id === sectionId);
-                if(sIdx > -1 && sectionsData[sIdx].files.length < FILES_PER_SECTION) {
-                    sectionsData[sIdx].files.push({
-                        name: file.name,
-                        date: new Date().toLocaleTimeString([], {hour:'2-digit', minute:'2-digit'}),
-                        isMainScript: false
-                    });
-                    saveToFirestore(); // Cloud Sync
-                    addToQueue("Done!", true);
-                }
-                newInput.value = "";
-            }, 1000);
+    function closeAddSectionModal() {
+        document.getElementById('addSectionModal').classList.add('hidden');
+        document.getElementById('newSectionName').value = "";
+    }
+
+    function confirmAddSection() {
+        const nameInput = document.getElementById('newSectionName');
+        const name = nameInput.value.trim();
+
+        if (!name) return alert("Please enter a section name");
+
+        // Create New Section Object
+        const newSection = {
+            id: Date.now(),
+            name: name,
+            files: []
         };
-        newInput.click();
+
+        sectionsData.push(newSection);
+        saveToFirestore();
+        renderSections();
+        closeAddSectionModal();
     }
 
-    // --- 8. AI & TOOLS ---
-    async function callRealAI() {
-        if(!currentUser) return alert("Login First");
-        const input = document.getElementById('aiInput');
-        const area = document.getElementById('aiResponseArea');
-        const text = input.value.trim();
-        if(!text) return;
-
-        area.innerHTML += `<div class="text-white mb-2 text-right bg-white/10 p-2 rounded-lg inline-block ml-auto">"${text}"</div>`;
-        input.value = '';
-        const thinkingId = 'thinking_' + Date.now();
-        area.innerHTML += `<div id="${thinkingId}" class="text-green-400 mb-2 italic text-left"><i class="fa-solid fa-circle-notch animate-spin"></i> Thinking...</div>`;
-        area.scrollTop = area.scrollHeight;
-
-        try {
-            const userDoc = await db.collection('users').doc(currentUser.uid).get();
-            let key = null;
-            if(userDoc.exists && userDoc.data().apiKeys?.length > 0) {
-                key = userDoc.data().apiKeys[0]; // First key uthao
-            }
-            if(!key) throw new Error("No API Key found. Add one in Dashboard.");
-
-            const context = document.getElementById('scriptEditor').innerText;
-            const res = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${key}`, {
-                method: 'POST', headers: {'Content-Type': 'application/json'},
-                body: JSON.stringify({ contents: [{ parts: [{ text: `Context: """${context.substring(0,5000)}"""\nUser: "${text}"` }] }] })
-            });
-            
-            const data = await res.json();
-            document.getElementById(thinkingId).remove();
-            if(data.error) throw new Error(data.error.message);
-            
-            const reply = data.candidates[0].content.parts[0].text.replace(/\*\*(.*?)\*\*/g, '<b>$1</b>').replace(/\n/g, '<br>');
-            area.innerHTML += `<div class="text-gray-300 mb-4 pb-2 border-b border-white/10 text-left"><strong class="text-green-400">AI:</strong><br>${reply}</div>`;
-            area.scrollTop = area.scrollHeight;
-
-        } catch(e) {
-            document.getElementById(thinkingId)?.remove();
-            area.innerHTML += `<div class="text-red-400">Error: ${e.message}</div>`;
-        }
-    }
-
-    // --- 9. UTILS (PDF, Nav) ---
-    function exportPDF() {
-        const el = document.getElementById('scriptEditor');
-        const title = document.getElementById('scriptTitle').innerText;
-        const btn = document.querySelector('button[onclick="exportPDF()"]');
-        const originalText = btn ? btn.innerHTML : '';
-        if(btn) btn.innerHTML = '<i class="fa-solid fa-spinner animate-spin"></i>';
-
-        html2pdf().set({ margin:1, filename:`${title}.pdf`, html2canvas:{scale:2}, jsPDF:{unit:'in', format:'letter'} }).from(el).save().then(() => {
-            if(btn) btn.innerHTML = originalText;
-            alert("PDF Downloaded!");
-        });
-    }
-
-    function toggleSidebar() { document.getElementById('mobileSidebar').classList.toggle('open'); document.getElementById('sidebarOverlay').classList.toggle('open'); }
-    function toggleAISheet() { document.getElementById('mobileAISheet').classList.toggle('open'); }
-    
-    function formatDoc(cmd, val=null) { document.execCommand(cmd, false, val); updateToolbarState(); }
-    
-    function updateToolbarState() {
-        ['bold','italic','underline'].forEach(c => {
-            const active = document.queryCommandState(c);
-            const btn = document.querySelector(`button[onclick="formatDoc('${c}')"]`);
-            if(btn) active ? btn.classList.add('active') : btn.classList.remove('active');
-        });
-    }
-
-    function addToQueue(msg, success) {
-        // (Queue logic same as before, UI only)
-        // ... (Keep your existing queue logic here or use main.js global one)
-    }
-
-  // ✅ BACK BUTTON LOGIC (Hub Par Wapis Jane Ke Liye)
-function goBackToHub() {
-    // 1. URL se Project ID nikalo
-    const params = new URLSearchParams(window.location.search);
-    const projectId = params.get('id');
-
-    // 2. Check karo ID hai ya nahi
-    if (projectId) {
-        // ID hai to Project Hub par jao
-        window.location.href = `project-hub.html?id=${projectId}`;
-    } else {
-        // ID nahi hai to Main Dashboard par
-        window.location.href = 'index.html';
-    }
-}
-
-
-// ✅ FIX 1: NAVIGATION & SCENE MANAGEMENT
-    
-    // Switch between Writer (Editor) and Files (Cards)
-    function switchMode(mode) {
-        const editorView = document.getElementById('modeEditor');
-        const filesView = document.getElementById('modeFiles');
-        const btnEditor = document.getElementById('btnEditor');
-        const btnFiles = document.getElementById('btnFiles');
-
-        if (mode === 'editor') {
-            editorView.classList.remove('hidden-mode');
-            filesView.classList.add('hidden-mode');
-            
-            // Buttons Active State
-            btnEditor?.classList.add('active');
-            btnFiles?.classList.remove('active');
-        } else {
-            editorView.classList.add('hidden-mode');
-            filesView.classList.remove('hidden-mode');
-            
-            // Buttons Active State
-            btnFiles?.classList.add('active');
-            btnEditor?.classList.remove('active');
-            
-            // Files par aate hi data refresh karo
-            renderSections();
-        }
-    }
-
-    // Add New Scene Heading (Format shortcut)
-    function addNewScene() {
-        const editor = document.getElementById('scriptEditor');
-        const sceneNumber = document.querySelectorAll('.scene-heading').length + 1;
-        
-        // Insert HTML for new scene
-        const sceneHTML = `<br><div class="scene-heading font-bold uppercase mt-4 mb-2">INT. LOCATION - DAY</div><br>`;
-        document.execCommand('insertHTML', false, sceneHTML);
-        
-        // Scroll to bottom
-        editor.scrollTop = editor.scrollHeight;
-    }
-    
-    // Apply Formatting from Dropdown
-    function applyScriptFormat(format) {
-        if(!format) return;
-        document.execCommand('formatBlock', false, 'div');
-        const selection = window.getSelection();
-        if(selection.rangeCount > 0) {
-            const node = selection.anchorNode.parentElement;
-            // Clean old classes
-            node.className = ''; 
-            
-            // Apply new Script Standard Styles
-            if(format === 'scene') node.className = 'font-bold uppercase mt-4 mb-2 tracking-wider';
-            if(format === 'action') node.className = 'mb-2';
-            if(format === 'character') node.className = 'font-bold uppercase mt-4 text-center w-1/2 mx-auto';
-            if(format === 'dialogue') node.className = 'w-3/4 mx-auto mb-2 text-center';
-        }
-    }
-
-    // ✅ FIX 2: CONTEXT-AWARE AI ASSISTANT
-    
-    async function callRealAI() {
-        if(!currentUser) return alert("Please Login First");
-        
-        const input = document.getElementById('aiInput');
-        const area = document.getElementById('aiResponseArea');
-        const userPrompt = input.value.trim();
-        
-        // 1. Check selected text (Agar user ne kuch select kiya hai)
-        const selection = window.getSelection().toString();
-        let contextText = "";
-        let systemInstruction = "";
-
-        if (selection && selection.length > 0) {
-            // Context: Selection
-            contextText = `SELECTED TEXT: "${selection}"`;
-            systemInstruction = `User wants you to modify or analyze the SELECTED TEXT based on this instruction: "${userPrompt}". Output ONLY the rewritten version or answer.`;
-            area.innerHTML += `<div class="text-xs text-gray-500 text-right mb-1">[Selected: ${selection.substring(0, 20)}...]</div>`;
-        } else {
-            // Context: Whole Script (Last 3000 chars to save tokens)
-            const fullScript = document.getElementById('scriptEditor').innerText;
-            contextText = `CURRENT SCRIPT CONTEXT: """${fullScript.substring(fullScript.length - 3000)}"""`;
-            systemInstruction = `You are a professional Screenwriter Assistant. Help the user with: "${userPrompt}". Use the script context for tone and characters.`;
-        }
-
-        if(!userPrompt) return;
-
-        // UI Updates
-        area.innerHTML += `<div class="text-white mb-2 text-right bg-white/10 p-2 rounded-lg inline-block ml-auto">"${userPrompt}"</div>`;
-        input.value = '';
-        const thinkingId = 'thinking_' + Date.now();
-        area.innerHTML += `<div id="${thinkingId}" class="text-green-400 mb-2 italic text-left text-xs"><i class="fa-solid fa-circle-notch animate-spin"></i> Analyzing...</div>`;
-        area.scrollTop = area.scrollHeight;
-
-        try {
-            // API Key Fetch
-            const userDoc = await db.collection('users').doc(currentUser.uid).get();
-            let key = null;
-            if(userDoc.exists && userDoc.data().apiKeys?.length > 0) {
-                key = userDoc.data().apiKeys[0];
-            }
-            if(!key) throw new Error("API Key missing. Go to Dashboard settings.");
-
-            // Call Gemini
-            const res = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${key}`, {
-                method: 'POST', headers: {'Content-Type': 'application/json'},
-                body: JSON.stringify({ 
-                    contents: [{ 
-                        parts: [{ text: `${systemInstruction}\n\n${contextText}` }] 
-                    }] 
-                })
-            });
-            
-            const data = await res.json();
-            document.getElementById(thinkingId).remove();
-            
-            if(data.error) throw new Error(data.error.message);
-            
-            const reply = data.candidates[0].content.parts[0].text
-                .replace(/\*\*(.*?)\*\*/g, '<b class="text-green-300">$1</b>') // Bold formatting
-                .replace(/\n/g, '<br>');
-
-            area.innerHTML += `<div class="text-gray-300 mb-4 pb-2 border-b border-white/10 text-left text-xs leading-relaxed"><strong class="text-green-400">Alfred:</strong><br>${reply}</div>`;
-            area.scrollTop = area.scrollHeight;
-
-        } catch(e) {
-            document.getElementById(thinkingId)?.remove();
-            area.innerHTML += `<div class="text-red-400 text-xs">Error: ${e.message}</div>`;
-        }
-    }
-
-    // ✅ FIX 3: REAL DOCUMENT UPLOAD (Storage + Firestore)
-    
+    // --- 8. UPLOAD LOGIC (Real Storage + Firestore) ---
     function triggerUpload(sectionId) {
-        // Create hidden input
         const input = document.createElement('input');
         input.type = 'file';
-        input.accept = '.pdf,.doc,.docx,.txt';
+        input.accept = '.pdf,.doc,.docx,.txt,.jpg,.png';
         
         input.onchange = async (e) => {
             const file = e.target.files[0];
             if (!file) return;
             if (!currentUser || !currentProjectID) return alert("Error: User/Project not identified");
 
-            // UI Feedback
             showStatus(`Uploading ${file.name}...`, "text-yellow-400");
 
             try {
                 // 1. Upload to Firebase Storage
-                // Path: projects/{projectID}/docs/{fileName}
                 const storageRef = firebase.storage().ref();
                 const fileRef = storageRef.child(`projects/${currentProjectID}/docs/${Date.now()}_${file.name}`);
                 
                 await fileRef.put(file);
                 const downloadURL = await fileRef.getDownloadURL();
 
-                // 2. Update Local Data (Immediate UI Refresh)
+                // 2. Update Local Data
                 const sectionIndex = sectionsData.findIndex(s => s.id === sectionId);
                 if (sectionIndex === -1) return;
 
@@ -1202,7 +997,6 @@ function goBackToHub() {
                     isMainScript: false
                 };
 
-                // Limit Check
                 if (sectionsData[sectionIndex].files.length >= FILES_PER_SECTION) {
                     return alert("Section Full (Max 10 files)");
                 }
@@ -1215,7 +1009,7 @@ function goBackToHub() {
                 });
 
                 showStatus("Upload Complete", "text-green-500");
-                renderSections(); // Refresh Grid
+                renderSections();
 
             } catch (error) {
                 console.error("Upload Error:", error);
@@ -1226,6 +1020,150 @@ function goBackToHub() {
         input.click();
     }
 
+    // --- 9. NAVIGATION & MODE SWITCHER ---
+    function switchMode(mode) {
+        const editorView = document.getElementById('modeEditor');
+        const filesView = document.getElementById('modeFiles');
+        const btnEditor = document.getElementById('btnEditor');
+        const btnFiles = document.getElementById('btnFiles');
+        
+        // Mobile Buttons
+        const mobileWriter = document.getElementById('mobileWriterBtn');
+        const mobileFiles = document.getElementById('mobileFilesBtn');
+
+        if (mode === 'editor') {
+            editorView.classList.remove('hidden-mode');
+            filesView.classList.add('hidden-mode');
+            
+            btnEditor?.classList.add('active');
+            btnFiles?.classList.remove('active');
+            
+            mobileWriter?.classList.add('text-orange-400');
+            mobileFiles?.classList.remove('text-orange-400');
+        } else {
+            editorView.classList.add('hidden-mode');
+            filesView.classList.remove('hidden-mode');
+            
+            btnFiles?.classList.add('active');
+            btnEditor?.classList.remove('active');
+            
+            mobileFiles?.classList.add('text-orange-400');
+            mobileWriter?.classList.remove('text-orange-400');
+            
+            renderSections();
+        }
+    }
+
+    // --- 10. AI ASSISTANT (Context Aware) ---
+    async function callRealAI() {
+        if(!currentUser) return alert("Please Login First");
+        
+        const input = document.getElementById('aiInput');
+        const area = document.getElementById('aiResponseArea');
+        const userPrompt = input.value.trim();
+        
+        // Check Selection vs Whole Script
+        const selection = window.getSelection().toString();
+        let contextText = "";
+        let systemInstruction = "";
+
+        if (selection && selection.length > 0) {
+            contextText = `SELECTED TEXT: "${selection}"`;
+            systemInstruction = `User wants you to modify/analyze the SELECTED TEXT based on this instruction: "${userPrompt}". Output ONLY the result.`;
+            area.innerHTML += `<div class="text-xs text-gray-500 text-right mb-1">[Selected: ${selection.substring(0, 20)}...]</div>`;
+        } else {
+            const fullScript = document.getElementById('scriptEditor').innerText;
+            contextText = `CURRENT SCRIPT CONTEXT: """${fullScript.substring(fullScript.length - 3000)}"""`;
+            systemInstruction = `You are a professional Screenwriter Assistant. Help the user with: "${userPrompt}". Use the script context for tone and characters.`;
+        }
+
+        if(!userPrompt) return;
+
+        area.innerHTML += `<div class="text-white mb-2 text-right bg-white/10 p-2 rounded-lg inline-block ml-auto text-xs">"${userPrompt}"</div>`;
+        input.value = '';
+        
+        const thinkingId = 'thinking_' + Date.now();
+        area.innerHTML += `<div id="${thinkingId}" class="text-green-400 mb-2 italic text-left text-xs flex items-center gap-2"><i class="fa-solid fa-circle-notch animate-spin"></i> Alfred is thinking...</div>`;
+        area.scrollTop = area.scrollHeight;
+
+        try {
+            const userDoc = await db.collection('users').doc(currentUser.uid).get();
+            let key = null;
+            if(userDoc.exists && userDoc.data().apiKeys?.length > 0) {
+                key = userDoc.data().apiKeys[0];
+            }
+            if(!key) throw new Error("API Key missing. Go to Dashboard.");
+
+            const res = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${key}`, {
+                method: 'POST', headers: {'Content-Type': 'application/json'},
+                body: JSON.stringify({ 
+                    contents: [{ parts: [{ text: `${systemInstruction}\n\n${contextText}` }] }] 
+                })
+            });
+            
+            const data = await res.json();
+            document.getElementById(thinkingId).remove();
+            
+            if(data.error) throw new Error(data.error.message);
+            
+            const reply = data.candidates[0].content.parts[0].text
+                .replace(/\*\*(.*?)\*\*/g, '<b class="text-green-300">$1</b>') 
+                .replace(/\n/g, '<br>');
+
+            area.innerHTML += `<div class="text-gray-300 mb-4 pb-2 border-b border-white/10 text-left text-xs leading-relaxed"><strong class="text-green-400">Alfred:</strong><br>${reply}</div>`;
+            area.scrollTop = area.scrollHeight;
+
+        } catch(e) {
+            document.getElementById(thinkingId)?.remove();
+            area.innerHTML += `<div class="text-red-400 text-xs">Error: ${e.message}</div>`;
+        }
+    }
+
+    // --- 11. EDITOR UTILS ---
+    function addNewScene() {
+        const sceneHTML = `<br><div class="scene-heading font-bold uppercase mt-4 mb-2 tracking-wider">INT. LOCATION - DAY</div><br>`;
+        document.execCommand('insertHTML', false, sceneHTML);
+        document.getElementById('scriptEditor').focus();
+    }
+
+    function formatDoc(cmd, val=null) { document.execCommand(cmd, false, val); updateToolbarState(); }
+    
+    function updateToolbarState() {
+        ['bold','italic','underline'].forEach(c => {
+            const active = document.queryCommandState(c);
+            const btn = document.querySelector(`button[onclick="formatDoc('${c}')"]`);
+            if(btn) active ? btn.classList.add('active') : btn.classList.remove('active');
+        });
+    }
+
+    function applyScriptFormat(format) {
+        if(!format) return;
+        document.execCommand('formatBlock', false, 'div');
+        const selection = window.getSelection();
+        if(selection.rangeCount > 0) {
+            const node = selection.anchorNode.parentElement;
+            node.className = ''; 
+            if(format === 'scene') node.className = 'font-bold uppercase mt-4 mb-2 tracking-wider';
+            if(format === 'action') node.className = 'mb-2';
+            if(format === 'character') node.className = 'font-bold uppercase mt-4 text-center w-1/2 mx-auto';
+            if(format === 'dialogue') node.className = 'w-3/4 mx-auto mb-2 text-center';
+        }
+    }
+
+    function exportPDF() {
+        const el = document.getElementById('scriptEditor');
+        const title = document.getElementById('scriptTitle').innerText;
+        html2pdf().set({ margin:1, filename:`${title}.pdf`, html2canvas:{scale:2}, jsPDF:{unit:'in', format:'letter'} }).from(el).save();
+    }
+    
+    function goBackToHub() {
+        const params = new URLSearchParams(window.location.search);
+        const projectId = params.get('id');
+        window.location.href = projectId ? `project-hub.html?id=${projectId}` : 'index.html';
+    }
+
+    function toggleSidebar() { document.getElementById('mobileSidebar').classList.toggle('open'); document.getElementById('sidebarOverlay').classList.toggle('open'); }
+    function toggleAISheet() { document.getElementById('mobileAISheet').classList.toggle('open'); }
     
 </script>
 
@@ -1257,8 +1195,21 @@ function goBackToHub() {
                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path>
             </svg>
         
+<div id="addSectionModal" class="fixed inset-0 bg-black/80 backdrop-blur-sm z-[200] hidden flex items-center justify-center p-4">
+    <div class="bg-[#111] border border-white/10 rounded-xl w-full max-w-sm p-6 shadow-2xl relative">
+        
+        <h3 class="text-white font-bold text-lg mb-1">New Folder Section</h3>
+        <p class="text-gray-500 text-xs mb-4">Create a new category for your files.</p>
 
-</body>
+        <input type="text" id="newSectionName" placeholder="e.g. Costume Ideas, Budget..." 
+               class="w-full bg-black border border-white/20 rounded-lg p-3 text-white text-sm focus:border-orange-500 outline-none transition mb-4">
+
+        <div class="flex gap-3">
+            <button onclick="closeAddSectionModal()" class="flex-1 py-2 rounded-lg border border-white/10 text-gray-400 hover:text-white hover:bg-white/5 text-xs font-bold transition">Cancel</button>
+            <button onclick="confirmAddSection()" class="flex-1 py-2 rounded-lg bg-white text-black hover:bg-gray-200 text-xs font-bold transition">Create</button>
+        </div>
+    </div>
+</div> 
 
 </body>
 </html>
