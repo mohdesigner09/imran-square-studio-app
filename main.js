@@ -430,57 +430,72 @@ async function saveProjectToCloud(project) {
 // 🏗️ CREATE NEW PROJECT (With Folder Logic & Firestore)
 // Paste this in main.js replacing the old createNewProject function
 
+// 🏗️ CREATE NEW PROJECT (Fixed Auth & UID Logic)
 async function createNewProject(openAfter = false) {
-    // 1. Auth Check (main.js global variable use kar rahe hain)
-    if(!CURRENTUSER) return alert("Please Login First");
+    // 1. 🔥 LIVE USER FETCH (Sabse pehle current live user uthao)
+    let activeUser = window.auth ? window.auth.currentUser : null;
 
-    // 2. Input Values Retrieve Karo
+    // 2. Fallback: Agar live user null hai, to LocalStorage check karo
+    if (!activeUser) {
+        const stored = localStorage.getItem('imranUser');
+        if (stored) {
+            try {
+                activeUser = JSON.parse(stored);
+            } catch (e) { console.error("User Parse Error", e); }
+        }
+    }
+
+    // 3. 🔒 SECURITY CHECK: UID hona zaroori hai
+    if (!activeUser || !activeUser.uid) {
+        alert("⚠️ Authentication Error: User ID missing.\nPlease Logout and Login again.");
+        return; // Yahan ruk jao, aage mat badho
+    }
+
+    // 4. Input Values Retrieve Karo
     const titleInput = document.getElementById('projectTitle');
     const genreSelect = document.getElementById('projectGenre');
     const modal = document.getElementById('projectModal');
     
-    // Agar input nahi mila (sidebar se call hua), to prompt karo
     const projectName = titleInput ? titleInput.value.trim() : prompt("Enter Project Name:");
-    if (!projectName) return; // Cancelled
+    if (!projectName) return; 
 
     try {
         const cleanName = projectName.trim();
-        const safeEmail = CURRENTUSER.email.replace(/[@.]/g, '_'); // Email safe format
-        const safeProject = cleanName.replace(/\s+/g, '_');        // Project safe format
+        // Email aur Project name ko folder-safe banao
+        const safeEmail = activeUser.email.replace(/[@.]/g, '_'); 
+        const safeProject = cleanName.replace(/\s+/g, '_');        
 
-        // 3. Create Project Object
+        // 5. Create Project Object
         const newProject = {
             title: cleanName,
             genre: genreSelect ? genreSelect.value : 'Other',
-            ownerEmail: CURRENTUSER.email,
-            ownerName: CURRENTUSER.displayName || 'Creator',
-            uid: CURRENTUSER.uid,
-            createdAt: new Date().toISOString(), // Timestamp
+            ownerEmail: activeUser.email,
+            ownerName: activeUser.displayName || 'Creator',
+            uid: activeUser.uid, // ✅ AB YE PAKKA VALID HOGA
+            createdAt: new Date().toISOString(),
             
-            // ✅ Folder Path Structure (Ye aage upload me kaam aayega)
+            // Folder Path for Storage
             folderPath: `users/${safeEmail}/${safeProject}`,
             
-            // Default Data
-            sections: createSections(), // Default sections list
-            footageLib: [],             // Empty video list
+            // Defaults
+            sections: createSections(), 
+            footageLib: [],             
             chapters: 0,
             progress: 0,
             words: '0',
             readTime: '0min'
         };
 
-        // 4. Save to Firestore (Database)
-        // Note: 'db' global variable hona chahiye (firebase.firestore())
-        const docRef = await db.collection('projects').add(newProject);
+        // 6. Save to Firestore
+        const docRef = await window.db.collection('projects').add(newProject);
         
-        console.log("✅ Project Created with ID:", docRef.id);
+        console.log("✅ Project Created ID:", docRef.id);
 
-        // 5. UI Cleanup
+        // 7. Cleanup
         if (titleInput) titleInput.value = '';
         if (modal) modal.classList.add('hidden');
 
-        // 6. Open Project Directly
-        // Turant Script Page par le jao
+        // 8. Open Script Page
         window.location.href = `scripts.html?id=${docRef.id}`;
 
     } catch (error) {
