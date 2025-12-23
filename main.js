@@ -1,3 +1,25 @@
+// ==========================================
+// 🔑 CONFIGURATION (Paste at TOP of main.js)
+// ==========================================
+
+// 1. API KEY (Jo aapne pehle di thi)
+const API_KEY = "AIzaSyA_D3AuwSzHKgs5svcwRoP0St2Nc-delF8"; 
+
+// 2. CLIENT ID (Jo aapne abhi di)
+const CLIENT_ID = "364132092578-tphp4i883gt7foep5cgaf226ivn45jmc.apps.googleusercontent.com";
+
+// 3. VAULT FOLDER ID (Jahan sab store hoga)
+// Note: Variable ka naam VAULT_ID hi rehne dein, code isi ko dhoond raha hai
+const VAULT_ID = "1nAz-SdoS9vu3748RgKvIvMU8JZWSz4dt"; 
+
+// 4. Permissions (Drive Access)
+const SCOPES = "https://www.googleapis.com/auth/drive.file";
+
+console.log("✅ Config Loaded: Credentials Ready");
+
+// ... iske neeche aapka baaki code shuru hoga ...
+
+
 const API_BASE = window.location.hostname === 'localhost'
     ? 'http://localhost:3000'   // ✅ CORRECT (Match with server.js)
     : 'https://imran-square-studio.onrender.com';
@@ -65,11 +87,6 @@ function getImranFullName(user) {
   const full  = (first + ' ' + last).trim();
   return full || (user.name || 'Guest');
 }
-
-// --- KEYS ---
-const CLIENT_ID = '364132092578-pumcirjl6hlfidrkhtnk89ldkiom93gp.apps.googleusercontent.com';
-const API_KEY   = 'AIzaSyCjWdPwfANgLC9gj4H89NNPY2CY0jnb-60';
-const SCOPES   = 'https://www.googleapis.com/auth/drive.file';
 
 
 // --- DATA SETUP ---
@@ -1317,12 +1334,12 @@ async function findOrCreateFolder(folderName, parentId = null) {
 }
 
 // ==========================================
-// ☁️ GOOGLE DRIVE AUTOMATION (Force Load & Create)
+// ☁️ GOOGLE DRIVE AUTOMATION (Self-Healing)
 // ==========================================
 
-const VAULT_ID = "1nAz-SdoS9vu3748RgKvlvMU8JZWSz4dt"; // ✅ Aapki Vault ID
 
-// 1. Helper: Find or Create
+
+// 1. Helper Function
 async function findOrCreateFolder(folderName, parentId) {
     try {
         let query = `mimeType='application/vnd.google-apps.folder' and name='${folderName}' and trashed=false`;
@@ -1357,45 +1374,64 @@ async function findOrCreateFolder(folderName, parentId) {
     }
 }
 
-// 2. Main Setup Function (Force Initialize)
+// 2. Main Setup Function (Ab ye TokenClient bhi banayega)
 async function setupDriveFolders(userName, projectName) {
     console.log("☁️ Initializing Drive Setup...");
 
-    // 🚨 FORCE FIX: Agar API ready nahi hai, to abhi load karo
+    // 🔴 STEP 1: FORCE GAPI LOAD
     if (!gapi || !gapi.client || !gapi.client.drive) {
-        console.warn("⚠️ GAPI not ready. Force loading now...");
+        console.warn("⚠️ GAPI not ready. Force loading...");
         try {
             await new Promise((resolve, reject) => {
                 gapi.load('client', {callback: resolve, onerror: reject});
             });
             await gapi.client.init({
-                apiKey: API_KEY, // Make sure API_KEY upar defined hai
+                apiKey: API_KEY, 
                 discoveryDocs: ['https://www.googleapis.com/discovery/v1/apis/drive/v3/rest']
             });
-            console.log("✅ GAPI Force Loaded Successfully!");
+            console.log("✅ GAPI Loaded!");
         } catch (error) {
-            console.error("❌ Force Load Failed:", error);
-            alert("⚠️ Google Drive Connection Failed.\nCheck your internet or API Key.");
+            console.error("❌ GAPI Failed:", error);
             return null;
         }
     }
 
-    // 🔑 Permission Check
+    // 🔴 STEP 2: FORCE TOKEN CLIENT LOAD (Ye naya fix hai)
     if (!tokenClient) {
-        console.error("❌ Token Client missing.");
-        alert("⚠️ Authentication system missing. Please refresh.");
-        return null;
+        console.warn("⚠️ Token Client missing. Initializing manually...");
+        try {
+            // Agar google script hi load nahi hua
+            if(typeof google === 'undefined' || !google.accounts) {
+                console.log("⏳ Loading GIS Script...");
+                await new Promise((resolve, reject) => {
+                    const script = document.createElement('script');
+                    script.src = 'https://accounts.google.com/gsi/client';
+                    script.onload = resolve;
+                    script.onerror = reject;
+                    document.head.appendChild(script);
+                });
+            }
+
+            // Ab Initialize karo using GLOBAL CLIENT_ID
+            tokenClient = google.accounts.oauth2.initTokenClient({
+                client_id: CLIENT_ID,
+                scope: SCOPES,
+                callback: '' 
+            });
+            console.log("✅ Token Client Created!");
+        } catch(e) {
+            console.error("❌ Token Init Failed:", e);
+            alert("⚠️ Auth Error: Could not initialize Google Login.");
+            return null;
+        }
     }
 
     try {
-        // STEP A: User Folder
+        // STEP 3: Create Structure
         const userId = await findOrCreateFolder(userName, VAULT_ID);
         if(!userId) throw new Error("Could not create User Folder");
 
-        // STEP B: Project Folder
         const projectId = await findOrCreateFolder(projectName, userId);
-        
-        // STEP C: Sub-Folders
         const scriptId = await findOrCreateFolder("Script", projectId);
         const footageId = await findOrCreateFolder("Raw Footage", projectId);
 
@@ -1409,6 +1445,7 @@ async function setupDriveFolders(userName, projectName) {
 
     } catch (e) {
         console.error("❌ Drive Setup Failed:", e);
+        // Permission maango
         if(e.result && e.result.error && e.result.error.code === 401) {
              tokenClient.requestAccessToken({prompt: 'consent'});
         }
