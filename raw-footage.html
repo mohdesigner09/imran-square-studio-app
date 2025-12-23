@@ -217,27 +217,26 @@
         .progress-segment { height: 100%; flex: 1; background: rgba(255,255,255,0.3); border-radius: 2px; }
         .progress-fill { height: 100%; background: white; width: 0%; }
 
-        /* FAB Upload */
-        .fab-upload {
-            position: fixed; bottom: 30px; right: 30px;
-            width: 56px; height: 56px; border-radius: 50%;
-            background: #fff; color: #000; display: flex; align-items: center; justify-content: center;
-            box-shadow: 0 0 30px rgba(255,255,255,0.3); z-index: 50;
-            transition: all 0.3s; cursor: pointer; border: 1px solid rgba(255,255,255,0.5);
-        }
-        .fab-upload:hover { transform: scale(1.1) rotate(90deg); box-shadow: 0 0 50px rgba(255,255,255,0.6); }
-
-       
-    
-        /* FAB Upload */
-        .fab-upload {
-            position: fixed; bottom: 30px; right: 30px;
-            width: 56px; height: 56px; border-radius: 50%;
-            background: #fff; color: #000; display: flex; align-items: center; justify-content: center;
-            box-shadow: 0 0 30px rgba(255,255,255,0.3); z-index: 50;
-            transition: all 0.3s; cursor: pointer; border: 1px solid rgba(255,255,255,0.5);
-        }
-        .fab-upload:hover { transform: scale(1.1) rotate(90deg); box-shadow: 0 0 50px rgba(255,255,255,0.6); }
+      /* ✨ NEON GLASS FAB */
+.fab-upload {
+    position: fixed; bottom: 30px; right: 30px;
+    width: 60px; height: 60px; border-radius: 50%;
+    /* Glass Effect */
+    background: rgba(255, 255, 255, 0.1);
+    backdrop-filter: blur(10px);
+    border: 1px solid rgba(255, 255, 255, 0.2);
+    color: white;
+    display: flex; align-items: center; justify-content: center;
+    /* Neon Glow */
+    box-shadow: 0 0 20px rgba(255, 100, 0, 0.4), inset 0 0 10px rgba(255, 255, 255, 0.1);
+    z-index: 50; transition: all 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+}
+.fab-upload:hover { 
+    transform: scale(1.1) rotate(90deg); 
+    background: linear-gradient(135deg, #ff6b00, #ff2200); /* Orange to Red */
+    box-shadow: 0 0 40px rgba(255, 80, 0, 0.8);
+    border-color: transparent;
+}
 
         /* --- THEATER MODAL (New Glass Style) --- */
         #theaterModal { transition: opacity 0.3s ease; }
