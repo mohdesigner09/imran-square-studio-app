@@ -304,113 +304,33 @@ window.openHubLink = (type) => {
 window.goBackToHub = () => { const id = new URLSearchParams(window.location.search).get('id'); window.location.href = id ? `project-hub.html?id=${id}` : 'index.html'; };
 
 
-// 1. DASHBOARD
-function initDashboard() {
-  // --- Load projects from storage or defaults ---
-  const stored = localStorage.getItem('imranProjects');
-  if (stored) {
-    try {
-      projects = JSON.parse(stored);
-    } catch (e) {
-      projects = [...defaultProjects];
-    }
-  } else {
-    projects = [...defaultProjects];
-  }
 
-  // --- MY / ALL PROJECTS TOGGLE ---
-  const scopeToggle = document.getElementById('projectScopeToggle');
-  if (scopeToggle) {
-    const scopeButtons = scopeToggle.querySelectorAll('button');
-
-    scopeButtons.forEach(btn => {
-      btn.addEventListener('click', () => {
-        scopeButtons.forEach(b => b.classList.remove('active-scope'));
-        btn.classList.add('active-scope');
-        VIEW_MODE = btn.dataset.scope;
-        renderDashboardProjects();
-      });
-    });
-  }
-
-  // --- SEARCH FUNCTIONALITY ---
-  const searchInput = document.getElementById('projectSearchInput');
-  if (searchInput) {
-    searchInput.addEventListener('input', (e) => {
-      SEARCH_QUERY = e.target.value.toLowerCase().trim();
-      renderDashboardProjects();
-    });
-  }  // <-- yahan closing bracket tha missing
-
-  // --- Initial render + stats ---
-  renderDashboardProjects();
-  updateStats();
-
-  // --- Edit mode toggle ---
-  const editorToggle = document.getElementById('dashEditorToggle');
-  if (editorToggle) {
-    editorToggle.onclick = function () {
-      this.classList.toggle('text-orange-500');
-      document.body.classList.toggle('edit-mode');
-    };
-  }
-
-// --- FAB / Modal elements ---
-const fab = document.getElementById('fabButton');
-const modal = document.getElementById('projectModal');
-const cancel = document.getElementById('cancelModal');
-const createBtn = document.getElementById('createProject');
-const createAndOpenBtn = document.getElementById('createAndOpen');
-const titleInput = document.getElementById('projectTitle');
-const genreSelect = document.getElementById('projectGenre');
-const titleError = document.getElementById('titleError');
-
-if (fab && modal) fab.onclick = () => modal.classList.remove('hidden');
-if (cancel && modal) cancel.onclick = () => {
-  modal.classList.add('hidden');
-  if (titleError) titleError.classList.add('hidden');
-  if (titleInput) titleInput.classList.remove('border-red-500');
-};
-
-// ✅ CLOUD SYNC HELPER
-async function saveProjectToCloud(project) {
-    if(!project || !project.id) return;
-    try {
-        // Firestore me save/update karo
-        await db.collection('projects').doc(project.id).set(project);
-        console.log("☁️ Project Synced to Cloud:", project.title);
-        
-        // Local backup bhi update kar do (Speed ke liye)
-        localStorage.setItem('imranProjects', JSON.stringify(projects));
-    } catch(e) {
-        console.error("Sync Failed:", e);
-        showDashToast("Save Failed! Check Internet.");
-    }
-}
-
-// 🏗️ CREATE NEW PROJECT (Cookie Block Proof)
+// 🏗️ CREATE NEW PROJECT (Wait Logic Included)
 async function createNewProject(openAfter = false) {
     console.log("🔍 Starting Project Creation...");
 
-    // 1. Wait for Auth (3 seconds timeout for slow connections)
-    const getFirebaseUser = () => new Promise(resolve => {
-        if(!window.auth) return resolve(null);
-        // Agar user pehle se ready hai
-        if(window.auth.currentUser) return resolve(window.auth.currentUser);
-        
-        const unsub = window.auth.onAuthStateChanged(user => {
-            unsub();
-            resolve(user);
+    // 1. Wait for Firebase User
+    const waitForAuth = () => {
+        return new Promise((resolve) => {
+            if (window.auth && window.auth.currentUser) {
+                return resolve(window.auth.currentUser);
+            }
+            if (window.auth) {
+                const unsubscribe = window.auth.onAuthStateChanged(user => {
+                    unsubscribe();
+                    resolve(user);
+                });
+            } else {
+                setTimeout(() => resolve(null), 2000); 
+            }
         });
-        // Timeout badhaya taaki slow network par fail na ho
-        setTimeout(() => resolve(null), 3000);
-    });
+    };
 
-    let activeUser = await getFirebaseUser();
+    let activeUser = await waitForAuth();
 
-    // 2. Fallback: LocalStorage Check
+    // 2. Fallback to LocalStorage
     if (!activeUser) {
-        console.warn("⚠️ Firebase silent (Cookies blocked?). Checking Storage...");
+        console.warn("⚠️ Firebase silent. Checking Storage...");
         const stored = localStorage.getItem('imranUser');
         if (stored) {
             try { 
@@ -420,23 +340,16 @@ async function createNewProject(openAfter = false) {
         }
     }
 
-    // 3. 🔒 FINAL CHECK
+    // 3. Security Check
     if (!activeUser || !activeUser.uid) {
-        console.error("❌ Ghost Session: Browser is blocking data.");
-        
-        // Loop mein mat fanso, User ko batao kya karna hai
-        alert("⚠️ Browser Security Issue!\n\nYour browser (Incognito?) is blocking login data.\n\n👉 Solution: Please open in a Normal Tab or Allow Cookies.");
-        
-        // Optional: Logout kar do taaki clean start ho
-        if(confirm("Go to Login Page?")) {
-            window.location.href = "landing.html";
-        }
+        console.error("❌ Auth Failed. No User found.");
+        alert("⚠️ Authentication Error.\nPlease refresh the page and try again.");
         return;
     }
 
-    console.log("✅ User Confirmed:", activeUser.email);
+    console.log("✅ User Verified:", activeUser.email);
 
-    // 4. Input Setup
+    // 4. Inputs
     const titleInput = document.getElementById('projectTitle');
     const genreSelect = document.getElementById('projectGenre');
     const modal = document.getElementById('projectModal');
@@ -464,7 +377,7 @@ async function createNewProject(openAfter = false) {
         };
 
         // 6. Save to DB
-        if (!window.db) throw new Error("Database disconnected. Check internet.");
+        if (!window.db) throw new Error("Database not connected. Refresh page.");
         
         const docRef = await window.db.collection('projects').add(newProject);
         
@@ -472,31 +385,18 @@ async function createNewProject(openAfter = false) {
 
         if (titleInput) titleInput.value = '';
         if (modal) modal.classList.add('hidden');
-        window.location.href = `scripts.html?id=${docRef.id}`;
+        
+        if (openAfter) {
+            window.location.href = `project-hub.html?id=${docRef.id}`;
+        } else {
+            window.location.href = `scripts.html?id=${docRef.id}`;
+        }
 
     } catch (error) {
         console.error("Creation Error:", error);
         alert("Error: " + error.message);
     }
 }
-
-// Create button - stay on dashboard
-if (createBtn) {
-  createBtn.onclick = () => createNewProject(false);
-}
-
-// Create & Open button - go to project-hub
-if (createAndOpenBtn) {
-  createAndOpenBtn.onclick = () => {
-    const newProject = createNewProject(true);
-    if (newProject) {
-      window.location.href = `project-hub.html?id=${newProject.id}`;
-    }
-  };
-}
-
-}
-
 
 
 function renderDashboardProjects() {
@@ -1299,26 +1199,5 @@ function drawAvatarFireAnim() {
 
   requestAnimationFrame(drawAvatarFireAnim);
 }
-// ---- Firebase Google Login + Dashboard init ----
-document.addEventListener('DOMContentLoaded', () => {
-  // Dashboard init
-  initDashboard();
 
-  // Google login
-  const googleBtn = document.getElementById('btnGoogle'); // <-- yahi id
-  if (googleBtn && window.imranAuth) {
-    googleBtn.addEventListener('click', async () => {
-      try {
-        await window.imranAuth.signInWithGoogle();
-        window.location.href = 'index.html';
-      } catch (err) {
-        console.error(err);
-        if (typeof showToast === 'function') {
-          showToast('Google sign-in failed: ' + err.message);
-        } else {
-          alert('Google sign-in failed: ' + err.message);
-        }
-      }
-    });
-  }
-});  
+
