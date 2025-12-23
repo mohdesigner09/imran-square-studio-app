@@ -388,26 +388,29 @@ async function saveProjectToCloud(project) {
     }
 }
 
-// 🏗️ CREATE NEW PROJECT (Session Auto-Repair)
+// 🏗️ CREATE NEW PROJECT (Cookie Block Proof)
 async function createNewProject(openAfter = false) {
     console.log("🔍 Starting Project Creation...");
 
-    // 1. Wait for Firebase (Max 2 seconds)
-    // Ye check karega ki asli connection zinda hai ya nahi
+    // 1. Wait for Auth (3 seconds timeout for slow connections)
     const getFirebaseUser = () => new Promise(resolve => {
         if(!window.auth) return resolve(null);
+        // Agar user pehle se ready hai
+        if(window.auth.currentUser) return resolve(window.auth.currentUser);
+        
         const unsub = window.auth.onAuthStateChanged(user => {
             unsub();
             resolve(user);
         });
-        setTimeout(() => resolve(null), 2000);
+        // Timeout badhaya taaki slow network par fail na ho
+        setTimeout(() => resolve(null), 3000);
     });
 
     let activeUser = await getFirebaseUser();
 
-    // 2. Fallback: Check LocalStorage
+    // 2. Fallback: LocalStorage Check
     if (!activeUser) {
-        console.warn("⚠️ Firebase silent. Checking Local Storage...");
+        console.warn("⚠️ Firebase silent (Cookies blocked?). Checking Storage...");
         const stored = localStorage.getItem('imranUser');
         if (stored) {
             try { 
@@ -417,20 +420,21 @@ async function createNewProject(openAfter = false) {
         }
     }
 
-    // 3. 🚨 CRITICAL CHECK: Agar ab bhi user nahi mila ya UID gayab hai
+    // 3. 🔒 FINAL CHECK
     if (!activeUser || !activeUser.uid) {
-        console.error("❌ Critical Error: Ghost Session Detected.");
+        console.error("❌ Ghost Session: Browser is blocking data.");
         
-        // AUTO-FIX: Ganda data saaf karo aur logout karo
-        localStorage.removeItem('imranUser');
-        if (window.auth) window.auth.signOut();
+        // Loop mein mat fanso, User ko batao kya karna hai
+        alert("⚠️ Browser Security Issue!\n\nYour browser (Incognito?) is blocking login data.\n\n👉 Solution: Please open in a Normal Tab or Allow Cookies.");
         
-        alert("⚠️ Session Expired or Corrupt Data.\nWe are resetting your session. Please Login again.");
-        window.location.href = "landing.html"; // Wapis bhej do
+        // Optional: Logout kar do taaki clean start ho
+        if(confirm("Go to Login Page?")) {
+            window.location.href = "landing.html";
+        }
         return;
     }
 
-    console.log("✅ User Verified:", activeUser.email);
+    console.log("✅ User Confirmed:", activeUser.email);
 
     // 4. Input Setup
     const titleInput = document.getElementById('projectTitle');
@@ -460,11 +464,11 @@ async function createNewProject(openAfter = false) {
         };
 
         // 6. Save to DB
-        if (!window.db) throw new Error("Database not connected. Refresh page.");
+        if (!window.db) throw new Error("Database disconnected. Check internet.");
         
         const docRef = await window.db.collection('projects').add(newProject);
         
-        console.log("🎉 Success! Project ID:", docRef.id);
+        console.log("🎉 Project Created:", docRef.id);
 
         if (titleInput) titleInput.value = '';
         if (modal) modal.classList.add('hidden');

@@ -834,6 +834,7 @@
         window.auth = firebase.auth();
         window.storage = firebase.storage();
         window.firebase = firebase;
+        window.auth.setPersistence(firebase.auth.Auth.Persistence.LOCAL);
 
         console.log("✅ Firebase Connected Globally");
 
