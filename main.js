@@ -209,7 +209,7 @@ async function initDashboard() {
             };
         }
     }, 1000); // 1 second wait taaki sab load ho jaye
-    
+
 }
 
 if (!projects || !Array.isArray(projects) || projects.length === 0) {
@@ -1190,3 +1190,51 @@ function drawAvatarFireAnim() {
 }
 
 
+// ==========================================
+// ⚡ FINAL FIX: CONNECT CREATE BUTTON
+// ==========================================
+document.addEventListener('DOMContentLoaded', () => {
+    
+    // 1. Create Button dhoondo
+    const createBtn = document.getElementById('createProject');
+    
+    if (createBtn) {
+        // Purane connections saaf karo
+        const newBtn = createBtn.cloneNode(true);
+        createBtn.parentNode.replaceChild(newBtn, createBtn);
+
+        console.log("✅ Create Button Found & Reset");
+
+        // 2. Click Logic Lagao
+        newBtn.addEventListener('click', async (e) => {
+            e.preventDefault(); // Form submit roko
+            
+            console.log("🚀 Create Clicked!");
+            
+            // User ko dikhao ki kaam chal raha hai (Freeze na lage)
+            const originalText = newBtn.innerText;
+            newBtn.innerText = "Creating...";
+            newBtn.style.opacity = "0.7";
+            newBtn.disabled = true; // Double click se bachne ke liye
+
+            try {
+                // Main function call karo
+                if (typeof createNewProject === 'function') {
+                    await createNewProject(false);
+                } else {
+                    alert("Error: Create Function Missing!");
+                }
+            } catch (err) {
+                console.error(err);
+                alert("Creation Failed: " + err.message);
+            } finally {
+                // Kaam khatam hone par wapis normal karo
+                newBtn.innerText = originalText;
+                newBtn.style.opacity = "1";
+                newBtn.disabled = false;
+            }
+        });
+    } else {
+        console.error("❌ Create Button Not Found in HTML");
+    }
+});
