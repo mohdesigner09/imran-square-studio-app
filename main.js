@@ -294,45 +294,31 @@ window.goBackToHub = () => { const id = new URLSearchParams(window.location.sear
 
 
 
-// 🏗️ CREATE NEW PROJECT (Wait Logic Included)
+// 🏗️ CREATE NEW PROJECT (Incognito/Cookie-Block Safe Mode)
 async function createNewProject(openAfter = false) {
     console.log("🔍 Starting Project Creation...");
 
-    // 1. Wait for Firebase User
-    const waitForAuth = () => {
-        return new Promise((resolve) => {
-            if (window.auth && window.auth.currentUser) {
-                return resolve(window.auth.currentUser);
-            }
-            if (window.auth) {
-                const unsubscribe = window.auth.onAuthStateChanged(user => {
-                    unsubscribe();
-                    resolve(user);
-                });
-            } else {
-                setTimeout(() => resolve(null), 2000); 
-            }
-        });
-    };
+    // 1. Sabse pehle Local Data uthao (Browser Block se bachne ke liye)
+    let activeUser = window.CURRENTUSER; 
 
-    let activeUser = await waitForAuth();
-
-    // 2. Fallback to LocalStorage
+    // Agar global variable nahi mila, to direct Storage check karo
     if (!activeUser) {
-        console.warn("⚠️ Firebase silent. Checking Storage...");
-        const stored = localStorage.getItem('imranUser');
-        if (stored) {
-            try { 
-                const parsed = JSON.parse(stored);
-                if (parsed && parsed.uid) activeUser = parsed;
-            } catch (e) {}
-        }
+        try {
+            const stored = localStorage.getItem('imranUser');
+            if (stored) activeUser = JSON.parse(stored);
+        } catch (e) { console.error("Storage Parse Error", e); }
     }
 
-    // 3. Security Check
+    // 2. Firebase check (Sirf confirmation ke liye, mandatory nahi)
+    if (!activeUser && window.auth && window.auth.currentUser) {
+        activeUser = window.auth.currentUser;
+    }
+
+    // 3. FINAL SECURITY CHECK
+    // Note: Hum yahan data DELETE nahi karenge, bas error denge agar kuch bhi nahi mila
     if (!activeUser || !activeUser.uid) {
-        console.error("❌ Auth Failed. No User found.");
-        alert("⚠️ Authentication Error.\nPlease refresh the page and try again.");
+        console.error("❌ Auth Failed. No User found locally or remotely.");
+        alert("⚠️ Authentication Error.\nWe cannot find your login details.\n\nPlease Logout and Login again.");
         return;
     }
 
@@ -366,7 +352,12 @@ async function createNewProject(openAfter = false) {
         };
 
         // 6. Save to DB
-        if (!window.db) throw new Error("Database not connected. Refresh page.");
+        // Agar window.db nahi hai to error mat do, try karo reconnect karne ka
+        if (!window.db && window.firebase) window.db = window.firebase.firestore();
+        
+        if (!window.db) {
+            throw new Error("Database connection lost. Please check internet.");
+        }
         
         const docRef = await window.db.collection('projects').add(newProject);
         
@@ -383,7 +374,7 @@ async function createNewProject(openAfter = false) {
 
     } catch (error) {
         console.error("Creation Error:", error);
-        alert("Error: " + error.message);
+        alert("Creation Failed: " + error.message);
     }
 }
 
