@@ -388,29 +388,47 @@ async function saveProjectToCloud(project) {
     }
 }
 
-// 🏗️ CREATE NEW PROJECT (Final Logic)
+// 🏗️ CREATE NEW PROJECT (Self-Healing Logic)
 async function createNewProject(openAfter = false) {
-    // 1. Live User Check
-    let activeUser = window.auth.currentUser;
     
-    // Fallback: LocalStorage
+    // 1. Live User Check (Firebase)
+    let activeUser = window.auth ? window.auth.currentUser : null;
+
+    // 2. Fallback: LocalStorage Check
     if (!activeUser) {
+        console.log("⚠️ Firebase waiting... checking Storage");
         const stored = localStorage.getItem('imranUser');
         if (stored) {
-            try { 
+            try {
                 const parsed = JSON.parse(stored);
-                if (parsed && parsed.uid) activeUser = parsed;
-            } catch (e) {}
+                // Check agar UID hai
+                if (parsed && parsed.uid) {
+                    activeUser = parsed;
+                } else {
+                    console.warn("❌ Corrupt Data Found (No UID). Cleaning...");
+                    localStorage.removeItem('imranUser'); // Ganda data saaf karo
+                    activeUser = null;
+                }
+            } catch (e) {
+                localStorage.removeItem('imranUser');
+            }
         }
     }
 
-    // 2. Security Check
+    // 3. FINAL SECURITY CHECK
     if (!activeUser || !activeUser.uid) {
-        alert("⚠️ Authentication Error. Please Logout and Login again.");
+        // Agar abhi bhi user nahi mila, to seedha logout trigger karo
+        console.error("❌ Fatal: No User ID found.");
+        alert("⚠️ Session expired. Redirecting to Login...");
+        
+        // Force Logout & Redirect
+        if(window.auth) await window.auth.signOut();
+        localStorage.removeItem('imranUser');
+        window.location.href = "landing.html";
         return;
     }
 
-    // 3. Setup Project Data
+    // 4. Input Setup
     const titleInput = document.getElementById('projectTitle');
     const genreSelect = document.getElementById('projectGenre');
     const modal = document.getElementById('projectModal');
@@ -423,12 +441,13 @@ async function createNewProject(openAfter = false) {
         const safeEmail = activeUser.email.replace(/[@.]/g, '_'); 
         const safeProject = cleanName.replace(/\s+/g, '_');        
 
+        // 5. Create Object
         const newProject = {
             title: cleanName,
             genre: genreSelect ? genreSelect.value : 'Other',
             ownerEmail: activeUser.email,
             ownerName: activeUser.displayName || 'Creator',
-            uid: activeUser.uid,
+            uid: activeUser.uid, // ✅ Verified UID
             createdAt: new Date().toISOString(),
             folderPath: `users/${safeEmail}/${safeProject}`,
             sections: createSections(), 
@@ -436,12 +455,12 @@ async function createNewProject(openAfter = false) {
             chapters: 0, progress: 0, words: '0', readTime: '0min'
         };
 
-        // 4. Save to DB (Using window.db)
-        if (!window.db) throw new Error("Database connecting... try again in 2s.");
+        // 6. Save to DB
+        if (!window.db) throw new Error("Database not connected. Please refresh.");
         const docRef = await window.db.collection('projects').add(newProject);
         
-        // 5. Success
         console.log("✅ Project Created:", docRef.id);
+
         if (titleInput) titleInput.value = '';
         if (modal) modal.classList.add('hidden');
         window.location.href = `scripts.html?id=${docRef.id}`;
