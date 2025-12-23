@@ -204,6 +204,8 @@ let gapiInited = false;
 let gisInited = false;
 let SEARCH_QUERY = '';
 
+// --- GOOGLE API SETUP (Clean & Fixed) ---
+
 // 1. GAPI (Drive API) Loader
 window.gapiLoaded = async function() {
     try {
@@ -236,10 +238,9 @@ window.gisLoaded = function() {
     }
 };
 
-// 3. Auto-Trigger (Agar scripts pehle load ho gayi hon)
+// 3. Auto-Trigger (Check if script loaded first)
 if (typeof gapi !== 'undefined') window.gapiLoaded();
 if (typeof google !== 'undefined' && google.accounts) window.gisLoaded();
-
 
 // --- INIT ---
 document.addEventListener('DOMContentLoaded', function() {
@@ -435,7 +436,7 @@ async function createNewProject(openAfter = false) {
             chapters: 0, progress: 0, words: '0', readTime: '0min'
         };
 
-        // 4. Save to DB
+        // 4. Save to DB (Using window.db)
         if (!window.db) throw new Error("Database connecting... try again in 2s.");
         const docRef = await window.db.collection('projects').add(newProject);
         
