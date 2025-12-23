@@ -294,29 +294,21 @@ window.goBackToHub = () => { const id = new URLSearchParams(window.location.sear
 
 
 
-// 🏗️ CREATE NEW PROJECT (Fixed: userId vs uid Mismatch)
+// 🏗️ CREATE NEW PROJECT (With Drive Integration)
 async function createNewProject(openAfter = false) {
     console.log("🔍 Starting Project Creation...");
 
-    // 1. Force Read from Local Storage
+    // 1. Local User Check
     let activeUser = null;
     try {
         const stored = localStorage.getItem('imranUser');
         if (stored) {
-            console.log("📂 Raw Storage Found:", stored);
             activeUser = JSON.parse(stored);
-
-            // 🔥 CRITICAL FIX: Mapping 'userId' to 'uid'
-            if (activeUser.userId && !activeUser.uid) {
-                console.log("🔧 Fixing ID Mismatch (userId -> uid)");
-                activeUser.uid = activeUser.userId;
-            }
+            if (activeUser.userId && !activeUser.uid) activeUser.uid = activeUser.userId;
         }
-    } catch (e) {
-        console.error("❌ Storage Parse Error:", e);
-    }
+    } catch (e) { console.error(e); }
 
-    // 2. Fallback to Firebase Auth
+    // Fallback to Firebase Auth
     if ((!activeUser || !activeUser.uid) && window.auth && window.auth.currentUser) {
         const fbUser = window.auth.currentUser;
         activeUser = {
@@ -326,16 +318,12 @@ async function createNewProject(openAfter = false) {
         };
     }
 
-    // 3. FINAL CHECK
     if (!activeUser || !activeUser.uid) {
-        console.error("❌ FAILURE: Still no UID found.");
-        alert("⚠️ Login Data Issue.\nPlease Logout and Login again to refresh your ID.");
+        alert("⚠️ User Missing. Please Login again.");
         return;
     }
 
-    console.log("✅ User Verified:", activeUser.email);
-
-    // 4. Inputs
+    // 2. Inputs
     const titleInput = document.getElementById('projectTitle');
     const genreSelect = document.getElementById('projectGenre');
     const modal = document.getElementById('projectModal');
@@ -343,60 +331,81 @@ async function createNewProject(openAfter = false) {
     const projectName = titleInput ? titleInput.value.trim() : prompt("Enter Project Name:");
     if (!projectName) return; 
 
+    // Create Button ko "Working" mode mein daalo
+    const createBtn = document.getElementById('createProject');
+    if(createBtn) {
+        createBtn.innerText = "Setting up Drive...";
+        createBtn.disabled = true;
+    }
+
     try {
         const cleanName = projectName.trim();
         const safeEmail = activeUser.email.replace(/[@.]/g, '_'); 
-        const safeProject = cleanName.replace(/\s+/g, '_');        
+        const safeProject = cleanName.replace(/\s+/g, '_');    
+        const ownerName = activeUser.displayName || activeUser.firstName || "Imran User";    
 
-        // 5. Create Project Object
+        // 🔥 STEP 3: CREATE GOOGLE DRIVE FOLDERS
+        // Ye code tabhi chalega agar user ne Google se login kiya ho
+        let driveData = {};
+        if (typeof setupDriveFolders === 'function') {
+            const folders = await setupDriveFolders(ownerName, cleanName);
+            if(folders) {
+                driveData = folders; // IDs mil gayi!
+            }
+        }
+
+        // 4. Create Project Object (With Drive IDs)
         const newProject = {
             title: cleanName,
             genre: genreSelect ? genreSelect.value : 'Other',
             ownerEmail: activeUser.email,
-            ownerName: activeUser.firstName || activeUser.displayName || 'Creator', // Added firstName support
+            ownerName: ownerName,
             uid: activeUser.uid,
             createdAt: new Date().toISOString(),
-            folderPath: `users/${safeEmail}/${safeProject}`,
+            // Old path (just for reference)
+            folderPath: `users/${safeEmail}/${safeProject}`, 
+            // ✅ NEW: Connected Drive IDs
+            drive: {
+                enabled: !!driveData.projectFolderId,
+                rootId: driveData.rootFolderId || '',
+                projectId: driveData.projectFolderId || '',
+                scriptId: driveData.scriptFolderId || '',
+                footageId: driveData.footageFolderId || ''
+            },
             sections: createSections(), 
             footageLib: [],             
-            chapters: 0, progress: 0, words: '0', readTime: '0min'
+            chapters: 0, progress: 0
         };
 
-        // 6. Save to DB
-        if (!window.db) {
-             if(window.firebase) window.db = window.firebase.firestore();
-             if(!window.db) throw new Error("Database disconnected. Refresh Page.");
-        }
-        
-        // ... (Upar ka code same rahega) ...
+        // 5. Save to DB
+        if (!window.db && window.firebase) window.db = window.firebase.firestore();
+        if (!window.db) throw new Error("Database disconnected.");
         
         const docRef = await window.db.collection('projects').add(newProject);
         
-        console.log("🎉 Success! Project Created:", docRef.id);
+        console.log("🎉 Project Created with ID:", docRef.id);
+        if(driveData.projectFolderId) console.log("☁️ Drive Connected!");
 
-        // 1. Form Clear Karo
+        // 6. Cleanup
         if (titleInput) titleInput.value = '';
         if (modal) modal.classList.add('hidden');
-        
-        // 2. Button Reset
-        const createBtn = document.getElementById('createProject');
         if(createBtn) {
              createBtn.innerText = "Create Project";
              createBtn.disabled = false;
         }
 
-        // 3. 🛑 REDIRECT HATA DIYA HAI
-        // Ab hum bas Dashboard ko refresh karenge taaki naya project dikh jaye
-        alert("✅ Project Created Successfully!");
+        alert("✅ Project & Drive Folders Created!");
         
-        // List ko update karo (Taaki naya project saamne aa jaye)
-        if (typeof initDashboard === 'function') {
-            await initDashboard(); 
-        }
+        // Refresh List
+        if (typeof initDashboard === 'function') await initDashboard(); 
 
     } catch (error) {
         console.error("Creation Error:", error);
         alert("Error: " + error.message);
+        if(createBtn) {
+             createBtn.innerText = "Create Project";
+             createBtn.disabled = false;
+        }
     }
 }
 
@@ -1256,3 +1265,91 @@ document.addEventListener('DOMContentLoaded', () => {
         console.error("❌ Create Button Not Found in HTML");
     }
 });
+
+// ==========================================
+// ☁️ GOOGLE DRIVE AUTOMATION (The Folder Maker)
+// ==========================================
+
+// 1. Helper: Folder Dhoondo ya Banao
+async function findOrCreateFolder(folderName, parentId = null) {
+    if (!gapi.client.drive) return null;
+
+    try {
+        // Query: Folder with this name, not trashed, inside parent (if provided)
+        let query = `mimeType='application/vnd.google-apps.folder' and name='${folderName}' and trashed=false`;
+        if (parentId) {
+            query += ` and '${parentId}' in parents`;
+        }
+
+        const response = await gapi.client.drive.files.list({
+            q: query,
+            fields: 'files(id, name)',
+            spaces: 'drive'
+        });
+
+        // Agar mil gaya, to ID wapis karo
+        if (response.result.files.length > 0) {
+            console.log(`📂 Found existing folder: ${folderName}`);
+            return response.result.files[0].id;
+        }
+
+        // Agar nahi mila, to naya banao
+        console.log(`mw Creating new folder: ${folderName}...`);
+        const fileMetadata = {
+            'name': folderName,
+            'mimeType': 'application/vnd.google-apps.folder'
+        };
+        if (parentId) {
+            fileMetadata.parents = [parentId];
+        }
+
+        const file = await gapi.client.drive.files.create({
+            resource: fileMetadata,
+            fields: 'id'
+        });
+        
+        return file.result.id;
+
+    } catch (err) {
+        console.error("Drive Error:", err);
+        return null; // Error aane par null return karo taaki code ruke nahi
+    }
+}
+
+// 2. Main Setup: Poora Structure Banao
+async function setupDriveFolders(userName, projectName) {
+    console.log("☁️ Setting up Drive Architecture...");
+    
+    // Check agar GAPI ready hai
+    if(!gapiInited || !gapi.client.drive) {
+        console.warn("⚠️ Google Drive API not ready. Skipping Folder Creation.");
+        return null;
+    }
+
+    try {
+        // A. Root Folder (User Name)
+        const rootId = await findOrCreateFolder(userName);
+        if(!rootId) throw new Error("Could not create Root User Folder");
+
+        // B. Project Folder (Inside User Name)
+        const projectId = await findOrCreateFolder(projectName, rootId);
+        
+        // C. Sub-Folders (Inside Project)
+        const scriptId = await findOrCreateFolder("Script", projectId);
+        const footageId = await findOrCreateFolder("Raw Footage", projectId);
+
+        console.log("✅ Drive Structure Ready!");
+        
+        // Return IDs Object
+        return {
+            rootFolderId: rootId,
+            projectFolderId: projectId,
+            scriptFolderId: scriptId,
+            footageFolderId: footageId
+        };
+
+    } catch (e) {
+        console.error("❌ Drive Setup Failed:", e);
+        return null;
+    }
+}
