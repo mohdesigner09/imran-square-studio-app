@@ -204,80 +204,41 @@ let gapiInited = false;
 let gisInited = false;
 let SEARCH_QUERY = '';
 
-
-// Google API initialization
-function gapiLoaded() {
-    gapi.load('client', async () => {
+// 1. GAPI (Drive API) Loader
+window.gapiLoaded = async function() {
+    try {
+        await new Promise((resolve, reject) => {
+            gapi.load('client', {callback: resolve, onerror: reject});
+        });
         await gapi.client.init({
             apiKey: API_KEY,
             discoveryDocs: ['https://www.googleapis.com/discovery/v1/apis/drive/v3/rest']
         });
         gapiInited = true;
-        console.log('✓ GAPI initialized');
-    });
-}
-
-// Make these GLOBAL functions
-window.gapiLoaded = function() {
-    gapi.load('client', async () => {
-        await gapi.client.init({
-            apiKey: API_KEY,
-            discoveryDocs: ['https://www.googleapis.com/discovery/v1/apis/drive/v3/rest']
-        });
-        gapiInited = true;  // Yeh already declared hai top pe
-        console.log('✅ GAPI Ready');
-    });
+        console.log('✅ GAPI (Drive) Initialized');
+    } catch (error) {
+        console.error("❌ GAPI Init Error:", error);
+    }
 };
 
-// Make these GLOBAL functions so HTML can call them
-window.gapiLoaded = function() {
-    gapi.load('client', async () => {
-        await gapi.client.init({
-            apiKey: API_KEY,
-            discoveryDocs: ['https://www.googleapis.com/discovery/v1/apis/drive/v3/rest']
-        });
-        gapiInited = true;
-        console.log('✅ GAPI Ready');
-    });
-};
-
+// 2. GIS (Auth) Loader
 window.gisLoaded = function() {
-    tokenClient = google.accounts.oauth2.initTokenClient({
-        client_id: CLIENT_ID,
-        scope: SCOPES,
-        callback: ''
-    });
-    gisInited = true;
-    console.log('✅ GIS Ready');
+    try {
+        tokenClient = google.accounts.oauth2.initTokenClient({
+            client_id: CLIENT_ID,
+            scope: SCOPES,
+            callback: '' // Dynamic callback
+        });
+        gisInited = true;
+        console.log('✅ GIS (Auth) Ready');
+    } catch (error) {
+        console.error("❌ GIS Init Error:", error);
+    }
 };
 
-// Auto-call if already loaded
-if (typeof gapi !== 'undefined') {
-    window.gapiLoaded();
-}
-if (typeof google !== 'undefined' && google.accounts) {
-    window.gisLoaded();
-}
-
-
-window.gisLoaded = function() {
-    tokenClient = google.accounts.oauth2.initTokenClient({
-        client_id: CLIENT_ID,
-        scope: SCOPES,
-        callback: ''
-    });
-    gisInited = true;
-    console.log('✓ GIS Ready');
-};
-
-// Try to initialize immediately
-if (typeof gapi !== 'undefined') {
-    window.gapiLoaded();
-}
-if (typeof google !== 'undefined' && google.accounts) {
-    window.gisLoaded();
-}
-
+// 3. Auto-Trigger (Agar scripts pehle load ho gayi hon)
+if (typeof gapi !== 'undefined') window.gapiLoaded();
+if (typeof google !== 'undefined' && google.accounts) window.gisLoaded();
 
 
 // --- INIT ---
@@ -426,47 +387,29 @@ async function saveProjectToCloud(project) {
     }
 }
 
-// 🏗️ CREATE NEW PROJECT (Auto-Fix Corrupt Data)
+// 🏗️ CREATE NEW PROJECT (Final Logic)
 async function createNewProject(openAfter = false) {
-    
-    // 1. 🔥 LIVE USER FETCH (Sabse pehle Live User check karo)
+    // 1. Live User Check
     let activeUser = window.auth.currentUser;
-
-    // Agar Live User nahi mila, to LocalStorage check karo (Fallback)
+    
+    // Fallback: LocalStorage
     if (!activeUser) {
-        console.log("⚠️ Firebase User not ready, checking LocalStorage...");
         const stored = localStorage.getItem('imranUser');
         if (stored) {
             try { 
                 const parsed = JSON.parse(stored);
-                // 🛑 VALIDATION CHECK: Agar UID nahi hai to ye data bekar hai
-                if (parsed && parsed.uid) {
-                    activeUser = parsed;
-                    console.log("✅ Valid User found in LocalStorage");
-                } else {
-                    console.warn("❌ LocalStorage data corrupt (No UID). Cleaning up...");
-                    localStorage.removeItem('imranUser'); // Ganda data hatao
-                }
-            } catch (e) { 
-                console.error("Data Parse Error", e);
-                localStorage.removeItem('imranUser');
-            }
+                if (parsed && parsed.uid) activeUser = parsed;
+            } catch (e) {}
         }
     }
 
-    // 2. 🔒 FINAL SECURITY CHECK
+    // 2. Security Check
     if (!activeUser || !activeUser.uid) {
-        console.error("❌ Fatal: No UID found anywhere.");
-        // User ko clear message do aur Login page par bhejo agar zaroorat ho
-        if(confirm("⚠️ Session Expired or Invalid.\n\nClick OK to re-login cleanly.")) {
-            window.logoutApp(); // Logout trigger karo
-        }
-        return; 
+        alert("⚠️ Authentication Error. Please Logout and Login again.");
+        return;
     }
 
-    console.log("✅ Starting Project Creation for:", activeUser.email);
-
-    // 3. Input Values Retrieve Karo
+    // 3. Setup Project Data
     const titleInput = document.getElementById('projectTitle');
     const genreSelect = document.getElementById('projectGenre');
     const modal = document.getElementById('projectModal');
@@ -479,39 +422,27 @@ async function createNewProject(openAfter = false) {
         const safeEmail = activeUser.email.replace(/[@.]/g, '_'); 
         const safeProject = cleanName.replace(/\s+/g, '_');        
 
-        // 4. Create Project Object
         const newProject = {
             title: cleanName,
             genre: genreSelect ? genreSelect.value : 'Other',
             ownerEmail: activeUser.email,
             ownerName: activeUser.displayName || 'Creator',
-            uid: activeUser.uid, // ✅ AB YE CONFIRMED HAI
+            uid: activeUser.uid,
             createdAt: new Date().toISOString(),
-            
-            // Folder Path
             folderPath: `users/${safeEmail}/${safeProject}`,
-            
-            // Defaults
             sections: createSections(), 
             footageLib: [],             
-            chapters: 0,
-            progress: 0,
-            words: '0',
-            readTime: '0min'
+            chapters: 0, progress: 0, words: '0', readTime: '0min'
         };
 
-        // 5. Save to Firestore (Ensure DB connection)
-        if (!window.db) throw new Error("Database connecting... Wait 2 seconds and try again.");
-        
+        // 4. Save to DB
+        if (!window.db) throw new Error("Database connecting... try again in 2s.");
         const docRef = await window.db.collection('projects').add(newProject);
         
-        console.log("🎉 Project Created ID:", docRef.id);
-
-        // 6. Cleanup & Redirect
+        // 5. Success
+        console.log("✅ Project Created:", docRef.id);
         if (titleInput) titleInput.value = '';
         if (modal) modal.classList.add('hidden');
-
-        // Redirect to Script Page
         window.location.href = `scripts.html?id=${docRef.id}`;
 
     } catch (error) {
