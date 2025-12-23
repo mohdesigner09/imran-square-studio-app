@@ -242,46 +242,6 @@ window.gisLoaded = function() {
 if (typeof gapi !== 'undefined') window.gapiLoaded();
 if (typeof google !== 'undefined' && google.accounts) window.gisLoaded();
 
-// --- INIT ---
-document.addEventListener('DOMContentLoaded', function() {
-    const id = new URLSearchParams(window.location.search).get('id');
-    const project = projects.find(p => p.id === id);
-    if (project) {
-        // Safely set both name fields if elements exist
-        const h = document.getElementById('projectTitleHeading');
-        const i = document.getElementById('projectTitleInput');
-        if (h) h.innerText = project.title;
-        if (i) i.value = project.title;
-    }
-});
-
-
-    // Check which page and initialize
-    const hasProjectCards = document.getElementById('projectCards');
-    const hasSectionsGrid = document.getElementById('sectionsGrid');
-    const hasFootageGrid = document.getElementById('footageGrid');
-
-    if (hasProjectCards) {
-        console.log('✓ Dashboard page detected');
-        initDashboard();
-    }
-    
-    if (hasSectionsGrid) {
-        console.log('✓ Scripts page detected');
-        initEditor();
-    }
-    
-    if (hasFootageGrid) {
-        console.log('✓ Footage page detected');
-        initFootagePage();
-    }
-
-    // Project Hub detection
-    const isProjectHub = window.location.pathname.includes('project-hub');
-    if (isProjectHub && typeof initProjectHub === 'function') {
-        console.log('✓ Project Hub page detected');
-        initProjectHub();
-    }
 
 // --- NAVIGATION ---
 window.openHubLink = (type) => {
