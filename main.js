@@ -180,6 +180,36 @@ async function initDashboard() {
         renderDashboardProjects();
     });
   }
+
+  // --- ✅ RE-ADDED: Upload Button & Modal Logic ---
+    setTimeout(() => {
+        const fab = document.getElementById('fabButton');
+        const modal = document.getElementById('projectModal');
+        const cancel = document.getElementById('cancelModal');
+        
+        // Upload (+) Button Fix
+        if (fab) {
+            // Purane events saaf karke naya lagao
+            const newFab = fab.cloneNode(true);
+            fab.parentNode.replaceChild(newFab, fab);
+            
+            newFab.onclick = () => {
+                console.log("➕ Upload Button Clicked");
+                if(modal) modal.classList.remove('hidden');
+            };
+            console.log("✅ Upload Button Connected");
+        } else {
+            console.warn("⚠️ Upload Button (fabButton) not found in HTML");
+        }
+
+        // Cancel Button Fix
+        if (cancel && modal) {
+            cancel.onclick = () => {
+                modal.classList.add('hidden');
+            };
+        }
+    }, 1000); // 1 second wait taaki sab load ho jaye
+    
 }
 
 if (!projects || !Array.isArray(projects) || projects.length === 0) {
@@ -206,7 +236,9 @@ let SEARCH_QUERY = '';
 
 // --- GOOGLE API SETUP (Clean & Fixed) ---
 
-// 1. GAPI (Drive API) Loader
+
+
+// Sirf Define karo, Call mat karo (HTML automatic call karega)
 window.gapiLoaded = async function() {
     try {
         await new Promise((resolve, reject) => {
@@ -223,13 +255,12 @@ window.gapiLoaded = async function() {
     }
 };
 
-// 2. GIS (Auth) Loader
 window.gisLoaded = function() {
     try {
         tokenClient = google.accounts.oauth2.initTokenClient({
             client_id: CLIENT_ID,
             scope: SCOPES,
-            callback: '' // Dynamic callback
+            callback: '' 
         });
         gisInited = true;
         console.log('✅ GIS (Auth) Ready');
@@ -238,9 +269,7 @@ window.gisLoaded = function() {
     }
 };
 
-// 3. Auto-Trigger (Check if script loaded first)
-if (typeof gapi !== 'undefined') window.gapiLoaded();
-if (typeof google !== 'undefined' && google.accounts) window.gisLoaded();
+// ❌ NOTICE: Maine neeche wali "Auto-Start" lines hata di hain taaki double-load na ho.
 
 
 // --- NAVIGATION ---
