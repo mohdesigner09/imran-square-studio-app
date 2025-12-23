@@ -1284,10 +1284,10 @@ document.addEventListener('DOMContentLoaded', () => {
 });
 
 // ==========================================
-// ☁️ GOOGLE DRIVE AUTOMATION (Raw Request Mode)
+// ☁️ GOOGLE DRIVE AUTOMATION (Raw Mode - Fixed)
 // ==========================================
 
-// 1. Helper: Raw API Call (Bypasses Library Loading)
+// 1. Helper: Raw API Call (Direct & Fast)
 async function makeDriveRequest(method, path, params = {}, body = null) {
     return new Promise((resolve, reject) => {
         const requestOptions = {
@@ -1297,8 +1297,9 @@ async function makeDriveRequest(method, path, params = {}, body = null) {
         };
         if (body) requestOptions.body = body;
 
+        // Raw request bhejenge taaki library loading ka natak na ho
         const request = gapi.client.request(requestOptions);
-        request.execute((resp, rawResp) => {
+        request.execute((resp) => {
             if (resp.error) {
                 reject(resp.error);
             } else {
@@ -1308,13 +1309,13 @@ async function makeDriveRequest(method, path, params = {}, body = null) {
     });
 }
 
-// 2. Helper: Find or Create Folder using Raw Requests
+// 2. Helper: Find or Create
 async function findOrCreateFolder(folderName, parentId) {
     try {
-        // A. Search (List)
         let query = `mimeType='application/vnd.google-apps.folder' and name='${folderName}' and trashed=false`;
         if (parentId) query += ` and '${parentId}' in parents`;
 
+        // LIST (GET)
         const listResp = await makeDriveRequest('GET', '/drive/v3/files', {
             q: query,
             fields: 'files(id, name)'
@@ -1325,7 +1326,7 @@ async function findOrCreateFolder(folderName, parentId) {
             return listResp.files[0].id;
         }
 
-        // B. Create (Post)
+        // CREATE (POST)
         console.log(`✨ Creating: ${folderName}...`);
         const fileMetadata = {
             'name': folderName,
@@ -1342,19 +1343,27 @@ async function findOrCreateFolder(folderName, parentId) {
     }
 }
 
-// 3. Main Setup Function
+// 3. Main Setup Function (Undefined Error Fixed Here)
 async function setupDriveFolders(userName, projectName) {
-    console.log("☁️ Initializing Drive Setup (Raw Mode)...");
+    console.log("☁️ Initializing Drive Setup...");
 
-    // 🔴 STEP 1: Lightweight Init (Sirf API Key set karo, Load mat karo)
-    if (!gapi.client.getToken && (!gapi.client.apiKey || gapi.client.apiKey !== API_KEY)) {
-        console.log("🔑 Setting API Key...");
+    // 🔴 FIX STEP 1: SAFE GAPI INIT
+    // Agar gapi load nahi hai, to load karo
+    if (!gapi || !gapi.client) {
+         console.log("⏳ Loading GAPI...");
+         await new Promise(r => gapi.load('client', r));
+    }
+    
+    // API Key Set Karo (Yahan galti thi pehle, ab fixed hai)
+    try {
         gapi.client.setApiKey(API_KEY);
+    } catch (e) {
+        console.warn("⚠️ API Key warning:", e);
     }
 
-    // 🔴 STEP 2: Token Client Check
+    // 🔴 FIX STEP 2: SAFE TOKEN CLIENT INIT
     if (!tokenClient) {
-        console.warn("⚠️ Token Client missing. Initializing...");
+        console.log("⏳ Initializing Auth...");
         try {
             if(typeof google === 'undefined' || !google.accounts) {
                 await new Promise((resolve, reject) => {
@@ -1371,7 +1380,7 @@ async function setupDriveFolders(userName, projectName) {
                 scope: SCOPES,
                 callback: '' 
             });
-            console.log("✅ Token Client Ready!");
+            console.log("✅ Auth System Ready!");
         } catch(e) {
             console.error("❌ Auth Init Failed:", e);
             alert("⚠️ Auth Error. Please refresh.");
@@ -1379,10 +1388,10 @@ async function setupDriveFolders(userName, projectName) {
         }
     }
 
+    // 🔴 FIX STEP 3: EXECUTE
     try {
         console.log("🚀 Starting Folder Creation...");
 
-        // STEP 3: Create Structure using Raw Requests
         const userId = await findOrCreateFolder(userName, VAULT_ID);
         if(!userId) throw new Error("Could not create User Folder");
 
@@ -1400,10 +1409,13 @@ async function setupDriveFolders(userName, projectName) {
 
     } catch (e) {
         console.error("❌ Drive Setup Failed:", e);
-        // Permission Error Check
-        if(e.code === 401 || (e.result && e.result.error && e.result.error.code === 401)) {
-             console.log("🔒 Permission needed. Requesting popup...");
+        
+        // Agar Permission ka issue hai (401 or 403)
+        if(e.code === 401 || e.code === 403 || (e.result && e.result.error && e.result.error.code === 401)) {
+             console.log("🔒 Permission needed. Asking user...");
+             // Token maango
              tokenClient.requestAccessToken({prompt: 'consent'});
+             alert("⚠️ Please allow Google Drive access in the popup window.");
         }
         return null;
     }
