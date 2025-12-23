@@ -1334,10 +1334,8 @@ async function findOrCreateFolder(folderName, parentId = null) {
 }
 
 // ==========================================
-// ☁️ GOOGLE DRIVE AUTOMATION (Self-Healing)
+// ☁️ GOOGLE DRIVE AUTOMATION (Direct Load Fix)
 // ==========================================
-
-
 
 // 1. Helper Function
 async function findOrCreateFolder(folderName, parentId) {
@@ -1374,35 +1372,39 @@ async function findOrCreateFolder(folderName, parentId) {
     }
 }
 
-// 2. Main Setup Function (Ab ye TokenClient bhi banayega)
+// 2. Main Setup Function (Updated for 502 Error)
 async function setupDriveFolders(userName, projectName) {
     console.log("☁️ Initializing Drive Setup...");
 
-    // 🔴 STEP 1: FORCE GAPI LOAD
+    // 🔴 STEP 1: FORCE GAPI LOAD (WITHOUT DISCOVERY DOCS)
     if (!gapi || !gapi.client || !gapi.client.drive) {
         console.warn("⚠️ GAPI not ready. Force loading...");
         try {
+            // A. Client Library Load karo
             await new Promise((resolve, reject) => {
                 gapi.load('client', {callback: resolve, onerror: reject});
             });
+
+            // B. Init with ONLY API Key (Discovery Docs hata diye)
             await gapi.client.init({
                 apiKey: API_KEY, 
-                discoveryDocs: ['https://www.googleapis.com/discovery/v1/apis/drive/v3/rest']
             });
-            console.log("✅ GAPI Loaded!");
+
+            // C. Direct Drive API V3 Load (Ye 502 Error Bypass karega)
+            await gapi.client.load('drive', 'v3');
+            
+            console.log("✅ GAPI & Drive API Loaded!");
         } catch (error) {
             console.error("❌ GAPI Failed:", error);
             return null;
         }
     }
 
-    // 🔴 STEP 2: FORCE TOKEN CLIENT LOAD (Ye naya fix hai)
+    // 🔴 STEP 2: FORCE TOKEN CLIENT LOAD
     if (!tokenClient) {
         console.warn("⚠️ Token Client missing. Initializing manually...");
         try {
-            // Agar google script hi load nahi hua
             if(typeof google === 'undefined' || !google.accounts) {
-                console.log("⏳ Loading GIS Script...");
                 await new Promise((resolve, reject) => {
                     const script = document.createElement('script');
                     script.src = 'https://accounts.google.com/gsi/client';
@@ -1412,7 +1414,6 @@ async function setupDriveFolders(userName, projectName) {
                 });
             }
 
-            // Ab Initialize karo using GLOBAL CLIENT_ID
             tokenClient = google.accounts.oauth2.initTokenClient({
                 client_id: CLIENT_ID,
                 scope: SCOPES,
@@ -1428,6 +1429,7 @@ async function setupDriveFolders(userName, projectName) {
 
     try {
         // STEP 3: Create Structure
+        console.log("🚀 Creating Folders...");
         const userId = await findOrCreateFolder(userName, VAULT_ID);
         if(!userId) throw new Error("Could not create User Folder");
 
@@ -1445,8 +1447,9 @@ async function setupDriveFolders(userName, projectName) {
 
     } catch (e) {
         console.error("❌ Drive Setup Failed:", e);
-        // Permission maango
+        // Permission Error (401)
         if(e.result && e.result.error && e.result.error.code === 401) {
+             console.log("🔒 Permission needed. Requesting popup...");
              tokenClient.requestAccessToken({prompt: 'consent'});
         }
         return null;
