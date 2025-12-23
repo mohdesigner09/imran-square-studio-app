@@ -426,35 +426,47 @@ async function saveProjectToCloud(project) {
     }
 }
 
-// 🏗️ CREATE NEW PROJECT (Smart Auth Check)
+// 🏗️ CREATE NEW PROJECT (Auto-Fix Corrupt Data)
 async function createNewProject(openAfter = false) {
     
-    // 1. 🔥 LIVE USER FETCH (Retry Logic ke saath)
+    // 1. 🔥 LIVE USER FETCH (Sabse pehle Live User check karo)
     let activeUser = window.auth.currentUser;
 
-    // Agar user nahi mila, to LocalStorage check karo
+    // Agar Live User nahi mila, to LocalStorage check karo (Fallback)
     if (!activeUser) {
         console.log("⚠️ Firebase User not ready, checking LocalStorage...");
         const stored = localStorage.getItem('imranUser');
         if (stored) {
             try { 
-                activeUser = JSON.parse(stored); 
-                console.log("✅ User found in LocalStorage");
-            } catch (e) { console.error("Data Corrupt", e); }
+                const parsed = JSON.parse(stored);
+                // 🛑 VALIDATION CHECK: Agar UID nahi hai to ye data bekar hai
+                if (parsed && parsed.uid) {
+                    activeUser = parsed;
+                    console.log("✅ Valid User found in LocalStorage");
+                } else {
+                    console.warn("❌ LocalStorage data corrupt (No UID). Cleaning up...");
+                    localStorage.removeItem('imranUser'); // Ganda data hatao
+                }
+            } catch (e) { 
+                console.error("Data Parse Error", e);
+                localStorage.removeItem('imranUser');
+            }
         }
     }
 
-    // 2. 🔒 SECURITY CHECK: Agar abhi bhi UID nahi hai
+    // 2. 🔒 FINAL SECURITY CHECK
     if (!activeUser || !activeUser.uid) {
-        console.error("❌ Fatal: No UID found.");
-        // User ko bolo thoda ruke (Race condition fix)
-        alert("⚠️ System Syncing...\nPlease wait 2 seconds and click 'Create' again.");
+        console.error("❌ Fatal: No UID found anywhere.");
+        // User ko clear message do aur Login page par bhejo agar zaroorat ho
+        if(confirm("⚠️ Session Expired or Invalid.\n\nClick OK to re-login cleanly.")) {
+            window.logoutApp(); // Logout trigger karo
+        }
         return; 
     }
 
-    console.log("✅ Creating Project for User:", activeUser.email);
+    console.log("✅ Starting Project Creation for:", activeUser.email);
 
-    // 3. Input Values
+    // 3. Input Values Retrieve Karo
     const titleInput = document.getElementById('projectTitle');
     const genreSelect = document.getElementById('projectGenre');
     const modal = document.getElementById('projectModal');
@@ -464,7 +476,6 @@ async function createNewProject(openAfter = false) {
 
     try {
         const cleanName = projectName.trim();
-        // Safe Folder Names
         const safeEmail = activeUser.email.replace(/[@.]/g, '_'); 
         const safeProject = cleanName.replace(/\s+/g, '_');        
 
@@ -474,7 +485,7 @@ async function createNewProject(openAfter = false) {
             genre: genreSelect ? genreSelect.value : 'Other',
             ownerEmail: activeUser.email,
             ownerName: activeUser.displayName || 'Creator',
-            uid: activeUser.uid, // ✅ Validated UID
+            uid: activeUser.uid, // ✅ AB YE CONFIRMED HAI
             createdAt: new Date().toISOString(),
             
             // Folder Path
@@ -490,7 +501,7 @@ async function createNewProject(openAfter = false) {
         };
 
         // 5. Save to Firestore (Ensure DB connection)
-        if (!window.db) throw new Error("Database connecting... Try again.");
+        if (!window.db) throw new Error("Database connecting... Wait 2 seconds and try again.");
         
         const docRef = await window.db.collection('projects').add(newProject);
         
@@ -500,7 +511,7 @@ async function createNewProject(openAfter = false) {
         if (titleInput) titleInput.value = '';
         if (modal) modal.classList.add('hidden');
 
-        // Redirect
+        // Redirect to Script Page
         window.location.href = `scripts.html?id=${docRef.id}`;
 
     } catch (error) {
