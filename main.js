@@ -3,7 +3,7 @@
 // ==========================================
 
 // 1. API KEY (Jo aapne pehle di thi)
-const API_KEY = "AIzaSyA_D3AuwSzHKgs5svcwRoP0St2Nc-delF8"; 
+const API_KEY = "AIzaSyCjWdPwfANgLC9gj4H89NNPY2CY0jnb-60"; 
 
 // 2. CLIENT ID (Jo aapne abhi di)
 const CLIENT_ID = "364132092578-tphp4i883gt7foep5cgaf226ivn45jmc.apps.googleusercontent.com";
