@@ -388,47 +388,53 @@ async function saveProjectToCloud(project) {
     }
 }
 
-// 🏗️ CREATE NEW PROJECT (Self-Healing Logic)
+// 🏗️ CREATE NEW PROJECT (Async Wait Logic - 100% Safe)
 async function createNewProject(openAfter = false) {
     
-    // 1. Live User Check (Firebase)
-    let activeUser = window.auth ? window.auth.currentUser : null;
+    // ✅ Helper: Wait for Firebase Auth to finish loading
+    const waitForAuth = () => {
+        return new Promise((resolve) => {
+            // Agar pehle se loaded hai
+            if (window.auth && window.auth.currentUser) {
+                return resolve(window.auth.currentUser);
+            }
+            // Agar nahi, to wait karo
+            if (window.auth) {
+                const unsubscribe = window.auth.onAuthStateChanged(user => {
+                    unsubscribe(); // Sirf ek baar check karo
+                    resolve(user);
+                });
+            } else {
+                resolve(null); // Auth system hi nahi mila
+            }
+        });
+    };
 
-    // 2. Fallback: LocalStorage Check
+    console.log("⏳ Verifying User Identity...");
+    let activeUser = await waitForAuth(); // Yahan code rukega jab tak user confirm na ho
+
+    // Fallback: Agar Firebase ne abhi bhi null diya, tab LocalStorage dekho
     if (!activeUser) {
-        console.log("⚠️ Firebase waiting... checking Storage");
+        console.log("⚠️ Firebase silent, checking LocalStorage...");
         const stored = localStorage.getItem('imranUser');
         if (stored) {
-            try {
+            try { 
                 const parsed = JSON.parse(stored);
-                // Check agar UID hai
-                if (parsed && parsed.uid) {
-                    activeUser = parsed;
-                } else {
-                    console.warn("❌ Corrupt Data Found (No UID). Cleaning...");
-                    localStorage.removeItem('imranUser'); // Ganda data saaf karo
-                    activeUser = null;
-                }
-            } catch (e) {
-                localStorage.removeItem('imranUser');
-            }
+                if (parsed && parsed.uid) activeUser = parsed;
+            } catch (e) {}
         }
     }
 
-    // 3. FINAL SECURITY CHECK
+    // 🔒 FINAL CHECK
     if (!activeUser || !activeUser.uid) {
-        // Agar abhi bhi user nahi mila, to seedha logout trigger karo
-        console.error("❌ Fatal: No User ID found.");
-        alert("⚠️ Session expired. Redirecting to Login...");
-        
-        // Force Logout & Redirect
-        if(window.auth) await window.auth.signOut();
-        localStorage.removeItem('imranUser');
-        window.location.href = "landing.html";
+        console.error("❌ Auth Failed. No User found.");
+        alert("⚠️ Authentication Error. Please Logout and Login again.");
         return;
     }
 
-    // 4. Input Setup
+    console.log("✅ User Verified:", activeUser.email);
+
+    // 3. Project Inputs
     const titleInput = document.getElementById('projectTitle');
     const genreSelect = document.getElementById('projectGenre');
     const modal = document.getElementById('projectModal');
@@ -441,13 +447,13 @@ async function createNewProject(openAfter = false) {
         const safeEmail = activeUser.email.replace(/[@.]/g, '_'); 
         const safeProject = cleanName.replace(/\s+/g, '_');        
 
-        // 5. Create Object
+        // 4. Project Data
         const newProject = {
             title: cleanName,
             genre: genreSelect ? genreSelect.value : 'Other',
             ownerEmail: activeUser.email,
             ownerName: activeUser.displayName || 'Creator',
-            uid: activeUser.uid, // ✅ Verified UID
+            uid: activeUser.uid,
             createdAt: new Date().toISOString(),
             folderPath: `users/${safeEmail}/${safeProject}`,
             sections: createSections(), 
@@ -455,12 +461,14 @@ async function createNewProject(openAfter = false) {
             chapters: 0, progress: 0, words: '0', readTime: '0min'
         };
 
-        // 6. Save to DB
-        if (!window.db) throw new Error("Database not connected. Please refresh.");
+        // 5. Save to DB (Wait for connection)
+        if (!window.db) throw new Error("Database not connected. Refresh page.");
+        
         const docRef = await window.db.collection('projects').add(newProject);
         
-        console.log("✅ Project Created:", docRef.id);
+        console.log("🎉 Project Created Successfully:", docRef.id);
 
+        // 6. Redirect
         if (titleInput) titleInput.value = '';
         if (modal) modal.classList.add('hidden');
         window.location.href = `scripts.html?id=${docRef.id}`;
