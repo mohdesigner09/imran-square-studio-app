@@ -217,26 +217,49 @@
         .progress-segment { height: 100%; flex: 1; background: rgba(255,255,255,0.3); border-radius: 2px; }
         .progress-fill { height: 100%; background: white; width: 0%; }
 
-      /* ✨ NEON GLASS FAB */
-.fab-upload {
-    position: fixed; bottom: 30px; right: 30px;
-    width: 60px; height: 60px; border-radius: 50%;
-    /* Glass Effect */
-    background: rgba(255, 255, 255, 0.1);
-    backdrop-filter: blur(10px);
-    border: 1px solid rgba(255, 255, 255, 0.2);
-    color: white;
-    display: flex; align-items: center; justify-content: center;
-    /* Neon Glow */
-    box-shadow: 0 0 20px rgba(255, 100, 0, 0.4), inset 0 0 10px rgba(255, 255, 255, 0.1);
-    z-index: 50; transition: all 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275);
-}
-.fab-upload:hover { 
-    transform: scale(1.1) rotate(90deg); 
-    background: linear-gradient(135deg, #ff6b00, #ff2200); /* Orange to Red */
-    box-shadow: 0 0 40px rgba(255, 80, 0, 0.8);
-    border-color: transparent;
-}
+/* ✨ WHITE GLASS PULSE FAB */
+        .fab-upload {
+            position: fixed; bottom: 30px; right: 30px;
+            width: 64px; height: 64px; border-radius: 50%;
+            /* White Glass Effect */
+            background: rgba(255, 255, 255, 0.15);
+            backdrop-filter: blur(12px);
+            border: 1px solid rgba(255, 255, 255, 0.4);
+            color: white;
+            display: flex; align-items: center; justify-content: center;
+            z-index: 50; cursor: pointer;
+            /* Constant Animation */
+            animation: pulse-white 3s infinite ease-in-out;
+            transition: transform 0.3s ease;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.5);
+        }
+
+        /* Hover Effect */
+        .fab-upload:hover { 
+            background: rgba(255, 255, 255, 0.3); 
+            transform: scale(1.1); 
+            animation: none; /* Hover karne par ruk jaye */
+        }
+
+        /* 🟢 Animation Keyframes */
+        @keyframes pulse-white {
+            0% { box-shadow: 0 0 0 0 rgba(255, 255, 255, 0.4); transform: scale(1); }
+            50% { box-shadow: 0 0 20px 10px rgba(255, 255, 255, 0); transform: scale(1.05); }
+            100% { box-shadow: 0 0 0 0 rgba(255, 255, 255, 0); transform: scale(1); }
+        }
+
+        /* 🆕 NEW BADGE STYLE */
+        .badge-new {
+            background: linear-gradient(135deg, #ff0055, #ff5500);
+            color: white; padding: 2px 6px; border-radius: 4px;
+            font-size: 9px; font-weight: 800; letter-spacing: 0.5px;
+            box-shadow: 0 2px 10px rgba(255, 0, 85, 0.5);
+            animation: bounce-slow 2s infinite;
+        }
+        @keyframes bounce-slow {
+            0%, 100% { transform: translateY(0); }
+            50% { transform: translateY(-2px); }
+        }
 
         /* --- THEATER MODAL (New Glass Style) --- */
         #theaterModal { transition: opacity 0.3s ease; }
@@ -652,7 +675,7 @@
         renderVideos();
     }
 
-// 4. RENDERER (Updated for Search & Filters)
+// 4. RENDERER (Final: Filters + NEW Label + Search)
     function renderVideos() {
         const gridShorts = document.getElementById('gridShorts');
         const gridLongs = document.getElementById('gridLongs');
@@ -660,12 +683,9 @@
         gridShorts.innerHTML = '';
         gridLongs.innerHTML = '';
 
-        // ✅ CHANGE 1: Ab hum 'renderedClips' (Filtered List) check karenge
+        // 1. Check for Empty Results
         if (renderedClips.length === 0) {
-            // Agar search kar rahe hain to "No results", nahi to "No videos"
             const msg = searchQuery ? `No results for "${searchQuery}"` : 'No videos found.';
-            
-            // Jis tab mein hain wahan message dikhao
             if(currentTab === 'shorts') {
                 gridShorts.innerHTML = `<div class="col-span-full text-center text-gray-500 py-10 text-sm font-mono">${msg}</div>`;
             } else {
@@ -674,13 +694,22 @@
             return;
         }
 
-        // ✅ CHANGE 2: Loop bhi ab 'renderedClips' par chalega
+        // 2. Loop through FILTERED clips
         renderedClips.forEach((vid, idx) => {
             const div = document.createElement('div');
-            // Decide aspect ratio
             const isShort = vid.type === 'shorts';
             const aspectRatio = isShort ? 'aspect-[9/16]' : 'aspect-video';
             const displayThumb = vid.thumb || "https://placehold.co/320x180/1a1a1a/FFFFFF/png?text=VIDEO"; 
+
+            // 🧠 NEW LABEL LOGIC (Local Storage Check)
+            const viewedList = JSON.parse(localStorage.getItem('watchedVideos') || '[]');
+            const isViewed = viewedList.includes(vid.fileId);
+            
+            let newBadgeHTML = '';
+            // Agar video nahi dekhi gayi hai, to NEW badge dikhao
+            if (!isViewed) {
+                newBadgeHTML = `<div class="absolute top-2 left-2 badge-new z-20 shadow-lg">NEW</div>`;
+            }
 
             // 🔥 EDIT MODE LOGIC
             let titleHTML = '';
@@ -688,7 +717,6 @@
             let borderClass = '';
 
             if (isEditMode) {
-                // EDIT MODE ON
                 borderClass = 'border-blue-500/50 shadow-[0_0_15px_rgba(59,130,246,0.3)]';
                 titleHTML = `
                     <input type="text" 
@@ -704,7 +732,6 @@
                         <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"></path></svg>
                     </button>`;
             } else {
-                // NORMAL MODE
                 borderClass = 'border-white/10 hover:border-orange-500/50';
                 titleHTML = `<h4 class="text-white text-sm font-medium truncate">${vid.title}</h4>`;
                 deleteBtnHTML = ''; 
@@ -717,6 +744,8 @@
                 <div onclick="${isEditMode ? '' : `openTheater('${vid.link}', '${vid.title}', '${vid.fileId}')`}" class="w-full h-full cursor-pointer relative group">
                     <img src="${displayThumb}" class="w-full h-full object-cover opacity-80 group-hover:opacity-100 transition duration-500">
                     
+                    ${newBadgeHTML}
+                    
                     <div class="absolute top-2 right-2 px-2 py-0.5 bg-black/60 backdrop-blur-md rounded text-[10px] text-white font-bold uppercase border border-white/10">
                         ${vid.type === 'shorts' ? 'SHORT' : 'VIDEO'}
                     </div>
@@ -728,12 +757,10 @@
                             </div>
                             ${deleteBtnHTML}
                         </div>
-                        
                         ${!isEditMode ? '<div class="text-[10px] text-gray-400 mt-1">Synced</div>' : ''}
                     </div>
                 </div>`;
             
-            // Correct Placement
             if (vid.type === 'shorts') {
                 gridShorts.appendChild(div);
             } else {
@@ -1105,7 +1132,7 @@
 
    
 
-// 🎥 OPEN THEATER (Clean & Direct)
+// 🎥 OPEN THEATER (Updated: Auto-Remove NEW Label)
     async function openTheater(link, title, fileId) {
         const modal = document.getElementById('theaterModal');
         if (!modal) return;
@@ -1118,7 +1145,17 @@
         }
         if (!finalId || finalId === 'undefined') return alert("Invalid Video ID");
 
-        // 2. Cleanup Old
+        // 🧠 NEW LOGIC: MARK AS WATCHED
+        // Jaise hi video khule, browser ko bata do ki "Ye dekh li gayi hai"
+        try {
+            let viewedList = JSON.parse(localStorage.getItem('watchedVideos') || '[]');
+            if (!viewedList.includes(finalId)) {
+                viewedList.push(finalId);
+                localStorage.setItem('watchedVideos', JSON.stringify(viewedList));
+            }
+        } catch(e) { console.log("Storage warning", e); }
+
+        // 2. Cleanup Old Player
         if (window.currentPlayer) {
             window.currentPlayer.destroy();
             window.currentPlayer = null;
@@ -1130,20 +1167,15 @@
             const style = document.createElement('style');
             style.id = 'plyr-custom-css';
             style.innerHTML = `
-                /* Player ko poora faila do */
                 #playerContainer { width: 100%; height: 100%; display: flex; align-items: center; justify-content: center; }
                 .plyr { width: 100%; height: 100%; }
-                
-                /* Video ko original ratio maintain karne do (Vertical Shorts Vertical hi rahenge) */
                 video { object-fit: contain; max-height: 95vh; max-width: 100%; width: auto; height: auto; }
-                
-                /* Iframe Fix */
                 iframe.universal-player { width: 100%; height: 95vh; border: none; }
             `;
             document.head.appendChild(style);
         }
 
-        // 4. Loading State
+        // 4. Loading UI
         const playerContainer = document.getElementById('playerContainer');
         playerContainer.innerHTML = `
             <div class="flex flex-col items-center gap-3">
@@ -1161,7 +1193,7 @@
             const data = await res.json();
             if(!data.success) throw new Error("Source Failed");
 
-            // 6. Inject Video (No Extra Buttons/Text)
+            // 6. Inject Video
             playerContainer.innerHTML = `
                 <div class="w-full h-full flex items-center justify-center relative group">
                     <video id="cinemaPlayer" playsinline controls crossorigin>
@@ -1178,7 +1210,7 @@
             window.currentPlayer = new Plyr('#cinemaPlayer', {
                 autoplay: true,
                 controls: ['play-large', 'play', 'progress', 'current-time', 'mute', 'volume', 'fullscreen', 'settings'],
-                ratio: null, // Critical for Vertical Videos
+                ratio: null, 
                 keyboard: { focused: true, global: true }
             });
 
@@ -1342,6 +1374,8 @@
         // Agar aapke pass stats ka HTML element hai to yahan update karein
     }
 
+    
+
     // ✅ FIX 2: TOGGLE EDIT MODE (With Save Button)
     function toggleEditMode() {
         isEditMode = !isEditMode; // Switch
@@ -1441,7 +1475,7 @@
         }
     }
 
-    // 🧠 THE BRAIN: Filters + Search + Sorting
+   // 🧠 THE BRAIN: Filters + Search + Sorting
     function runFilters() {
         let results = [...currentRawClips]; // Copy master list
 
@@ -1458,7 +1492,7 @@
             lastMonth.setDate(now.getDate() - 30);
             results = results.filter(v => new Date(v.uploadDate) >= lastMonth);
         } else if (activeCategory === 'bts') {
-            // BTS Logic: Title contains 'bts' (Case insensitive)
+            // 🔥 BTS LOGIC: Title mein 'bts' dhoondo (Case insensitive)
             results = results.filter(v => v.title.toLowerCase().includes('bts'));
         }
 
@@ -1474,18 +1508,18 @@
                 const titleA = a.title.toLowerCase();
                 const titleB = b.title.toLowerCase();
 
-                // Rule 1: Agar title query se START hota hai, to wo Top par (Highest Priority)
+                // Rule 1: Agar title query se START hota hai (Highest Priority)
                 const startA = titleA.startsWith(query);
                 const startB = titleB.startsWith(query);
                 
-                if (startA && !startB) return -1; // A upar
-                if (!startA && startB) return 1;  // B upar
+                if (startA && !startB) return -1; 
+                if (!startA && startB) return 1;
 
                 // Rule 2: Agar title exact match hai
                 if (titleA === query) return -1;
                 if (titleB === query) return 1;
 
-                return 0; // Barabar
+                return 0;
             });
         }
 
@@ -1521,7 +1555,7 @@
     });
 
 
-    // 💊 FILTER PILLS FUNCTION
+    // 💊 FILTER PILLS FUNCTION (Fixed & Clean)
     function filterBy(category, btnElement) {
         // 1. State Update
         activeCategory = category;
@@ -1529,17 +1563,17 @@
         // 2. UI Update (Highlight Active Pill)
         // Sabhi pills se 'active' class hatao
         document.querySelectorAll('.filter-pill').forEach(btn => {
-            btn.classList.remove('active', 'bg-white', 'text-black', 'font-bold', 'box-shadow');
-            // Reset style classes logic if needed based on your CSS
-            btn.classList.remove('active'); 
+            btn.classList.remove('active'); // CSS apne aap styling hata dega
         });
         
         // Clicked pill ko active karo
-        btnElement.classList.add('active');
+        btnElement.classList.add('active'); // CSS apne aap white/glow kar dega
 
         // 3. Logic Run
         runFilters();
     }
+
+    
 
 // 🔙 BACK BUTTON FUNCTION
     function goBackToHub() {
