@@ -602,82 +602,7 @@
   </div>
 </div>
 
- <div id="dashToast" class="hidden fixed bottom-6 left-1/2 -translate-x-1/2 px-4 py-2 rounded-full bg-white/90 text-xs text-black shadow-lg z-50">
-        Welcome back.
-    </div>
 
-    <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
-    <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-auth-compat.js"></script>
-    <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-firestore-compat.js"></script>
-    <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-storage-compat.js"></script>
-
-    <script>
-        const firebaseConfig = {
-            apiKey: "AIzaSyA_D3AuwSzHKgs5svcwRoP0St2Nc-delF8",
-            authDomain: "iimransquare.firebaseapp.com",
-            projectId: "iimransquare",
-            storageBucket: "iimransquare.firebasestorage.app",
-            messagingSenderId: "431645042472",
-            appId: "1:431645042472:web:87e7cea4659d6a0564121d",
-            measurementId: "G-Z0EN14J4XM"
-        };
-
-        // Firebase Start
-        if (!firebase.apps.length) {
-            firebase.initializeApp(firebaseConfig);
-        }
-
-        // 🔥 CRITICAL: DB Global banao taaki main.js use kar sake
-        window.db = firebase.firestore();
-        window.auth = firebase.auth();
-        window.storage = firebase.storage();
-        window.firebase = firebase;
-
-        console.log("✅ Firebase Connected Globally");
-
-        // Auth State Check
-        auth.onAuthStateChanged(user => {
-            if (user) {
-                // User active hai
-                localStorage.setItem('imranUser', JSON.stringify({
-                    email: user.email,
-                    uid: user.uid,
-                    displayName: user.displayName
-                }));
-            }
-        });
-
-        // Logout
-        window.logoutApp = () => {
-            auth.signOut().then(() => {
-                localStorage.removeItem('imranUser');
-                window.location.href = "landing.html";
-            });
-        };
-
-        // Toast Helper
-        window.showDashToast = (msg, timeout = 3000) => {
-            const el = document.getElementById('dashToast');
-            if (!el) return;
-            el.textContent = msg;
-            el.classList.remove('hidden');
-            setTimeout(() => {
-                el.classList.add('hidden');
-            }, timeout);
-        };
-    </script>
-
-    <script src="main.js"></script>
-    <script src="dashboard-advanced.js"></script>
-
-    <script>
-      if ('serviceWorker' in navigator) {
-        window.addEventListener('load', () => {
-          navigator.serviceWorker.register('/service-worker.js')
-            .catch((err) => console.error('SW Fail:', err));
-        });
-      }
-    </script>
 
 
 <script>
@@ -879,6 +804,81 @@
     })();
 </script>
 
+ <div id="dashToast" class="hidden fixed bottom-6 left-1/2 -translate-x-1/2 px-4 py-2 rounded-full bg-white/90 text-xs text-black shadow-lg z-50">
+        Welcome back.
+    </div>
 
+    <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-auth-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-firestore-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-storage-compat.js"></script>
+
+    <script>
+        const firebaseConfig = {
+            apiKey: "AIzaSyA_D3AuwSzHKgs5svcwRoP0St2Nc-delF8",
+            authDomain: "iimransquare.firebaseapp.com",
+            projectId: "iimransquare",
+            storageBucket: "iimransquare.firebasestorage.app",
+            messagingSenderId: "431645042472",
+            appId: "1:431645042472:web:87e7cea4659d6a0564121d",
+            measurementId: "G-Z0EN14J4XM"
+        };
+
+        // Firebase Start
+        if (!firebase.apps.length) {
+            firebase.initializeApp(firebaseConfig);
+        }
+
+        // 🔥 CRITICAL: DB Global banao taaki main.js use kar sake
+        window.db = firebase.firestore();
+        window.auth = firebase.auth();
+        window.storage = firebase.storage();
+        window.firebase = firebase;
+
+        console.log("✅ Firebase Connected Globally");
+
+        // Auth State Check
+        auth.onAuthStateChanged(user => {
+            if (user) {
+                // User active hai
+                localStorage.setItem('imranUser', JSON.stringify({
+                    email: user.email,
+                    uid: user.uid,
+                    displayName: user.displayName
+                }));
+            }
+        });
+
+        // Logout
+        window.logoutApp = () => {
+            auth.signOut().then(() => {
+                localStorage.removeItem('imranUser');
+                window.location.href = "landing.html";
+            });
+        };
+
+        // Toast Helper
+        window.showDashToast = (msg, timeout = 3000) => {
+            const el = document.getElementById('dashToast');
+            if (!el) return;
+            el.textContent = msg;
+            el.classList.remove('hidden');
+            setTimeout(() => {
+                el.classList.add('hidden');
+            }, timeout);
+        };
+    </script>
+
+    <script src="main.js"></script>
+    <script src="dashboard-advanced.js"></script>
+
+    <script>
+      if ('serviceWorker' in navigator) {
+        window.addEventListener('load', () => {
+          navigator.serviceWorker.register('/service-worker.js')
+            .catch((err) => console.error('SW Fail:', err));
+        });
+      }
+    </script>
 </body>
 </html>

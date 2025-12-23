@@ -426,32 +426,25 @@ async function saveProjectToCloud(project) {
     }
 }
 
-// Create project helper function
-// 🏗️ CREATE NEW PROJECT (With Folder Logic & Firestore)
-// Paste this in main.js replacing the old createNewProject function
-
-// 🏗️ CREATE NEW PROJECT (Fixed Auth & UID Logic)
+// 🏗️ CREATE NEW PROJECT (Final Fix)
 async function createNewProject(openAfter = false) {
-    // 1. 🔥 LIVE USER FETCH (Sabse pehle current live user uthao)
+    // 1. Live User Check
     let activeUser = window.auth ? window.auth.currentUser : null;
-
-    // 2. Fallback: Agar live user null hai, to LocalStorage check karo
+    
+    // Fallback to LocalStorage if needed
     if (!activeUser) {
         const stored = localStorage.getItem('imranUser');
         if (stored) {
-            try {
-                activeUser = JSON.parse(stored);
-            } catch (e) { console.error("User Parse Error", e); }
+            try { activeUser = JSON.parse(stored); } catch (e) {}
         }
     }
 
-    // 3. 🔒 SECURITY CHECK: UID hona zaroori hai
     if (!activeUser || !activeUser.uid) {
-        alert("⚠️ Authentication Error: User ID missing.\nPlease Logout and Login again.");
-        return; // Yahan ruk jao, aage mat badho
+        alert("⚠️ User ID missing. Please Logout and Login again.");
+        return;
     }
 
-    // 4. Input Values Retrieve Karo
+    // 2. Input
     const titleInput = document.getElementById('projectTitle');
     const genreSelect = document.getElementById('projectGenre');
     const modal = document.getElementById('projectModal');
@@ -461,46 +454,42 @@ async function createNewProject(openAfter = false) {
 
     try {
         const cleanName = projectName.trim();
-        // Email aur Project name ko folder-safe banao
         const safeEmail = activeUser.email.replace(/[@.]/g, '_'); 
         const safeProject = cleanName.replace(/\s+/g, '_');        
 
-        // 5. Create Project Object
+        // 3. Project Object
         const newProject = {
             title: cleanName,
             genre: genreSelect ? genreSelect.value : 'Other',
             ownerEmail: activeUser.email,
             ownerName: activeUser.displayName || 'Creator',
-            uid: activeUser.uid, // ✅ AB YE PAKKA VALID HOGA
+            uid: activeUser.uid,
             createdAt: new Date().toISOString(),
-            
-            // Folder Path for Storage
-            folderPath: `users/${safeEmail}/${safeProject}`,
-            
-            // Defaults
+            folderPath: `users/${safeEmail}/${safeProject}`, // Folder Logic
             sections: createSections(), 
             footageLib: [],             
-            chapters: 0,
-            progress: 0,
-            words: '0',
+            chapters: 0, 
+            progress: 0, 
+            words: '0', 
             readTime: '0min'
         };
 
-        // 6. Save to Firestore
+        // 4. Save to Firestore (USING window.db)
+        // 🔥 NOTICE: 'window.db' use kiya hai taaki ReferenceError na aaye
+        if (!window.db) throw new Error("Database not connected. Refresh page.");
+        
         const docRef = await window.db.collection('projects').add(newProject);
         
-        console.log("✅ Project Created ID:", docRef.id);
+        console.log("✅ Project Created:", docRef.id);
 
-        // 7. Cleanup
+        // 5. Cleanup & Redirect
         if (titleInput) titleInput.value = '';
         if (modal) modal.classList.add('hidden');
-
-        // 8. Open Script Page
         window.location.href = `scripts.html?id=${docRef.id}`;
 
     } catch (error) {
         console.error("Project Creation Failed:", error);
-        alert("Error creating project: " + error.message);
+        alert("Error: " + error.message);
     }
 }
 
