@@ -263,16 +263,17 @@
 <body class="pb-24">
 
     <!-- 1. HEADER -->
- <header class="h-16 glass-header fixed top-0 w-full z-50 flex items-center justify-between px-4 md:px-6">
-    <div class="flex items-center gap-4">
-        <a href="#" onclick="goBackToHub()" class="group p-2 rounded-lg hover:bg-white/10 text-gray-400 hover:text-white transition border border-transparent hover:border-white/10">
-            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7"></path></svg>
-        </a>
-        <div>
-            <h1 class="text-sm font-bold text-white tracking-wide uppercase font-display" id="rawProjectTitle">Raw Footage</h1>
-            <p class="text-[10px] text-gray-500 uppercase tracking-widest">Vault</p>
+<header class="h-16 glass-header fixed top-0 w-full z-50 flex items-center justify-between px-4 md:px-6">
+        
+        <div class="flex items-center gap-4 flex-shrink-0">
+            <button onclick="goBackToHub()" class="group p-2 rounded-lg hover:bg-white/10 text-gray-400 hover:text-white transition border border-transparent hover:border-white/10">
+                <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7"></path></svg>
+            </button>
+            <div class="flex flex-col justify-center">
+                <h1 class="text-sm font-bold text-white tracking-wide uppercase font-display whitespace-nowrap" id="rawProjectTitle">Raw Footage</h1>
+                <p class="text-[10px] text-gray-500 uppercase tracking-widest whitespace-nowrap">Vault</p>
+            </div>
         </div>
-    </div>
 
         <div class="flex items-center gap-3">
             <div class="search-box" id="searchBox" onclick="expandSearch()">
@@ -280,13 +281,13 @@
                 <input type="text" id="videoSearchInput" class="search-input" placeholder="Search clips...">
             </div>
             
-           <div class="flex items-center gap-2">
-    <div id="editControlsContainer">
-        <button onclick="toggleEditMode()" class="p-2 rounded-full hover:bg-white/10 text-gray-400 hover:text-white transition" title="Edit Videos">
-            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z"></path></svg>
-        </button>
-    </div>
-</div>
+            <div class="flex items-center gap-2">
+                <div id="editControlsContainer">
+                    <button onclick="toggleEditMode()" class="p-2 rounded-full hover:bg-white/10 text-gray-400 hover:text-white transition" title="Edit Videos">
+                        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z"></path></svg>
+                    </button>
+                </div>
+            </div>
         </div>
     </header>
 
@@ -319,22 +320,22 @@
     </div>
 
         
-<div class="mt-8 mb-24">
-    
-    <div class="flex gap-6 mb-6 border-b border-white/10 pb-4">
-        <button id="tab-shorts" onclick="switchType('shorts')" class="text-white font-bold pb-2 border-b-2 border-orange-500 transition text-sm uppercase tracking-wider">
-            Shorts / Reels
-        </button>
-        <button id="tab-long" onclick="switchType('long')" class="text-gray-400 hover:text-white font-bold pb-2 border-b-2 border-transparent transition text-sm uppercase tracking-wider">
-            Long Videos
-        </button>
+<div class="flex justify-center mb-8">
+        <div class="bg-[#111] p-1.5 rounded-full border border-white/10 flex items-center shadow-inner relative">
+            
+            <button id="tab-shorts" onclick="switchType('shorts')" class="relative z-10 px-6 py-2 rounded-full text-xs font-bold uppercase tracking-wider transition-all duration-300 bg-white text-black shadow-lg transform scale-105">
+                Shorts / Reels
+            </button>
+            
+            <button id="tab-long" onclick="switchType('long')" class="relative z-10 px-6 py-2 rounded-full text-xs font-bold uppercase tracking-wider transition-all duration-300 text-gray-500 hover:text-white">
+                Long Videos
+            </button>
+
+        </div>
     </div>
-
+    
     <div id="gridShorts" class="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-5 gap-4"></div>
-
     <div id="gridLongs" class="hidden grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6"></div>
-
-</div>
 
     <!-- Upload Button -->
     <button class="fab-upload" onclick="openUploadModal()">
@@ -614,41 +615,41 @@
             });
     }
 
-    // 3. TAB SWITCHER (The Fix)
+  
+   // 3. TAB SWITCHER (Professional Style)
     function switchType(type) {
         currentTab = type;
         
-        // Get Elements by ID
         const btnShorts = document.getElementById('tab-shorts');
         const btnLong = document.getElementById('tab-long');
         const gridShorts = document.getElementById('gridShorts');
         const gridLongs = document.getElementById('gridLongs');
 
-        // Check if elements exist to avoid crash
-        if (!btnShorts || !btnLong || !gridShorts || !gridLongs) {
-            return console.error("❌ UI Elements Missing in HTML");
-        }
+        if (!btnShorts || !btnLong) return;
 
-        // Logic
+        // Common Active/Inactive Classes
+        const activeClass = "bg-white text-black shadow-lg transform scale-105";
+        const inactiveClass = "text-gray-500 hover:text-white bg-transparent shadow-none transform scale-100";
+
         if (type === 'shorts') {
-            // Show Shorts Grid
+            // UI
             gridShorts.classList.remove('hidden');
             gridLongs.classList.add('hidden');
             
-            // Highlight Shorts Button
-            btnShorts.className = "text-white font-bold pb-2 border-b-2 border-orange-500 transition text-sm uppercase tracking-wider";
-            btnLong.className = "text-gray-400 hover:text-white font-bold pb-2 border-b-2 border-transparent transition text-sm uppercase tracking-wider";
+            // Buttons Styling
+            btnShorts.className = `relative z-10 px-6 py-2 rounded-full text-xs font-bold uppercase tracking-wider transition-all duration-300 ${activeClass}`;
+            btnLong.className = `relative z-10 px-6 py-2 rounded-full text-xs font-bold uppercase tracking-wider transition-all duration-300 ${inactiveClass}`;
         } else {
-            // Show Long Grid
+            // UI
             gridLongs.classList.remove('hidden');
             gridShorts.classList.add('hidden');
             
-            // Highlight Long Button
-            btnLong.className = "text-white font-bold pb-2 border-b-2 border-orange-500 transition text-sm uppercase tracking-wider";
-            btnShorts.className = "text-gray-400 hover:text-white font-bold pb-2 border-b-2 border-transparent transition text-sm uppercase tracking-wider";
+            // Buttons Styling
+            btnLong.className = `relative z-10 px-6 py-2 rounded-full text-xs font-bold uppercase tracking-wider transition-all duration-300 ${activeClass}`;
+            btnShorts.className = `relative z-10 px-6 py-2 rounded-full text-xs font-bold uppercase tracking-wider transition-all duration-300 ${inactiveClass}`;
         }
 
-        // Render Data
+        // Render Data (Important for filters)
         renderVideos();
     }
 
@@ -1541,7 +1542,11 @@
         runFilters();
     }
 
-
+// 🔙 BACK BUTTON FUNCTION
+    function goBackToHub() {
+        // Project Hub par wapas jao
+        window.location.href = 'project-hub.html';
+    }
 </script>
 <script src="https://cdn.plyr.io/3.7.8/plyr.js"></script>
 </body>
