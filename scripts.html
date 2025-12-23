@@ -234,6 +234,39 @@
     }
 }
 
+
+/* ✅ PROFESSIONAL SCROLLBAR (Theme Matching) */
+.custom-scrollbar {
+    overflow-y: auto;
+    scrollbar-width: thin; /* Firefox */
+    scrollbar-color: #333 transparent;
+}
+
+/* Webkit (Chrome, Safari, Edge) */
+.custom-scrollbar::-webkit-scrollbar {
+    width: 4px; /* Patla scrollbar */
+}
+.custom-scrollbar::-webkit-scrollbar-track {
+    background: transparent; 
+}
+.custom-scrollbar::-webkit-scrollbar-thumb {
+    background: #333; /* Grey Thumb */
+    border-radius: 10px;
+}
+.custom-scrollbar::-webkit-scrollbar-thumb:hover {
+    background: #555; /* Hover par thoda light */
+}
+
+/* ✅ FILES MODE CONTAINER FIX */
+#modeFiles {
+    /* Important: Height define karna zaroori hai tabhi scroll kaam karega */
+    height: calc(100vh - 120px); /* Header + Footer ki jagah chod kar */
+    overflow-y: auto;
+    padding-bottom: 80px; /* Last card kat na jaye */
+}
+
+
+
     </style>
 </head>
 <body class="flex flex-col h-screen">
@@ -969,50 +1002,64 @@ He pulls out a crumpled photograph.
     }
 
     // --- 8. UPLOAD LOGIC (Real Storage + Firestore) ---
-    function triggerUpload(sectionId) {
+ // 🚀 SMART UPLOAD SYSTEM (Folder Logic: User > Project > Section)
+    async function triggerUpload(sectionId) {
         const input = document.createElement('input');
         input.type = 'file';
-        input.accept = '.pdf,.doc,.docx,.txt,.jpg,.png';
+        input.accept = '.pdf,.doc,.docx,.txt,.jpg,.png'; // Images allow kiye for reference
         
         input.onchange = async (e) => {
             const file = e.target.files[0];
             if (!file) return;
             if (!currentUser || !currentProjectID) return alert("Error: User/Project not identified");
 
-            showStatus(`Uploading ${file.name}...`, "text-yellow-400");
+            // UI Feedback
+            showStatus(`Syncing to ${currentProjectName}...`, "text-yellow-400");
 
             try {
-                // 1. Upload to Firebase Storage
+                // 1. PROJECT NAME FETCH KARO (Folder banane ke liye)
+                // Agar global variable nahi hai to DB se lo
+                let projName = document.getElementById('scriptTitle').innerText || "Untitled_Project";
+                projName = projName.replace(/\s+/g, '_'); // Spaces hatao (Folder friendly)
+
+                // 2. DEFINE STORAGE PATH (User > Project > Files)
+                // Pattern: users/{userEmail}/{projectName}/{fileName}
+                const cleanEmail = currentUser.email.replace(/[@.]/g, '_'); // Safe Folder Name
+                const storagePath = `users/${cleanEmail}/${projName}/scripts_assets/${Date.now()}_${file.name}`;
+                
+                // 3. UPLOAD TO FIREBASE STORAGE
                 const storageRef = firebase.storage().ref();
-                const fileRef = storageRef.child(`projects/${currentProjectID}/docs/${Date.now()}_${file.name}`);
+                const fileRef = storageRef.child(storagePath);
                 
                 await fileRef.put(file);
                 const downloadURL = await fileRef.getDownloadURL();
 
-                // 2. Update Local Data
+                // 4. UPDATE LOCAL DATA
                 const sectionIndex = sectionsData.findIndex(s => s.id === sectionId);
                 if (sectionIndex === -1) return;
 
                 const newFileEntry = {
                     name: file.name,
                     url: downloadURL,
+                    path: storagePath, // Delete karne ke liye path save karna zaroori hai
                     date: new Date().toLocaleDateString(),
                     type: file.type,
                     isMainScript: false
                 };
 
+                // Limit Check
                 if (sectionsData[sectionIndex].files.length >= FILES_PER_SECTION) {
                     return alert("Section Full (Max 10 files)");
                 }
 
                 sectionsData[sectionIndex].files.push(newFileEntry);
 
-                // 3. Update Firestore
+                // 5. UPDATE FIRESTORE DATABASE
                 await db.collection('projects').doc(currentProjectID).update({
                     sections: sectionsData
                 });
 
-                showStatus("Upload Complete", "text-green-500");
+                showStatus("Saved to Project Vault", "text-green-500");
                 renderSections();
 
             } catch (error) {

@@ -427,52 +427,66 @@ async function saveProjectToCloud(project) {
 }
 
 // Create project helper function
-// ✅ REPLACE: createNewProject (Cloud Version)
+// 🏗️ CREATE NEW PROJECT (With Folder Logic & Firestore)
+// Paste this in main.js replacing the old createNewProject function
+
 async function createNewProject(openAfter = false) {
+    // 1. Auth Check (main.js global variable use kar rahe hain)
+    if(!CURRENTUSER) return alert("Please Login First");
+
+    // 2. Input Values Retrieve Karo
     const titleInput = document.getElementById('projectTitle');
     const genreSelect = document.getElementById('projectGenre');
     const modal = document.getElementById('projectModal');
     
-    const title = titleInput ? titleInput.value.trim() : '';
-    const genre = genreSelect ? genreSelect.value : 'Other';
+    // Agar input nahi mila (sidebar se call hua), to prompt karo
+    const projectName = titleInput ? titleInput.value.trim() : prompt("Enter Project Name:");
+    if (!projectName) return; // Cancelled
 
-    if (!title) {
-        alert("Please enter a project title");
-        return null;
+    try {
+        const cleanName = projectName.trim();
+        const safeEmail = CURRENTUSER.email.replace(/[@.]/g, '_'); // Email safe format
+        const safeProject = cleanName.replace(/\s+/g, '_');        // Project safe format
+
+        // 3. Create Project Object
+        const newProject = {
+            title: cleanName,
+            genre: genreSelect ? genreSelect.value : 'Other',
+            ownerEmail: CURRENTUSER.email,
+            ownerName: CURRENTUSER.displayName || 'Creator',
+            uid: CURRENTUSER.uid,
+            createdAt: new Date().toISOString(), // Timestamp
+            
+            // ✅ Folder Path Structure (Ye aage upload me kaam aayega)
+            folderPath: `users/${safeEmail}/${safeProject}`,
+            
+            // Default Data
+            sections: createSections(), // Default sections list
+            footageLib: [],             // Empty video list
+            chapters: 0,
+            progress: 0,
+            words: '0',
+            readTime: '0min'
+        };
+
+        // 4. Save to Firestore (Database)
+        // Note: 'db' global variable hona chahiye (firebase.firestore())
+        const docRef = await db.collection('projects').add(newProject);
+        
+        console.log("✅ Project Created with ID:", docRef.id);
+
+        // 5. UI Cleanup
+        if (titleInput) titleInput.value = '';
+        if (modal) modal.classList.add('hidden');
+
+        // 6. Open Project Directly
+        // Turant Script Page par le jao
+        window.location.href = `scripts.html?id=${docRef.id}`;
+
+    } catch (error) {
+        console.error("Project Creation Failed:", error);
+        alert("Error creating project: " + error.message);
     }
-
-    const newProject = {
-        id: 'proj_' + Date.now(), // Unique ID
-        title: title,
-        genre: genre,
-        chapters: 0,
-        progress: 0,
-        words: '0',
-        readTime: '0min',
-        ownerEmail: CURRENTUSER ? CURRENTUSER.email : 'guest',
-        ownerName: CURRENTUSER ? (CURRENTUSER.displayName || 'Creator') : 'Guest',
-        createdAt: new Date().toISOString(),
-        sections: createSections() // Default sections
-    };
-
-    // 1. Array me add karo (Instant UI update)
-    projects.unshift(newProject);
-    renderDashboardProjects();
-    updateStats();
-
-    // 2. 🔥 CLOUD SAVE (Background me)
-    await saveProjectToCloud(newProject);
-
-    // 3. Reset UI
-    if (titleInput) titleInput.value = '';
-    if (modal) modal.classList.add('hidden');
-
-    // 4. Redirect if needed
-    if (openAfter) {
-        window.location.href = `project-hub.html?id=${newProject.id}`;
-    }
-    
-    return newProject;
 }
 
 // Create button - stay on dashboard
