@@ -1031,6 +1031,202 @@ function goBackToHub() {
         window.location.href = 'index.html';
     }
 }
+
+
+// ✅ FIX 1: NAVIGATION & SCENE MANAGEMENT
+    
+    // Switch between Writer (Editor) and Files (Cards)
+    function switchMode(mode) {
+        const editorView = document.getElementById('modeEditor');
+        const filesView = document.getElementById('modeFiles');
+        const btnEditor = document.getElementById('btnEditor');
+        const btnFiles = document.getElementById('btnFiles');
+
+        if (mode === 'editor') {
+            editorView.classList.remove('hidden-mode');
+            filesView.classList.add('hidden-mode');
+            
+            // Buttons Active State
+            btnEditor?.classList.add('active');
+            btnFiles?.classList.remove('active');
+        } else {
+            editorView.classList.add('hidden-mode');
+            filesView.classList.remove('hidden-mode');
+            
+            // Buttons Active State
+            btnFiles?.classList.add('active');
+            btnEditor?.classList.remove('active');
+            
+            // Files par aate hi data refresh karo
+            renderSections();
+        }
+    }
+
+    // Add New Scene Heading (Format shortcut)
+    function addNewScene() {
+        const editor = document.getElementById('scriptEditor');
+        const sceneNumber = document.querySelectorAll('.scene-heading').length + 1;
+        
+        // Insert HTML for new scene
+        const sceneHTML = `<br><div class="scene-heading font-bold uppercase mt-4 mb-2">INT. LOCATION - DAY</div><br>`;
+        document.execCommand('insertHTML', false, sceneHTML);
+        
+        // Scroll to bottom
+        editor.scrollTop = editor.scrollHeight;
+    }
+    
+    // Apply Formatting from Dropdown
+    function applyScriptFormat(format) {
+        if(!format) return;
+        document.execCommand('formatBlock', false, 'div');
+        const selection = window.getSelection();
+        if(selection.rangeCount > 0) {
+            const node = selection.anchorNode.parentElement;
+            // Clean old classes
+            node.className = ''; 
+            
+            // Apply new Script Standard Styles
+            if(format === 'scene') node.className = 'font-bold uppercase mt-4 mb-2 tracking-wider';
+            if(format === 'action') node.className = 'mb-2';
+            if(format === 'character') node.className = 'font-bold uppercase mt-4 text-center w-1/2 mx-auto';
+            if(format === 'dialogue') node.className = 'w-3/4 mx-auto mb-2 text-center';
+        }
+    }
+
+    // ✅ FIX 2: CONTEXT-AWARE AI ASSISTANT
+    
+    async function callRealAI() {
+        if(!currentUser) return alert("Please Login First");
+        
+        const input = document.getElementById('aiInput');
+        const area = document.getElementById('aiResponseArea');
+        const userPrompt = input.value.trim();
+        
+        // 1. Check selected text (Agar user ne kuch select kiya hai)
+        const selection = window.getSelection().toString();
+        let contextText = "";
+        let systemInstruction = "";
+
+        if (selection && selection.length > 0) {
+            // Context: Selection
+            contextText = `SELECTED TEXT: "${selection}"`;
+            systemInstruction = `User wants you to modify or analyze the SELECTED TEXT based on this instruction: "${userPrompt}". Output ONLY the rewritten version or answer.`;
+            area.innerHTML += `<div class="text-xs text-gray-500 text-right mb-1">[Selected: ${selection.substring(0, 20)}...]</div>`;
+        } else {
+            // Context: Whole Script (Last 3000 chars to save tokens)
+            const fullScript = document.getElementById('scriptEditor').innerText;
+            contextText = `CURRENT SCRIPT CONTEXT: """${fullScript.substring(fullScript.length - 3000)}"""`;
+            systemInstruction = `You are a professional Screenwriter Assistant. Help the user with: "${userPrompt}". Use the script context for tone and characters.`;
+        }
+
+        if(!userPrompt) return;
+
+        // UI Updates
+        area.innerHTML += `<div class="text-white mb-2 text-right bg-white/10 p-2 rounded-lg inline-block ml-auto">"${userPrompt}"</div>`;
+        input.value = '';
+        const thinkingId = 'thinking_' + Date.now();
+        area.innerHTML += `<div id="${thinkingId}" class="text-green-400 mb-2 italic text-left text-xs"><i class="fa-solid fa-circle-notch animate-spin"></i> Analyzing...</div>`;
+        area.scrollTop = area.scrollHeight;
+
+        try {
+            // API Key Fetch
+            const userDoc = await db.collection('users').doc(currentUser.uid).get();
+            let key = null;
+            if(userDoc.exists && userDoc.data().apiKeys?.length > 0) {
+                key = userDoc.data().apiKeys[0];
+            }
+            if(!key) throw new Error("API Key missing. Go to Dashboard settings.");
+
+            // Call Gemini
+            const res = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${key}`, {
+                method: 'POST', headers: {'Content-Type': 'application/json'},
+                body: JSON.stringify({ 
+                    contents: [{ 
+                        parts: [{ text: `${systemInstruction}\n\n${contextText}` }] 
+                    }] 
+                })
+            });
+            
+            const data = await res.json();
+            document.getElementById(thinkingId).remove();
+            
+            if(data.error) throw new Error(data.error.message);
+            
+            const reply = data.candidates[0].content.parts[0].text
+                .replace(/\*\*(.*?)\*\*/g, '<b class="text-green-300">$1</b>') // Bold formatting
+                .replace(/\n/g, '<br>');
+
+            area.innerHTML += `<div class="text-gray-300 mb-4 pb-2 border-b border-white/10 text-left text-xs leading-relaxed"><strong class="text-green-400">Alfred:</strong><br>${reply}</div>`;
+            area.scrollTop = area.scrollHeight;
+
+        } catch(e) {
+            document.getElementById(thinkingId)?.remove();
+            area.innerHTML += `<div class="text-red-400 text-xs">Error: ${e.message}</div>`;
+        }
+    }
+
+    // ✅ FIX 3: REAL DOCUMENT UPLOAD (Storage + Firestore)
+    
+    function triggerUpload(sectionId) {
+        // Create hidden input
+        const input = document.createElement('input');
+        input.type = 'file';
+        input.accept = '.pdf,.doc,.docx,.txt';
+        
+        input.onchange = async (e) => {
+            const file = e.target.files[0];
+            if (!file) return;
+            if (!currentUser || !currentProjectID) return alert("Error: User/Project not identified");
+
+            // UI Feedback
+            showStatus(`Uploading ${file.name}...`, "text-yellow-400");
+
+            try {
+                // 1. Upload to Firebase Storage
+                // Path: projects/{projectID}/docs/{fileName}
+                const storageRef = firebase.storage().ref();
+                const fileRef = storageRef.child(`projects/${currentProjectID}/docs/${Date.now()}_${file.name}`);
+                
+                await fileRef.put(file);
+                const downloadURL = await fileRef.getDownloadURL();
+
+                // 2. Update Local Data (Immediate UI Refresh)
+                const sectionIndex = sectionsData.findIndex(s => s.id === sectionId);
+                if (sectionIndex === -1) return;
+
+                const newFileEntry = {
+                    name: file.name,
+                    url: downloadURL,
+                    date: new Date().toLocaleDateString(),
+                    type: file.type,
+                    isMainScript: false
+                };
+
+                // Limit Check
+                if (sectionsData[sectionIndex].files.length >= FILES_PER_SECTION) {
+                    return alert("Section Full (Max 10 files)");
+                }
+
+                sectionsData[sectionIndex].files.push(newFileEntry);
+
+                // 3. Update Firestore
+                await db.collection('projects').doc(currentProjectID).update({
+                    sections: sectionsData
+                });
+
+                showStatus("Upload Complete", "text-green-500");
+                renderSections(); // Refresh Grid
+
+            } catch (error) {
+                console.error("Upload Error:", error);
+                showStatus("Upload Failed", "text-red-500");
+            }
+        };
+        
+        input.click();
+    }
+
+    
 </script>
 
         <!-- 📱 MOBILE BOTTOM NAVIGATION -->
