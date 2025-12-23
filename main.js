@@ -388,34 +388,26 @@ async function saveProjectToCloud(project) {
     }
 }
 
-// 🏗️ CREATE NEW PROJECT (Async Wait Logic - 100% Safe)
+// 🏗️ CREATE NEW PROJECT (Session Auto-Repair)
 async function createNewProject(openAfter = false) {
-    
-    // ✅ Helper: Wait for Firebase Auth to finish loading
-    const waitForAuth = () => {
-        return new Promise((resolve) => {
-            // Agar pehle se loaded hai
-            if (window.auth && window.auth.currentUser) {
-                return resolve(window.auth.currentUser);
-            }
-            // Agar nahi, to wait karo
-            if (window.auth) {
-                const unsubscribe = window.auth.onAuthStateChanged(user => {
-                    unsubscribe(); // Sirf ek baar check karo
-                    resolve(user);
-                });
-            } else {
-                resolve(null); // Auth system hi nahi mila
-            }
+    console.log("🔍 Starting Project Creation...");
+
+    // 1. Wait for Firebase (Max 2 seconds)
+    // Ye check karega ki asli connection zinda hai ya nahi
+    const getFirebaseUser = () => new Promise(resolve => {
+        if(!window.auth) return resolve(null);
+        const unsub = window.auth.onAuthStateChanged(user => {
+            unsub();
+            resolve(user);
         });
-    };
+        setTimeout(() => resolve(null), 2000);
+    });
 
-    console.log("⏳ Verifying User Identity...");
-    let activeUser = await waitForAuth(); // Yahan code rukega jab tak user confirm na ho
+    let activeUser = await getFirebaseUser();
 
-    // Fallback: Agar Firebase ne abhi bhi null diya, tab LocalStorage dekho
+    // 2. Fallback: Check LocalStorage
     if (!activeUser) {
-        console.log("⚠️ Firebase silent, checking LocalStorage...");
+        console.warn("⚠️ Firebase silent. Checking Local Storage...");
         const stored = localStorage.getItem('imranUser');
         if (stored) {
             try { 
@@ -425,16 +417,22 @@ async function createNewProject(openAfter = false) {
         }
     }
 
-    // 🔒 FINAL CHECK
+    // 3. 🚨 CRITICAL CHECK: Agar ab bhi user nahi mila ya UID gayab hai
     if (!activeUser || !activeUser.uid) {
-        console.error("❌ Auth Failed. No User found.");
-        alert("⚠️ Authentication Error. Please Logout and Login again.");
+        console.error("❌ Critical Error: Ghost Session Detected.");
+        
+        // AUTO-FIX: Ganda data saaf karo aur logout karo
+        localStorage.removeItem('imranUser');
+        if (window.auth) window.auth.signOut();
+        
+        alert("⚠️ Session Expired or Corrupt Data.\nWe are resetting your session. Please Login again.");
+        window.location.href = "landing.html"; // Wapis bhej do
         return;
     }
 
     console.log("✅ User Verified:", activeUser.email);
 
-    // 3. Project Inputs
+    // 4. Input Setup
     const titleInput = document.getElementById('projectTitle');
     const genreSelect = document.getElementById('projectGenre');
     const modal = document.getElementById('projectModal');
@@ -447,7 +445,7 @@ async function createNewProject(openAfter = false) {
         const safeEmail = activeUser.email.replace(/[@.]/g, '_'); 
         const safeProject = cleanName.replace(/\s+/g, '_');        
 
-        // 4. Project Data
+        // 5. Create Project Object
         const newProject = {
             title: cleanName,
             genre: genreSelect ? genreSelect.value : 'Other',
@@ -461,14 +459,13 @@ async function createNewProject(openAfter = false) {
             chapters: 0, progress: 0, words: '0', readTime: '0min'
         };
 
-        // 5. Save to DB (Wait for connection)
+        // 6. Save to DB
         if (!window.db) throw new Error("Database not connected. Refresh page.");
         
         const docRef = await window.db.collection('projects').add(newProject);
         
-        console.log("🎉 Project Created Successfully:", docRef.id);
+        console.log("🎉 Success! Project ID:", docRef.id);
 
-        // 6. Redirect
         if (titleInput) titleInput.value = '';
         if (modal) modal.classList.add('hidden');
         window.location.href = `scripts.html?id=${docRef.id}`;
