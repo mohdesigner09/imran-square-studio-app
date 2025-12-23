@@ -1284,10 +1284,10 @@ document.addEventListener('DOMContentLoaded', () => {
 });
 
 // ==========================================
-// ☁️ GOOGLE DRIVE AUTOMATION (Raw Mode - Fixed)
+// ☁️ GOOGLE DRIVE AUTOMATION (Token Force Mode)
 // ==========================================
 
-// 1. Helper: Raw API Call (Direct & Fast)
+// 1. Helper: Raw API Call (Token Include karega)
 async function makeDriveRequest(method, path, params = {}, body = null) {
     return new Promise((resolve, reject) => {
         const requestOptions = {
@@ -1297,14 +1297,17 @@ async function makeDriveRequest(method, path, params = {}, body = null) {
         };
         if (body) requestOptions.body = body;
 
-        // Raw request bhejenge taaki library loading ka natak na ho
+        // 🔥 IMPORTANT: Token check
+        const token = gapi.client.getToken();
+        if (!token) {
+            reject({ code: 401, message: "No Access Token found. Need to login." });
+            return;
+        }
+
         const request = gapi.client.request(requestOptions);
         request.execute((resp) => {
-            if (resp.error) {
-                reject(resp.error);
-            } else {
-                resolve(resp);
-            }
+            if (resp.error) reject(resp.error);
+            else resolve(resp);
         });
     });
 }
@@ -1312,10 +1315,10 @@ async function makeDriveRequest(method, path, params = {}, body = null) {
 // 2. Helper: Find or Create
 async function findOrCreateFolder(folderName, parentId) {
     try {
+        // A. Search
         let query = `mimeType='application/vnd.google-apps.folder' and name='${folderName}' and trashed=false`;
         if (parentId) query += ` and '${parentId}' in parents`;
 
-        // LIST (GET)
         const listResp = await makeDriveRequest('GET', '/drive/v3/files', {
             q: query,
             fields: 'files(id, name)'
@@ -1326,7 +1329,7 @@ async function findOrCreateFolder(folderName, parentId) {
             return listResp.files[0].id;
         }
 
-        // CREATE (POST)
+        // B. Create
         console.log(`✨ Creating: ${folderName}...`);
         const fileMetadata = {
             'name': folderName,
@@ -1338,57 +1341,53 @@ async function findOrCreateFolder(folderName, parentId) {
         return createResp.id;
 
     } catch (err) {
-        console.error(`❌ Error with folder ${folderName}:`, err);
-        return null;
+        throw err; // Error upar bhejo taaki catch block handle kare
     }
 }
 
-// 3. Main Setup Function (Undefined Error Fixed Here)
+// 3. Main Setup Function (Updated Logic)
 async function setupDriveFolders(userName, projectName) {
     console.log("☁️ Initializing Drive Setup...");
 
-    // 🔴 FIX STEP 1: SAFE GAPI INIT
-    // Agar gapi load nahi hai, to load karo
-    if (!gapi || !gapi.client) {
-         console.log("⏳ Loading GAPI...");
-         await new Promise(r => gapi.load('client', r));
-    }
+    // 🔴 STEP 1: LOAD LIBRARIES
+    if (!gapi || !gapi.client) await new Promise(r => gapi.load('client', r));
     
-    // API Key Set Karo (Yahan galti thi pehle, ab fixed hai)
-    try {
-        gapi.client.setApiKey(API_KEY);
-    } catch (e) {
-        console.warn("⚠️ API Key warning:", e);
-    }
-
-    // 🔴 FIX STEP 2: SAFE TOKEN CLIENT INIT
+    // 🔴 STEP 2: INIT AUTH (Token Client)
     if (!tokenClient) {
-        console.log("⏳ Initializing Auth...");
-        try {
-            if(typeof google === 'undefined' || !google.accounts) {
-                await new Promise((resolve, reject) => {
-                    const script = document.createElement('script');
-                    script.src = 'https://accounts.google.com/gsi/client';
-                    script.onload = resolve;
-                    script.onerror = reject;
-                    document.head.appendChild(script);
-                });
-            }
-
-            tokenClient = google.accounts.oauth2.initTokenClient({
-                client_id: CLIENT_ID,
-                scope: SCOPES,
-                callback: '' 
-            });
-            console.log("✅ Auth System Ready!");
-        } catch(e) {
-            console.error("❌ Auth Init Failed:", e);
-            alert("⚠️ Auth Error. Please refresh.");
-            return null;
+        console.log("⏳ Init Token Client...");
+        if(typeof google === 'undefined' || !google.accounts) {
+             await new Promise(r => {
+                 const s = document.createElement('script');
+                 s.src = 'https://accounts.google.com/gsi/client';
+                 s.onload = r;
+                 document.head.appendChild(s);
+             });
         }
+        tokenClient = google.accounts.oauth2.initTokenClient({
+            client_id: CLIENT_ID,
+            scope: SCOPES,
+            callback: '' 
+        });
     }
 
-    // 🔴 FIX STEP 3: EXECUTE
+    // 🔴 STEP 3: CHECK TOKEN (Yehi Missing Tha!)
+    // Folder banane se pehle check karo: Kya hamare paas Token hai?
+    const existingToken = gapi.client.getToken();
+    
+    if (!existingToken) {
+        console.log("🔒 No Token found. Asking for permission...");
+        // Promise wrap karke wait karwayenge
+        await new Promise((resolve, reject) => {
+            tokenClient.callback = (resp) => {
+                if (resp.error) reject(resp);
+                resolve(resp);
+            };
+            tokenClient.requestAccessToken({prompt: 'consent'});
+        });
+        console.log("🔓 Permission Granted!");
+    }
+
+    // 🔴 STEP 4: EXECUTE
     try {
         console.log("🚀 Starting Folder Creation...");
 
@@ -1409,13 +1408,10 @@ async function setupDriveFolders(userName, projectName) {
 
     } catch (e) {
         console.error("❌ Drive Setup Failed:", e);
-        
-        // Agar Permission ka issue hai (401 or 403)
-        if(e.code === 401 || e.code === 403 || (e.result && e.result.error && e.result.error.code === 401)) {
-             console.log("🔒 Permission needed. Asking user...");
-             // Token maango
-             tokenClient.requestAccessToken({prompt: 'consent'});
-             alert("⚠️ Please allow Google Drive access in the popup window.");
+        // Agar token expire ho gaya ho, to dubara maango
+        if(e.code === 401 || (e.result && e.result.error && e.result.error.code === 401)) {
+             alert("⚠️ Session Expired. Please try creating project again.");
+             tokenClient.requestAccessToken({prompt: ''});
         }
         return null;
     }
