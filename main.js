@@ -294,37 +294,45 @@ window.goBackToHub = () => { const id = new URLSearchParams(window.location.sear
 
 
 
-// 🏗️ CREATE NEW PROJECT (Incognito/Cookie-Block Safe Mode)
+// 🏗️ CREATE NEW PROJECT (Direct Storage Force Mode)
 async function createNewProject(openAfter = false) {
     console.log("🔍 Starting Project Creation...");
 
-    // 1. Sabse pehle Local Data uthao (Browser Block se bachne ke liye)
-    let activeUser = window.CURRENTUSER; 
-
-    // Agar global variable nahi mila, to direct Storage check karo
-    if (!activeUser) {
-        try {
-            const stored = localStorage.getItem('imranUser');
-            if (stored) activeUser = JSON.parse(stored);
-        } catch (e) { console.error("Storage Parse Error", e); }
+    // 1. Force Read from Local Storage (Global variable ignore karo)
+    let activeUser = null;
+    try {
+        const stored = localStorage.getItem('imranUser');
+        if (stored) {
+            console.log("📂 Raw Storage Found:", stored); // Debugging line
+            activeUser = JSON.parse(stored);
+        }
+    } catch (e) {
+        console.error("❌ Storage Parse Error:", e);
     }
 
-    // 2. Firebase check (Sirf confirmation ke liye, mandatory nahi)
-    if (!activeUser && window.auth && window.auth.currentUser) {
-        activeUser = window.auth.currentUser;
+    // 2. Fallback: Agar Local khali hai, to Firebase se maango
+    if ((!activeUser || !activeUser.uid) && window.auth && window.auth.currentUser) {
+        console.log("🔥 Fetching from Firebase Auth...");
+        const fbUser = window.auth.currentUser;
+        activeUser = {
+            uid: fbUser.uid,
+            email: fbUser.email,
+            displayName: fbUser.displayName || 'Creator'
+        };
+        // Future ke liye save kar lo
+        localStorage.setItem('imranUser', JSON.stringify(activeUser));
     }
 
-    // 3. FINAL SECURITY CHECK
-    // Note: Hum yahan data DELETE nahi karenge, bas error denge agar kuch bhi nahi mila
+    // 3. 🚨 FINAL DIAGNOSTIC CHECK
     if (!activeUser || !activeUser.uid) {
-        console.error("❌ Auth Failed. No User found locally or remotely.");
-        alert("⚠️ Authentication Error.\nWe cannot find your login details.\n\nPlease Logout and Login again.");
+        console.error("❌ FAILURE: Storage is empty or UID missing.");
+        alert("⚠️ User Data Missing!\n\nLocalStorage: " + (localStorage.getItem('imranUser') || "EMPTY") + "\n\nPlease LOGOUT and LOGIN again to fix this.");
         return;
     }
 
-    console.log("✅ User Verified:", activeUser.email);
+    console.log("✅ User Verified & Ready:", activeUser.email);
 
-    // 4. Inputs
+    // 4. Inputs Setup
     const titleInput = document.getElementById('projectTitle');
     const genreSelect = document.getElementById('projectGenre');
     const modal = document.getElementById('projectModal');
@@ -352,20 +360,20 @@ async function createNewProject(openAfter = false) {
         };
 
         // 6. Save to DB
-        // Agar window.db nahi hai to error mat do, try karo reconnect karne ka
-        if (!window.db && window.firebase) window.db = window.firebase.firestore();
-        
+        // Connection check with Retry info
         if (!window.db) {
-            throw new Error("Database connection lost. Please check internet.");
+             if(window.firebase) window.db = window.firebase.firestore();
+             if(!window.db) throw new Error("Database disconnected. Refresh Page.");
         }
         
         const docRef = await window.db.collection('projects').add(newProject);
         
-        console.log("🎉 Project Created:", docRef.id);
+        console.log("🎉 Success! Project Created:", docRef.id);
 
         if (titleInput) titleInput.value = '';
         if (modal) modal.classList.add('hidden');
         
+        // Redirect
         if (openAfter) {
             window.location.href = `project-hub.html?id=${docRef.id}`;
         } else {
@@ -374,7 +382,7 @@ async function createNewProject(openAfter = false) {
 
     } catch (error) {
         console.error("Creation Error:", error);
-        alert("Creation Failed: " + error.message);
+        alert("Error: " + error.message);
     }
 }
 
