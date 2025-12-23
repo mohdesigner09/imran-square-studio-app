@@ -368,17 +368,30 @@ async function createNewProject(openAfter = false) {
              if(!window.db) throw new Error("Database disconnected. Refresh Page.");
         }
         
+        // ... (Upar ka code same rahega) ...
+        
         const docRef = await window.db.collection('projects').add(newProject);
         
         console.log("🎉 Success! Project Created:", docRef.id);
 
+        // 1. Form Clear Karo
         if (titleInput) titleInput.value = '';
         if (modal) modal.classList.add('hidden');
         
-        if (openAfter) {
-            window.location.href = `project-hub.html?id=${docRef.id}`;
-        } else {
-            window.location.href = `scripts.html?id=${docRef.id}`;
+        // 2. Button Reset
+        const createBtn = document.getElementById('createProject');
+        if(createBtn) {
+             createBtn.innerText = "Create Project";
+             createBtn.disabled = false;
+        }
+
+        // 3. 🛑 REDIRECT HATA DIYA HAI
+        // Ab hum bas Dashboard ko refresh karenge taaki naya project dikh jaye
+        alert("✅ Project Created Successfully!");
+        
+        // List ko update karo (Taaki naya project saamne aa jaye)
+        if (typeof initDashboard === 'function') {
+            await initDashboard(); 
         }
 
     } catch (error) {
@@ -388,64 +401,69 @@ async function createNewProject(openAfter = false) {
 }
 
 
+// 🖥️ RENDER DASHBOARD (Final: Opens Project Hub)
 function renderDashboardProjects() {
-  const container = document.getElementById('projectCards');
-  if (!container) return;
+    const container = document.getElementById('projectCards');
+    if (!container) return;
 
-  let projectsToShow = projects;
+    let projectsToShow = projects;
 
-  // My/All filter
-  if (VIEW_MODE === 'my' && CURRENTUSER) {
-    projectsToShow = projects.filter(p => p.ownerEmail === CURRENTUSER.email);
-  }
+    // 1. My/All Filter Logic
+    if (typeof VIEW_MODE !== 'undefined' && VIEW_MODE === 'my' && typeof CURRENTUSER !== 'undefined' && CURRENTUSER) {
+        projectsToShow = projects.filter(p => p.ownerEmail === CURRENTUSER.email);
+    }
 
-  // Search filter
-  if (SEARCH_QUERY) {
-    projectsToShow = projectsToShow.filter(p => {
-      const title = (p.title || '').toLowerCase();
-      const genre = (p.genre || '').toLowerCase();
-      const owner = (p.ownerName || '').toLowerCase();
-      return title.includes(SEARCH_QUERY) || genre.includes(SEARCH_QUERY) || owner.includes(SEARCH_QUERY);
-    });
-  }
+    // 2. Search Filter Logic
+    if (typeof SEARCH_QUERY !== 'undefined' && SEARCH_QUERY) {
+        const lowerQ = SEARCH_QUERY.toLowerCase();
+        projectsToShow = projectsToShow.filter(p => {
+            const title = (p.title || '').toLowerCase();
+            const genre = (p.genre || '').toLowerCase();
+            const owner = (p.ownerName || '').toLowerCase();
+            return title.includes(lowerQ) || genre.includes(lowerQ) || owner.includes(lowerQ);
+        });
+    }
 
-  container.innerHTML = '';
+    container.innerHTML = ''; // Clear old cards
 
-  // Empty state
-  if (projectsToShow.length === 0) {
-    container.innerHTML = SEARCH_QUERY
-      ? `<div class="col-span-full text-center text-gray-400 py-10">
-           No projects found for "<span class="text-orange-400">${SEARCH_QUERY}</span>"
-         </div>`
-      : `<div class="col-span-full flex flex-col items-center justify-center py-16 text-center">
-           <div class="w-16 h-16 rounded-full bg-orange-500/10 flex items-center justify-center mb-4">
-             <svg class="w-8 h-8 text-orange-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-               <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6v6m0 0v6m0-6h6m-6 0H6"></path>
-             </svg>
-           </div>
-           <h3 class="text-white font-semibold mb-1">No projects yet</h3>
-           <p class="text-gray-400 text-sm">Click the + button to create your first project</p>
-         </div>`;
-    return;
-  }
+    // 3. Empty State (Agar koi project nahi hai)
+    if (projectsToShow.length === 0) {
+        container.innerHTML = (typeof SEARCH_QUERY !== 'undefined' && SEARCH_QUERY)
+            ? `<div class="col-span-full text-center text-gray-400 py-10">
+                 No projects found for "<span class="text-orange-400">${SEARCH_QUERY}</span>"
+               </div>`
+            : `<div class="col-span-full flex flex-col items-center justify-center py-16 text-center">
+                 <div class="w-16 h-16 rounded-full bg-orange-500/10 flex items-center justify-center mb-4">
+                   <svg class="w-8 h-8 text-orange-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6v6m0 0v6m0-6h6m-6 0H6"></path>
+                   </svg>
+                 </div>
+                 <h3 class="text-white font-semibold mb-1">No projects yet</h3>
+                 <p class="text-gray-400 text-sm">Click the + button to create your first project</p>
+               </div>`;
+        return;
+    }
 
-  projectsToShow.forEach((project) => {
-    const card = document.createElement('div');
-    card.className = 'project-card-item mb-6';
+    // 4. Render Cards
+    projectsToShow.forEach((project) => {
+        const card = document.createElement('div');
+        card.className = 'project-card-item mb-6';
 
-    const percent = project.progress || 0;
-    const radius = 18;
-    const circumference = 2 * Math.PI * radius;
-    const offset = circumference - (percent / 100) * circumference;
+        // Progress Calculation
+        const percent = project.progress || 0;
+        const radius = 18;
+        const circumference = 2 * Math.PI * radius;
+        const offset = circumference - (percent / 100) * circumference;
 
-    // 🔹 yahan owner name logic
-    const isOwner = CURRENTUSER && project.ownerEmail === CURRENTUSER.email;
-    const displayName = isOwner && CURRENTUSER
-      ? getImranFullName(CURRENTUSER)
-      : (project.ownerName || 'Unknown Creator');
+        // Owner Name Logic
+        let displayName = project.ownerName || 'Unknown Creator';
+        if (typeof CURRENTUSER !== 'undefined' && CURRENTUSER && project.ownerEmail === CURRENTUSER.email) {
+            displayName = CURRENTUSER.displayName || CURRENTUSER.firstName || 'You';
+        }
 
-    card.innerHTML = `
-      <div class="dashboard-card p-3 relative overflow-hidden cursor-pointer h-[105px]"
+        // HTML Structure
+        card.innerHTML = `
+      <div class="dashboard-card p-3 relative overflow-hidden cursor-pointer h-[105px] bg-gray-800 rounded-xl hover:bg-gray-750 transition border border-gray-700"
            onclick="window.location.href='project-hub.html?id=${project.id}'">
 
         <div class="flex justify-between items-start gap-3">
@@ -453,7 +471,7 @@ function renderDashboardProjects() {
             <h3 class="text-white font-display text-lg font-bold mb-1 truncate">${project.title}</h3>
             <span class="text-orange-500 text-[10px] font-mono uppercase tracking-wider">${project.genre}</span>
 
-            ${VIEW_MODE === 'all' ? `
+            ${(typeof VIEW_MODE !== 'undefined' && VIEW_MODE === 'all') ? `
               <div class="mt-1">
                 <span class="text-[9px] px-2 py-0.5 rounded-full bg-white/5 text-gray-400 border border-white/10">
                   by ${displayName}
@@ -462,15 +480,15 @@ function renderDashboardProjects() {
             ` : ''}
 
             <div class="flex gap-2 text-[10px] text-gray-400 mt-2 font-mono">
-              <span>${project.chapters} Ch</span>
-              <span>${project.readTime}</span>
+              <span>${project.chapters || 0} Ch</span>
+              <span>${project.readTime || '0min'}</span>
             </div>
           </div>
 
           <div class="flex-shrink-0 relative">
             <svg width="44" height="44" class="transform -rotate-90">
-              ircle cx="22" cy="22" r="${radius}" stroke="rgba(0,0,0,0.3)" stroke-width="3" fill="none"></circle>
-              ircle cx="22" cy="22" r="${radius}" stroke="#ff6b35" stroke-width="3" fill="none"
+              <circle cx="22" cy="22" r="${radius}" stroke="rgba(0,0,0,0.3)" stroke-width="3" fill="none"></circle>
+              <circle cx="22" cy="22" r="${radius}" stroke="#ff6b35" stroke-width="3" fill="none"
                       stroke-dasharray="${circumference}"
                       stroke-dashoffset="${offset}"
                       stroke-linecap="round"
@@ -484,19 +502,19 @@ function renderDashboardProjects() {
       </div>
     `;
 
-    container.appendChild(card);
-  });
-
-  if (window.anime) {
-    anime({
-      targets: '.project-card-item',
-      translateY: [30, 0],
-      opacity: [0, 1],
-      delay: anime.stagger(100)
+        container.appendChild(card);
     });
-  }
-}
 
+    // Animation Effect
+    if (window.anime) {
+        anime({
+            targets: '.project-card-item',
+            translateY: [30, 0],
+            opacity: [0, 1],
+            delay: anime.stagger(100)
+        });
+    }
+}
 
 
 // 2. HUB
