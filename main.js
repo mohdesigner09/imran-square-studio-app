@@ -1317,22 +1317,16 @@ async function findOrCreateFolder(folderName, parentId = null) {
 }
 
 // ==========================================
-// ☁️ GOOGLE DRIVE AUTOMATION (Smart Wait & Retry)
+// ☁️ GOOGLE DRIVE AUTOMATION (Force Load & Create)
 // ==========================================
 
 const VAULT_ID = "1nAz-SdoS9vu3748RgKvlvMU8JZWSz4dt"; // ✅ Aapki Vault ID
 
-// 1. Helper: Folder Dhoondo ya Banao
+// 1. Helper: Find or Create
 async function findOrCreateFolder(folderName, parentId) {
-    // Safety Check inside helper
-    if (!gapi || !gapi.client || !gapi.client.drive) return null;
-
     try {
-        // Query: Folder with name, not trashed, inside specific parent
         let query = `mimeType='application/vnd.google-apps.folder' and name='${folderName}' and trashed=false`;
-        if (parentId) {
-            query += ` and '${parentId}' in parents`;
-        }
+        if (parentId) query += ` and '${parentId}' in parents`;
 
         const response = await gapi.client.drive.files.list({
             q: query,
@@ -1340,80 +1334,72 @@ async function findOrCreateFolder(folderName, parentId) {
             spaces: 'drive'
         });
 
-        // Agar mil gaya to ID wapis karo
         if (response.result.files.length > 0) {
-            console.log(`📂 Found existing: ${folderName}`);
+            console.log(`📂 Found: ${folderName}`);
             return response.result.files[0].id;
         }
 
-        // Agar nahi mila to banao
-        console.log(`✨ Creating new: ${folderName}...`);
+        console.log(`✨ Creating: ${folderName}...`);
         const fileMetadata = {
             'name': folderName,
             'mimeType': 'application/vnd.google-apps.folder',
-            'parents': [parentId] // ✅ Parent ID link
+            'parents': [parentId]
         };
 
         const file = await gapi.client.drive.files.create({
             resource: fileMetadata,
             fields: 'id'
         });
-        
         return file.result.id;
-
     } catch (err) {
         console.error("Drive Error:", err);
-        return null; 
+        return null;
     }
 }
 
-// 2. Main Setup Function (Wait Logic Included)
+// 2. Main Setup Function (Force Initialize)
 async function setupDriveFolders(userName, projectName) {
     console.log("☁️ Initializing Drive Setup...");
 
-    // 🛑 WAIT LOGIC: Check karo GAPI ready hai ya nahi
-    // Hum 10 baar check karenge (Har aadhe second baad)
+    // 🚨 FORCE FIX: Agar API ready nahi hai, to abhi load karo
     if (!gapi || !gapi.client || !gapi.client.drive) {
-        console.log("⏳ Google API sleeping... Waking up...");
-        
-        for (let i = 0; i < 10; i++) {
-            if (gapi && gapi.client && gapi.client.drive) {
-                console.log("✅ Google API Woke Up!");
-                break;
-            }
-            await new Promise(resolve => setTimeout(resolve, 500)); // 0.5s wait
+        console.warn("⚠️ GAPI not ready. Force loading now...");
+        try {
+            await new Promise((resolve, reject) => {
+                gapi.load('client', {callback: resolve, onerror: reject});
+            });
+            await gapi.client.init({
+                apiKey: API_KEY, // Make sure API_KEY upar defined hai
+                discoveryDocs: ['https://www.googleapis.com/discovery/v1/apis/drive/v3/rest']
+            });
+            console.log("✅ GAPI Force Loaded Successfully!");
+        } catch (error) {
+            console.error("❌ Force Load Failed:", error);
+            alert("⚠️ Google Drive Connection Failed.\nCheck your internet or API Key.");
+            return null;
         }
-    }
-
-    // Agar abhi bhi ready nahi hai, to User ko batao aur skip karo
-    if(!gapi || !gapi.client || !gapi.client.drive) {
-        console.warn("⚠️ Drive API failed to load after waiting.");
-        alert("⚠️ Google Drive Connection Slow.\nProject will be created locally without Drive folders.\nPlease Refresh page once.");
-        return null;
     }
 
     // 🔑 Permission Check
     if (!tokenClient) {
-        console.error("❌ Token Client missing. Login again.");
+        console.error("❌ Token Client missing.");
+        alert("⚠️ Authentication system missing. Please refresh.");
         return null;
     }
 
     try {
-        console.log("🚀 Starting Folder Creation sequence...");
-
-        // STEP A: User Name Folder (Inside Vault)
+        // STEP A: User Folder
         const userId = await findOrCreateFolder(userName, VAULT_ID);
-        if(!userId) throw new Error("Failed to create User Folder");
+        if(!userId) throw new Error("Could not create User Folder");
 
-        // STEP B: Project Folder (Inside User)
+        // STEP B: Project Folder
         const projectId = await findOrCreateFolder(projectName, userId);
         
-        // STEP C: Sub-Folders (Inside Project)
+        // STEP C: Sub-Folders
         const scriptId = await findOrCreateFolder("Script", projectId);
         const footageId = await findOrCreateFolder("Raw Footage", projectId);
 
-        console.log("🎉 Drive Structure Created Successfully!");
-        
+        console.log("🎉 Drive Structure Ready!");
         return {
             rootFolderId: userId,
             projectFolderId: projectId,
@@ -1423,7 +1409,6 @@ async function setupDriveFolders(userName, projectName) {
 
     } catch (e) {
         console.error("❌ Drive Setup Failed:", e);
-        // Agar Permission ka issue hai to Popup maango
         if(e.result && e.result.error && e.result.error.code === 401) {
              tokenClient.requestAccessToken({prompt: 'consent'});
         }
