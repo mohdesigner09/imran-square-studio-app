@@ -1,4 +1,4 @@
-// ===== 1. IMPORTS =====
+// ===== 1. IMPORTS (Sabse Pehle) =====
 import express from 'express';
 import cors from 'cors';
 import dotenv from 'dotenv';
@@ -9,55 +9,49 @@ import admin from 'firebase-admin';
 import { google } from 'googleapis';
 import path from 'path';
 import { fileURLToPath } from 'url';
-import fs from 'fs';
-import { readFileSync } from 'fs';
-import bcrypt from 'bcryptjs'; // ✅ Fixed: Bcryptjs used
-import { Readable } from 'stream';
+import fs from 'fs'; 
 
 // ===== 2. CONFIGURATION =====
 dotenv.config();
 
-// __dirname setup for ES Modules
+// __dirname setup (ES Modules ke liye)
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
-// 2. Static Files Serve Karna (CSS/JS load karne ke liye)
+// ===== 3. APP INITIALIZATION (Ye Line Sabse Important Hai) =====
+const app = express();  // <--- ISKO PEHLE AANA ZAROORI HAI
+
+// ===== 4. MIDDLEWARES & STATIC FILES (Initialization ke baad) =====
+
+// Static Files (CSS/JS load karne ke liye)
 app.use(express.static(__dirname));
 
-// ===== 3. APP INITIALIZATION =====
-const app = express();
-app.use(express.json());
-const router = express.Router();
-
-const ADMIN_EMAIL = 'mohdesigner09@gmail.com';
-/*
-// ✅ GLOBAL SECURITY UNLOCK (Ye code sabse upar hona chahiye)
-// ✅ SECURITY UNLOCK (Paste this right after 'const app = express();')
+// Security Unlock (CORS & Headers)
 app.use((req, res, next) => {
-  // Purane rules hatao
   res.removeHeader("Content-Security-Policy");
   res.removeHeader("X-Content-Security-Policy");
-  
-  // Sab kuch allow karo (Tailwind, Google, AI Tools)
-  res.setHeader(
-    "Content-Security-Policy", 
-    "default-src * 'unsafe-inline' 'unsafe-eval' data: blob:;"
-  );
-  
-  // CORS Errors hatao
+  res.setHeader("Content-Security-Policy", "default-src * 'unsafe-inline' 'unsafe-eval' data: blob:;");
   res.setHeader("Access-Control-Allow-Origin", "*");
   res.setHeader("Access-Control-Allow-Methods", "GET, POST, PUT, DELETE, OPTIONS");
   res.setHeader("Access-Control-Allow-Headers", "Content-Type, Authorization");
-  
   next();
 });
-*/
 
-// Iske baad middlewares aayenge
 app.use(cors());
 app.use(express.json({ limit: '10mb' }));
-// ... baaki code ...
 
+// ===== 5. MULTER SETUP (Disk Storage) =====
+// Uploads folder create karo agar nahi hai
+if (!fs.existsSync('uploads')) {
+    fs.mkdirSync('uploads');
+}
+
+const upload = multer({ 
+    dest: 'uploads/',
+    limits: { fileSize: 800 * 1024 * 1024 } 
+});
+
+// ... ISKE BAAD TUMHARA BAAKI KA CODE (Routes wagera) HOGA ...
 
 // ===== ROUTES =====
 
@@ -157,22 +151,9 @@ async function setFilePublic(fileId) {
   } catch (error) { console.error('Permission Error:', error); }
 }
 
-// ============ MULTER + GOOGLE DRIVE SETUP ============
-const upload = multer({
-  dest: 'uploads/', // <--- YE CHANGE KIYA HAI (Path issue fix)
-  limits: {
-    fileSize: 800 * 1024 * 1024, // 800 MB disk par safe hai, RAM par nahi
-  },
-});
-
-
 
 // (optional) scope reference – docs ke liye
 const DRIVE_SCOPES = ['https://www.googleapis.com/auth/drive.file'];
-
-
-
-
 
 
 // Folder IDs (Avatar + Footage) – sab ko same vault par point kara sakte ho
@@ -187,12 +168,6 @@ const FOOTAGE_FOLDER_ID =
   process.env.GOOGLE_DRIVE_FOLDER_ID ||
   process.env.DRIVE_FOLDER_ID ||
   DRIVE_FOLDER_ID
-
-
-
-
-
-
 
 
 const otpStore = {};
