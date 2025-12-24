@@ -829,29 +829,39 @@ He pulls out a crumpled photograph.
     }
 
 
-
-// 2. LOAD FUNCTION
+// 2. LOAD FUNCTION (FIXED)
 async function loadProjectFromFirestore(projId) {
     console.log("🔄 Fetching Project Data for:", projId);
     currentProjectID = projId; // ID save kar lo
-alert("Project Setup Incomplete: Google Drive folders are missing for this project.");
+
+    // ❌ Maine wo zabardasti wala ALERT yahan se hata diya hai
 
     try {
         const doc = await db.collection('projects').doc(projId).get();
 
         if (doc.exists) {
             const data = doc.data();
-            console.log("📦 DATA RECEIVED:", data); // Ye log dikhna chahiye!
+            console.log("📦 DATA RECEIVED:", data); 
 
             // 🔥 Drive Data Save Karo
+            // Priority: data.drive > data.driveData > Empty
             if (data.drive) {
                 currentDriveData = data.drive;
-                console.log("📂 Drive Data Set:", currentDriveData);
             } else if (data.driveData) {
                 currentDriveData = data.driveData;
-                console.log("📂 Drive Data Set (Backup):", currentDriveData);
             } else {
+                currentDriveData = {}; // Empty object taaki crash na ho
                 console.warn("⚠️ No Drive Data Found in DB");
+            }
+            
+            console.log("📂 Drive Data Set:", currentDriveData);
+
+            // --- VALIDATION CHECK (NAYA LOGIC) ---
+            // Agar projectId missing hai tabhi alert karo
+            if (!currentDriveData.projectId && !currentDriveData.rootId) {
+                 console.warn("⚠️ Drive Config Missing");
+                 // Sirf tab alert karo jab sach me data na ho
+                 // alert("Warning: Google Drive folders might be missing."); 
             }
 
             // Title Set
@@ -861,6 +871,7 @@ alert("Project Setup Incomplete: Google Drive folders are missing for this proje
             // Sections Render
             if (data.sections) {
                 sectionsData = data.sections;
+                // Global variable update karo taaki UI refresh ho sake
                 renderSections();
             }
 
@@ -1117,65 +1128,65 @@ async function confirmAddSection() {
 // 🚀 SMART UPLOAD SYSTEM (Connected to Google Drive)
 
 async function triggerUpload(sectionId) {
-    // 1. Element dhundo
-    const fileInput = document.getElementById(`file-input-${sectionId}`); // Jo bhi tumhara ID pattern hai
+    console.log(`🚀 Starting Upload for Section: ${sectionId}`);
 
-    // 2. SAFETY CHECK ADD KARO (Ye missing hai)
+    // 1. Element ko sahi ID se dhundo
+    const fileInput = document.getElementById(`file-input-${sectionId}`);
+    
+    // ERROR FIX: Pehle yahan check fail ho raha tha
     if (!fileInput) {
-        console.error("Upload input not found! Maybe sections did not load?");
-        alert("Upload section not ready. Please refresh.");
+        console.error("❌ File input element not found!");
         return;
     }
 
+    // 2. Files nikalo (Variable name must match above)
     const files = fileInput.files; 
-    if (!files || files.length === 0) { // Yahan 'length' check karne se pehle 'files' check karo
-        alert("Please select a file first.");
+    
+    if (!files || files.length === 0) {
+        alert("Please select files first.");
         return;
     }
+
+    // 3. FormData banao
+    const formData = new FormData();
+    // Tumhare log ke hisaab se tumhare paas 'projectId' hai, usko folderId maano
+    // Ya agar element pe data-folder-id laga hai to wo uthao
+    const targetFolderId = fileInput.getAttribute('data-folder-id') || projectData.drive.projectId; 
     
-    input.onchange = async (e) => {
-        const file = e.target.files[0];
-        if (!file) return;
+    formData.append('folderId', targetFolderId);
 
-        showStatus(`Uploading to ${section.name}...`, "text-yellow-400");
+    // Loop
+    for (let i = 0; i < files.length; i++) {
+        formData.append('files', files[i]);
+    }
 
-        try {
-            // 🔥 LOGIC: Agar Section ka apna Folder ID hai to wo use karo, 
-            // nahi to Main Script ID use karo (Fallback)
-            const targetFolderId = section.driveFolderId || currentDriveData.scriptId;
-            
-            // Upload to Drive
-            const result = await uploadFileToDrive(file, targetFolderId);
+    // 4. Button UI Update
+    const btn = document.getElementById(`upload-btn-${sectionId}`);
+    const originalText = btn ? btn.innerHTML : "Upload";
+    if(btn) btn.innerHTML = `<i class="fa-solid fa-spinner fa-spin"></i> Uploading...`;
 
-            if (!result || !result.success) throw new Error(result.error);
-
-            // Local Data Update
-            const newFileEntry = {
-                name: file.name,
-                url: result.viewLink,
-                downloadUrl: result.downloadLink,
-                date: new Date().toLocaleDateString(),
-                type: file.type,
-                fileId: result.fileId
-            };
-
-            section.files.push(newFileEntry);
-
-            // Save to DB
-            await db.collection('projects').doc(currentProjectID).update({
-                sections: sectionsData
-            });
-
-            showStatus("Uploaded!", "text-green-500");
-            renderSections();
-
-        } catch (error) {
-            console.error(error);
-            showStatus("Upload Failed", "text-red-500");
+    try {
+        const response = await fetch('/api/drive/upload-multiple', {
+            method: 'POST',
+            body: formData
+        });
+        
+        const result = await response.json();
+        
+        if (response.ok) {
+            alert("✅ Upload Successful!");
+            console.log(result);
+            // Page reload karne ki jagah data refresh kar sakte ho
+            location.reload(); 
+        } else {
+            alert("Upload Failed: " + (result.error || "Unknown Error"));
         }
-    };
-    
-    input.click();
+    } catch (err) {
+        console.error(err);
+        alert("Server Error");
+    } finally {
+        if(btn) btn.innerHTML = originalText;
+    }
 }
 
    // ✅ NAVIGATION LOGIC (With Header Button Control)
