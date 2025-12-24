@@ -1125,69 +1125,9 @@ async function confirmAddSection() {
         alert("Error: " + e.message);
     }
 }
-// 🚀 SMART UPLOAD SYSTEM (Connected to Google Drive)
+
 
 async function triggerUpload(sectionId) {
-    console.log(`🚀 Starting Upload for Section: ${sectionId}`);
-
-    // 1. Element ko sahi ID se dhundo
-    const fileInput = document.getElementById(`file-input-${sectionId}`);
-    
-    // ERROR FIX: Pehle yahan check fail ho raha tha
-    if (!fileInput) {
-        console.error("❌ File input element not found!");
-        return;
-    }
-
-    // 2. Files nikalo (Variable name must match above)
-    const files = fileInput.files; 
-    
-    if (!files || files.length === 0) {
-        alert("Please select files first.");
-        return;
-    }
-
-    // 3. FormData banao
-    const formData = new FormData();
-    // Tumhare log ke hisaab se tumhare paas 'projectId' hai, usko folderId maano
-    // Ya agar element pe data-folder-id laga hai to wo uthao
-    const targetFolderId = fileInput.getAttribute('data-folder-id') || projectData.drive.projectId; 
-    
-    formData.append('folderId', targetFolderId);
-
-    // Loop
-    for (let i = 0; i < files.length; i++) {
-        formData.append('files', files[i]);
-    }
-
-    // 4. Button UI Update
-    const btn = document.getElementById(`upload-btn-${sectionId}`);
-    const originalText = btn ? btn.innerHTML : "Upload";
-    if(btn) btn.innerHTML = `<i class="fa-solid fa-spinner fa-spin"></i> Uploading...`;
-
-    try {
-        const response = await fetch('/api/drive/upload-multiple', {
-            method: 'POST',
-            body: formData
-        });
-        
-        const result = await response.json();
-        
-        if (response.ok) {
-            alert("✅ Upload Successful!");
-            console.log(result);
-            // Page reload karne ki jagah data refresh kar sakte ho
-            location.reload(); 
-        } else {
-            alert("Upload Failed: " + (result.error || "Unknown Error"));
-        }
-    } catch (err) {
-        console.error(err);
-        alert("Server Error");
-    } finally {
-        if(btn) btn.innerHTML = originalText;
-    }
-}
 
    // ✅ NAVIGATION LOGIC (With Header Button Control)
     function switchMode(mode) {
