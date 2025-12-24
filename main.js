@@ -1,28 +1,31 @@
 // ==========================================
-// 🔑 CONFIGURATION (CLEAN & FINAL)
+// 🔑 CONFIGURATION (FIXED API KEY)
 // ==========================================
 
-// 1. API Credentials
-const API_KEY = "AIzaSyCjWdPwfANgLC9gj4H89NNPY2CY0jnb-60"; 
+// ✅ CORRECT API KEY (From your index.html)
+const API_KEY = "AIzaSyA_D3AuwSzHKgs5svcwRoP0St2Nc-delF8"; 
+
+// 2. CLIENT ID
 const CLIENT_ID = "364132092578-tphp4i883gt7foep5cgaf226ivn45jmc.apps.googleusercontent.com";
 
-// 2. Drive Folders
+// 3. Drive Folders
 const VAULT_ID = "1nAz-SdoS9vu3748RgKvIvMU8JZWSz4dt"; 
 const FOOTAGE_FOLDER_ID = "1nAz-SdoS9vu3748RgKvIvMU8JZWSz4dt"; 
 
-// 3. Scopes
+// 4. Scopes
 const SCOPES = "https://www.googleapis.com/auth/drive.file";
 
-// 4. Firebase Config
-// (Dhyan rahe: Ye variable file me sirf EK BAAR hona chahiye)
+// 5. Firebase Config
 const firebaseConfig = {
-  apiKey: API_KEY,
+  apiKey: API_KEY, // Ab ye sahi key use karega
   authDomain: "iimransquare.firebaseapp.com",
   projectId: "iimransquare",
   storageBucket: "iimransquare.firebasestorage.app",
-  messagingSenderId: "364132092578",
-  appId: "1:364132092578:web:b0d2..." 
+  messagingSenderId: "431645042472", // Updated Sender ID
+  appId: "1:431645042472:web:87e7cea4659d6a0564121d"
 };
+
+// ... baaki code same rahega ...
 
 // 5. Initialize Firebase (Safety Check)
 if (typeof firebase !== 'undefined' && !firebase.apps.length) {

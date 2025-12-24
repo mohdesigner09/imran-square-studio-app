@@ -814,12 +814,10 @@ He pulls out a crumpled photograph.
             setTimeout(() => { statusLabel.classList.remove('opacity-100'); statusLabel.classList.add('opacity-0'); }, 3000);
         }
     }
-
-    // --- 4. CORE: LOAD DATA ---
-// 1. Global Variable (Top par jahan let currentProjectID hai wahan ye bhi add karein)
+// 1. GLOBAL VARIABLE (Isay function ke bahar, script ke top par rakhein)
 let currentDriveData = null; 
 
-// 2. Updated Load Function
+// 2. UPDATED LOAD FUNCTION
 async function loadProjectFromFirestore(projId) {
     try {
         const doc = await db.collection('projects').doc(projId).get();
@@ -827,8 +825,14 @@ async function loadProjectFromFirestore(projId) {
         if (doc.exists) {
             const data = doc.data();
             
-            // 🔥 NEW: Drive Data save karo taaki upload ke waqt ID mil sake
-            currentDriveData = data.drive || {}; 
+            // 🔥 CRITICAL FIX: Drive Data ko Global Variable mein save karo
+            if (data.drive) {
+                currentDriveData = data.drive; 
+                console.log("📂 Drive Data Loaded:", currentDriveData);
+            } else {
+                console.warn("⚠️ This project has no Drive Data connected.");
+                currentDriveData = null;
+            }
 
             // Content Set Karo
             const editor = document.getElementById('scriptEditor');
@@ -838,15 +842,12 @@ async function loadProjectFromFirestore(projId) {
             const titleEl = document.getElementById('scriptTitle');
             if(titleEl) titleEl.textContent = (data.title || "UNTITLED").toUpperCase();
             
-            // Sections/Files Set Karo
+            // Sections Set Karo
             sectionsData = data.sections || createDefaultSections();
-            
             renderSections();
-            console.log("🔥 Script Loaded from Cloud");
         }
     } catch (error) {
         console.error("Load Error:", error);
-        showStatus("Load Error", "text-red-500");
     }
 }
 
