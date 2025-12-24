@@ -9,6 +9,7 @@ import admin from 'firebase-admin';
 import { google } from 'googleapis';
 import path from 'path';
 import { fileURLToPath } from 'url';
+import fs from 'fs';
 import { readFileSync } from 'fs';
 import bcrypt from 'bcryptjs'; // ✅ Fixed: Bcryptjs used
 import { Readable } from 'stream';
