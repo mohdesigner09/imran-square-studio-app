@@ -581,6 +581,7 @@ function initProjectHub() {
 
 
 
+
 // 3. EDITOR INIT (Safe Version)
 function initEditor() {
     const id = new URLSearchParams(window.location.search).get('id');
@@ -591,12 +592,12 @@ function initEditor() {
     
     if(!project) return; 
 
-    // 🔥 FIX: Check karo element hai ya nahi, tabhi update karo
+    // 🔥 FIX: Pehle check karo element hai ya nahi
     const titleEl = document.getElementById('projectTitle');
     if (titleEl) {
         titleEl.innerText = project.title; 
     } else {
-        // Scripts page par shayad ID alag ho
+        // Agar projectTitle nahi mila (Scripts page par), to scriptTitle update karo
         const scriptTitleEl = document.getElementById('scriptTitle');
         if(scriptTitleEl) scriptTitleEl.innerText = project.title;
     }
@@ -606,7 +607,7 @@ function initEditor() {
         renderSections(project);
     }
     
-    // Drag-Drop Logic (Safe Check)
+    // Drag-Drop Logic
     const sectionsGrid = document.getElementById('sectionsGrid');
     if (sectionsGrid && typeof Sortable !== 'undefined') {
         new Sortable(sectionsGrid, {
