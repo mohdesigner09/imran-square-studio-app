@@ -338,11 +338,10 @@ window.goBackToHub = () => { const id = new URLSearchParams(window.location.sear
 
 
 
-// 🏗️ CREATE NEW PROJECT (With Drive Integration)
+// 🏗️ CREATE NEW PROJECT (With Drive Integration - Fixed)
 async function createNewProject(openAfter = false) {
     console.log("🔍 Starting Project Creation...");
-    console.log("👤 Firebase Current User:", firebase.auth().currentUser);
-
+    
     // 1. Local User Check
     let activeUser = null;
     try {
@@ -373,13 +372,14 @@ async function createNewProject(openAfter = false) {
     const genreSelect = document.getElementById('projectGenre');
     const modal = document.getElementById('projectModal');
     
+    // Agar input nahi mila (Scripts page par), to prompt use karo
     const projectName = titleInput ? titleInput.value.trim() : prompt("Enter Project Name:");
     if (!projectName) return; 
 
     // Create Button ko "Working" mode mein daalo
     const createBtn = document.getElementById('createProject');
     if(createBtn) {
-        createBtn.innerText = "Setting up Drive...";
+        createBtn.innerText = "Creating Folders...";
         createBtn.disabled = true;
     }
 
@@ -389,18 +389,31 @@ async function createNewProject(openAfter = false) {
         const safeProject = cleanName.replace(/\s+/g, '_');    
         const ownerName = activeUser.displayName || activeUser.firstName || "Imran User";    
 
-        // 🔥 STEP 3: CREATE GOOGLE DRIVE FOLDERS
-        // Ye code tabhi chalega agar user ne Google se login kiya ho
+        // 🔥 STEP 3: CREATE GOOGLE DRIVE FOLDERS (Logic Updated)
         let driveData = {};
+
+        // A. Agar 'setupDriveFolders' (Robot) available hai to use karo
         if (typeof setupDriveFolders === 'function') {
-            // createNewProject function ke andar aisa hona chahiye:
-        const folders = await setupDriveFolders(ownerName, cleanName, activeUser.email);
-            if(folders) {
-                driveData = folders; // IDs mil gayi!
-            }
+            const folders = await setupDriveFolders(ownerName, cleanName, activeUser.email);
+            if(folders) driveData = folders;
+        } 
+        // B. Fallback: Agar Robot function nahi mila, to Manual create karo (Safety ke liye)
+        else if (typeof createDriveFolder === 'function') {
+            console.log("🤖 Manual Folder Creation Triggered...");
+            const projectFolderId = await createDriveFolder(cleanName, VAULT_ID);
+            const scriptFolderId = await createDriveFolder("Scripts", projectFolderId);
+            const footageFolderId = await createDriveFolder("Raw Footage", projectFolderId);
+            
+            driveData = {
+                projectFolderId: projectFolderId,
+                scriptFolderId: scriptFolderId,
+                footageFolderId: footageFolderId
+            };
         }
 
-        // 4. Create Project Object (With Drive IDs)
+        console.log("📂 Folders Ready:", driveData);
+
+        // 4. Create Project Object (Database ke liye)
         const newProject = {
             title: cleanName,
             genre: genreSelect ? genreSelect.value : 'Other',
@@ -408,19 +421,23 @@ async function createNewProject(openAfter = false) {
             ownerName: ownerName,
             uid: activeUser.uid,
             createdAt: new Date().toISOString(),
-            // Old path (just for reference)
-            folderPath: `users/${safeEmail}/${safeProject}`, 
-            // ✅ NEW: Connected Drive IDs
+            status: 'active',
+            
+            // ✅ NEW: Connected Drive IDs (Is format ko dhyan se dekhein)
+            // Hum 'drive' aur 'driveData' dono save kar rahe hain taaki koi bhi script fail na ho
             drive: {
                 enabled: !!driveData.projectFolderId,
-                rootId: driveData.rootFolderId || '',
                 projectId: driveData.projectFolderId || '',
-                scriptId: driveData.scriptFolderId || '',
-                footageId: driveData.footageFolderId || ''
+                scriptId: driveData.scriptFolderId || '',   // Scripts Page isay dhoondta hai
+                footageId: driveData.footageFolderId || ''  // Footage Page isay dhoondta hai
             },
-            sections: createSections(), 
+            // Backup Field (Future proofing)
+            driveData: driveData, 
+
+            sections: [], 
             footageLib: [],             
-            chapters: 0, progress: 0
+            chapters: 0, 
+            progress: 0
         };
 
         // 5. Save to DB
@@ -430,9 +447,8 @@ async function createNewProject(openAfter = false) {
         const docRef = await window.db.collection('projects').add(newProject);
         
         console.log("🎉 Project Created with ID:", docRef.id);
-        if(driveData.projectFolderId) console.log("☁️ Drive Connected!");
 
-        // 6. Cleanup
+        // 6. Cleanup & Redirect
         if (titleInput) titleInput.value = '';
         if (modal) modal.classList.add('hidden');
         if(createBtn) {
@@ -440,10 +456,15 @@ async function createNewProject(openAfter = false) {
              createBtn.disabled = false;
         }
 
-        alert("✅ Project & Drive Folders Created!");
-        
-        // Refresh List
+        // Agar Dashboard par hain to list refresh karo
         if (typeof initDashboard === 'function') await initDashboard(); 
+
+        // Open Project Automatically
+        if (openAfter) {
+            window.location.href = `raw-footage.html?id=${docRef.id}`;
+        } else {
+             alert("✅ Project Created Successfully!");
+        }
 
     } catch (error) {
         console.error("Creation Error:", error);
