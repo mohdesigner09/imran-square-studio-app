@@ -1,57 +1,52 @@
 // ==========================================
-// 🔑 CONFIGURATION (UPDATED & FIXED)
+// 🔑 CONFIGURATION (CLEAN & FINAL)
 // ==========================================
 
-// 1. API KEY (Google Cloud & Firebase)
+// 1. API Credentials
 const API_KEY = "AIzaSyCjWdPwfANgLC9gj4H89NNPY2CY0jnb-60"; 
-
-// 2. CLIENT ID (OAuth)
 const CLIENT_ID = "364132092578-tphp4i883gt7foep5cgaf226ivn45jmc.apps.googleusercontent.com";
 
-// 3. VAULT FOLDER ID (Imran's 2TB Drive)
+// 2. Drive Folders
 const VAULT_ID = "1nAz-SdoS9vu3748RgKvIvMU8JZWSz4dt"; 
-const FOOTAGE_FOLDER_ID = "1nAz-SdoS9vu3748RgKvIvMU8JZWSz4dt"; // Fallback ke liye same rakha hai
+const FOOTAGE_FOLDER_ID = "1nAz-SdoS9vu3748RgKvIvMU8JZWSz4dt"; 
 
-// 4. SCOPES
+// 3. Scopes
 const SCOPES = "https://www.googleapis.com/auth/drive.file";
 
-// 🔥 5. FIREBASE CONFIG (Ye Missing Tha!)
+// 4. Firebase Config
+// (Dhyan rahe: Ye variable file me sirf EK BAAR hona chahiye)
 const firebaseConfig = {
   apiKey: API_KEY,
   authDomain: "iimransquare.firebaseapp.com",
   projectId: "iimransquare",
   storageBucket: "iimransquare.firebasestorage.app",
   messagingSenderId: "364132092578",
-  appId: "1:364132092578:web:b0d2..." // (Agar error aaye to Console se check karein, par usually chal jayega)
+  appId: "1:364132092578:web:b0d2..." 
 };
 
-// ⚡ INITIALIZE FIREBASE
-// Check karein ki pehle se init to nahi hai
-if (!firebase.apps.length) {
+// 5. Initialize Firebase (Safety Check)
+if (typeof firebase !== 'undefined' && !firebase.apps.length) {
     firebase.initializeApp(firebaseConfig);
-    console.log("🔥 Firebase Initialized Successfully!");
+    console.log("🔥 Firebase Initialized!");
 }
 
-// Global Variables Setup
+// 6. Global Variables Export
 const db = firebase.firestore();
 const auth = firebase.auth();
 const storage = firebase.storage();
 
-// Window object par daal do taaki baaki pages use kar sakein
 window.db = db;
 window.auth = auth;
 window.firebase = firebase;
 
-console.log("✅ Config & Firebase Loaded!");
-
-// ... ISKE NEECHE AAPKA BAAKI CODE (API_BASE wala) SHURU HOGA ...
-
-
+// 7. Server URL
 const API_BASE = window.location.hostname === 'localhost'
-    ? 'http://localhost:3000'   // ✅ CORRECT (Match with server.js)
+    ? 'http://localhost:3000'
     : 'https://imran-square-studio.onrender.com';
 
-// niche tumhara pura JS code...
+console.log("✅ Config Loaded Successfully");
+
+// ... ISKE NEECHE AAPKA BAAKI CODE HONA CHAHIYE ...
 
 /// ===== AUTH & CURRENT USER SETUP =====
 const RAWUSER = localStorage.getItem('imranUser');
@@ -586,7 +581,7 @@ function initProjectHub() {
 
 
 
-// 3. EDITOR INIT (Fixed for Scripts Page)
+// 3. EDITOR INIT (Safe Version)
 function initEditor() {
     const id = new URLSearchParams(window.location.search).get('id');
     
@@ -596,40 +591,36 @@ function initEditor() {
     
     if(!project) return; 
 
-    // 🔥 FIX: Element check karke hi update karo
+    // 🔥 FIX: Check karo element hai ya nahi, tabhi update karo
     const titleEl = document.getElementById('projectTitle');
     if (titleEl) {
         titleEl.innerText = project.title; 
     } else {
-        // Agar projectTitle nahi mila (mtlb hum Scripts page par hain), to scriptTitle dhoondo
+        // Scripts page par shayad ID alag ho
         const scriptTitleEl = document.getElementById('scriptTitle');
         if(scriptTitleEl) scriptTitleEl.innerText = project.title;
     }
 
-    renderSections(project);
+    // Sections Render karo
+    if(typeof renderSections === 'function') {
+        renderSections(project);
+    }
     
-    const btn = document.getElementById('editorToggle');
-    if(btn) btn.onclick = function() { 
-        this.classList.toggle('text-orange-500'); 
-        document.body.classList.toggle('edit-mode'); 
-        const isEditing = document.body.classList.contains('edit-mode');
-        
-        const sort = Sortable.get(document.getElementById('sectionsGrid')); 
-        if(sort) sort.option("disabled", !isEditing);
-        
-        document.querySelectorAll('.script-list').forEach(l => { 
-            const s = Sortable.get(l); 
-            if(s) s.option("disabled", !isEditing); 
+    // Drag-Drop Logic (Safe Check)
+    const sectionsGrid = document.getElementById('sectionsGrid');
+    if (sectionsGrid && typeof Sortable !== 'undefined') {
+        new Sortable(sectionsGrid, {
+            animation: 200,
+            disabled: true,
+            handle: '.section-card',
+            onEnd: function(evt) {
+                const movedSection = project.sections.splice(evt.oldIndex, 1)[0];
+                project.sections.splice(evt.newIndex, 0, movedSection);
+                localStorage.setItem('imranProjects', JSON.stringify(projects));
+                renderSections(project);
+            }
         });
-        
-        document.querySelectorAll('.sec-title').forEach((el, sIdx) => { 
-            el.contentEditable = isEditing; 
-            if(!isEditing) { 
-                project.sections[sIdx].name = el.innerText; 
-                localStorage.setItem('imranProjects', JSON.stringify(projects)); 
-            } 
-        });
-    };
+    }
 }
 
 
