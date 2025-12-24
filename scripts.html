@@ -1015,21 +1015,29 @@ function renderSections() {
                     </div>
                 </div>`;
         }
-
-        // 3. Card Create
-        const card = document.createElement('div');
-        card.className = 'section-card flex flex-col bg-[#111] border border-white/10 rounded-xl p-4 h-80 relative overflow-hidden shadow-lg';
-        
-        card.innerHTML = `
+card.innerHTML = `
             ${headerHtml}
             <div class="file-list flex-1 overflow-y-auto custom-scrollbar mb-3 space-y-1">
                 ${filesHtml}
             </div>
-            <button onclick="triggerUpload(${section.id})" 
-                class="w-full py-2 rounded bg-white/5 hover:bg-white text-white hover:text-black text-xs font-bold transition border border-white/10 flex items-center justify-center gap-2 ${isFull || isEditMode ? 'opacity-50 cursor-not-allowed' : ''}" 
-                ${isFull || isEditMode ? 'disabled' : ''}>
-                <i class="fa-solid fa-cloud-arrow-up"></i> ${isEditMode ? 'Editing...' : 'Upload File'}
-            </button>
+            
+            <div class="mt-auto pt-2">
+                <input 
+                    type="file" 
+                    id="file-input-${section.id}" 
+                    multiple 
+                    style="display: none;" 
+                    onchange="triggerUpload('${section.id}')" 
+                />
+
+                <button 
+                    id="upload-btn-${section.id}"
+                    class="w-full py-2 rounded bg-white/5 hover:bg-white/10 border border-white/10 text-gray-300 text-xs transition" 
+                    onclick="document.getElementById('file-input-${section.id}').click();"
+                >
+                    <i class="fa-solid fa-cloud-arrow-up mr-2"></i> Upload File
+                </button>
+            </div>
         `;
 
         grid.appendChild(card);
