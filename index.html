@@ -42,7 +42,7 @@
 
 
     <script src="https://cdn.tailwindcss.com"></script>
-    
+
    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
 
     <script src="https://cdnjs.cloudflare.com/ajax/libs/animejs/3.2.1/anime.min.js"></script>
@@ -805,132 +805,162 @@
 
 
 
-// ==========================================
-// 🛠️ EDIT MODE LOGIC (SIMPLE & WORKING)
-// ==========================================
+    // 1. GLOBAL VARIABLES
+    let isEditMode = false;
+    let allProjectsData = []; // Ye variable projects ka data hold karega
 
-let isEditMode = false;
+    // 2. DATA LOADING (Firestore se direct connect)
+    function initProjectLoader() {
+        const userStr = localStorage.getItem('imranUser');
+        if (!userStr) return;
+        const user = JSON.parse(userStr);
 
-// 1. TOGGLE BUTTON
-function toggleEditMode() {
-    isEditMode = !isEditMode; // Switch ON/OFF
-    
-    const btn = document.getElementById('edit-mode-btn');
+        console.log("🔄 Connecting to Firestore for Projects...");
 
-    if (isEditMode) {
-        // Edit Mode ON: Green Tick dikhao
-        btn.innerHTML = `<i class="fa-solid fa-check"></i>`;
-        btn.className = "text-green-500 hover:text-green-400 transition text-sm"; // Green color
-    } else {
-        // Normal Mode: Wapas Pencil bana do
-        btn.innerHTML = `<i class="fa-solid fa-pencil"></i>`;
-        btn.className = "text-gray-400 hover:text-white transition text-sm"; // Original color
+        // Tumhara DB Query
+        let query = db.collection('projects')
+                      .where('uid', '==', user.uid)
+                      .orderBy('createdAt', 'desc');
+
+        // Real-time Listener (Jaise hi DB badlega, ye chalega)
+        query.onSnapshot((snapshot) => {
+            allProjectsData = snapshot.docs.map(doc => ({
+                id: doc.id,
+                ...doc.data()
+            }));
+            
+            console.log(`✅ Projects Loaded: ${allProjectsData.length}`);
+            renderProjects(allProjectsData); // List banao
+        }, (error) => {
+            console.error("❌ Error loading projects:", error);
+        });
     }
 
-    // List ko refresh karo taaki buttons dikhein
-    // (allProjectsData wo variable hai jisme tumhare projects load hue the)
-    if (typeof allProjectsData !== 'undefined') {
+    // 3. TOGGLE EDIT MODE (Pencil Button Logic)
+    function toggleEditMode() {
+        // Toggle Switch
+        isEditMode = !isEditMode;
+        
+        const btn = document.getElementById('edit-mode-btn');
+        if(!btn) {
+            console.error("❌ Button 'edit-mode-btn' not found!");
+            return;
+        }
+
+        if (isEditMode) {
+            // GREEN TICK ✅
+            btn.innerHTML = `<i class="fa-solid fa-check"></i>`;
+            btn.className = "text-green-500 hover:text-green-400 transition text-sm scale-110";
+            console.log("✏️ Edit Mode ON");
+        } else {
+            // GREY PENCIL ✏️
+            btn.innerHTML = `<i class="fa-solid fa-pencil"></i>`;
+            btn.className = "text-gray-400 hover:text-white transition text-sm";
+            console.log("🔒 Edit Mode OFF");
+        }
+
+        // UI Refresh karo taaki naye buttons dikhein
         renderProjects(allProjectsData);
     }
-}
 
-// 2. RENDER FUNCTION (Overlay Logic)
-function renderProjects(projects) {
-    const container = document.getElementById('projectCards');
-    if (!container) return;
-    
-    container.innerHTML = "";
+    // 4. RENDER PROJECTS (List Banane wala function)
+    function renderProjects(projects) {
+        const container = document.getElementById('projectCards');
+        if (!container) return;
 
-    if (!projects || projects.length === 0) {
-        container.innerHTML = `<p class="text-gray-500 text-center col-span-full py-4">No projects found.</p>`;
-        return;
-    }
+        container.innerHTML = ""; // Purana data saaf karo
 
-    projects.forEach(proj => {
-        // Shake effect agar edit mode on hai
-        const shakeClass = isEditMode ? "animate-pulse ring-1 ring-red-500/50" : "";
+        if (!projects || projects.length === 0) {
+            container.innerHTML = `<p class="text-gray-500 text-center col-span-full py-10">No active projects found. Create one +</p>`;
+            return;
+        }
 
-        const cardHtml = `
-        <div onclick="${isEditMode ? '' : `window.location.href='scripts.html?id=${proj.id}'`}" 
-             class="bg-[#1a1a1a] p-4 rounded-xl border border-white/5 cursor-pointer hover:bg-[#252525] transition relative group overflow-hidden ${shakeClass}">
-            
-            <h3 class="font-bold text-white text-lg truncate pr-8">${proj.title}</h3>
-            <p class="text-xs text-gray-400 mt-1 uppercase tracking-wider">${proj.genre || 'General'}</p>
-            
-            <div class="mt-4 flex justify-between items-end">
-                 <div class="bg-white/10 px-2 py-1 rounded text-[10px] text-gray-300">
-                    ${proj.progress || 0}% Done
-                 </div>
-                 <span class="text-[10px] text-gray-500">
-                    ${proj.createdAt ? new Date(proj.createdAt.toDate()).toLocaleDateString() : ''}
-                 </span>
-            </div>
+        projects.forEach(proj => {
+            // Edit Mode Animation
+            const shakeClass = isEditMode ? "animate-pulse ring-1 ring-red-500/50" : "";
+            const clickAction = isEditMode ? "" : `window.location.href='scripts.html?id=${proj.id}'`;
 
-            ${isEditMode ? `
-                <div class="absolute inset-0 bg-black/80 backdrop-blur-[2px] flex items-center justify-center gap-4 z-20">
-                    
-                    <button onclick="renameProject(event, '${proj.id}', '${proj.title}')" 
-                            class="w-10 h-10 rounded-full bg-blue-600 hover:bg-blue-500 text-white flex items-center justify-center shadow-lg transform hover:scale-110 transition">
-                        <i class="fa-solid fa-pen"></i>
-                    </button>
-
-                    <button onclick="deleteProject(event, '${proj.id}')" 
-                            class="w-10 h-10 rounded-full bg-red-600 hover:bg-red-500 text-white flex items-center justify-center shadow-lg transform hover:scale-110 transition">
-                        <i class="fa-solid fa-trash"></i>
-                    </button>
+            const cardHtml = `
+            <div onclick="${clickAction}" 
+                 class="bg-[#1a1a1a] p-4 rounded-xl border border-white/5 cursor-pointer hover:bg-[#252525] transition relative group overflow-hidden ${shakeClass}">
+                
+                <h3 class="font-bold text-white text-lg truncate pr-8">${proj.title}</h3>
+                <p class="text-xs text-gray-400 mt-1 uppercase tracking-wider">${proj.genre || 'General'}</p>
+                
+                <div class="mt-4 flex justify-between items-end">
+                     <div class="bg-white/10 px-2 py-1 rounded text-[10px] text-gray-300">
+                        ${proj.progress || 0}% Done
+                     </div>
+                     <span class="text-[10px] text-gray-500">
+                        ${proj.createdAt ? new Date(proj.createdAt.toDate()).toLocaleDateString() : ''}
+                     </span>
                 </div>
-            ` : ''}
-        </div>`;
+
+                ${isEditMode ? `
+                    <div class="absolute inset-0 bg-black/80 backdrop-blur-[2px] flex items-center justify-center gap-4 z-20 animate-fade-in">
+                        
+                        <button onclick="renameProject(event, '${proj.id}', '${proj.title}')" 
+                                class="w-10 h-10 rounded-full bg-blue-600 hover:bg-blue-500 text-white flex items-center justify-center shadow-lg transform hover:scale-110 transition">
+                            <i class="fa-solid fa-pen"></i>
+                        </button>
+
+                        <button onclick="deleteProject(event, '${proj.id}')" 
+                                class="w-10 h-10 rounded-full bg-red-600 hover:bg-red-500 text-white flex items-center justify-center shadow-lg transform hover:scale-110 transition">
+                            <i class="fa-solid fa-trash"></i>
+                        </button>
+                    </div>
+                ` : ''}
+
+            </div>`;
+            
+            container.innerHTML += cardHtml;
+        });
+    }
+
+    // 5. RENAME FUNCTION
+    async function renameProject(event, projectId, oldName) {
+        event.stopPropagation(); // Card open hone se roko
+        const newName = prompt("Rename Project:", oldName);
         
-        container.innerHTML += cardHtml;
-    });
-}
-
-// 2. RENAME PROJECT
-async function renameProject(event, projectId, oldName) {
-    event.stopPropagation(); // Card click hone se roko
-
-    const newName = prompt("Rename Project:", oldName);
-    
-    if (newName && newName.trim() !== "" && newName !== oldName) {
-        try {
-            await db.collection('projects').doc(projectId).update({
-                title: newName.trim()
-            });
-            alert("✅ Project Renamed!");
-            loadProjects(); // Reload list
-        } catch (error) {
-            console.error("Error renaming:", error);
-            alert("❌ Rename Failed");
+        if (newName && newName.trim() !== "" && newName !== oldName) {
+            try {
+                await db.collection('projects').doc(projectId).update({ title: newName.trim() });
+                // Note: UI auto-update ho jayega kyunki humne onSnapshot lagaya hai
+                alert("✅ Renamed!");
+            } catch (error) {
+                console.error(error);
+                alert("❌ Error Renaming");
+            }
         }
     }
-}
 
-// 3. DELETE PROJECT (PERMANENT)
-async function deleteProject(event, projectId) {
-    event.stopPropagation(); // Card click hone se roko
-
-    if (confirm("⚠️ WARNING: Are you sure you want to delete this project permanently? This cannot be undone.")) {
-        try {
-            await db.collection('projects').doc(projectId).delete();
-            
-            // UI se hatao
-            allProjectsData = allProjectsData.filter(p => p.id !== projectId);
-            renderProjects(allProjectsData);
-            
-            alert("🗑️ Project Deleted Successfully");
-        } catch (error) {
-            console.error("Error deleting:", error);
-            alert("❌ Delete Failed");
+    // 6. DELETE FUNCTION
+    async function deleteProject(event, projectId) {
+        event.stopPropagation(); // Card open hone se roko
+        if (confirm("⚠️ Are you sure you want to delete this project? This cannot be undone.")) {
+            try {
+                await db.collection('projects').doc(projectId).delete();
+                alert("🗑️ Project Deleted");
+            } catch (error) {
+                console.error(error);
+                alert("❌ Error Deleting");
+            }
         }
     }
-}
+
+    // 🔥 SCRIPT START KARO
+    // Thoda delay dete hain taaki Firebase DB initialize ho jaye
+    setTimeout(() => {
+        if(typeof db !== 'undefined') {
+            initProjectLoader();
+        } else {
+            console.error("Firebase DB not found! Make sure main.js is loaded.");
+            // Retry once
+            setTimeout(initProjectLoader, 1000);
+        }
+    }, 500);
 
 
-// Function to open project (Normal Click)
-function openProject(id) {
-    window.location.href = `scripts.html?id=${id}`;
-}
 
 
 </script>
