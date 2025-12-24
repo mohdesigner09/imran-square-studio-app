@@ -314,6 +314,7 @@ window.goBackToHub = () => { const id = new URLSearchParams(window.location.sear
 // 🏗️ CREATE NEW PROJECT (With Drive Integration)
 async function createNewProject(openAfter = false) {
     console.log("🔍 Starting Project Creation...");
+    console.log("👤 Firebase Current User:", firebase.auth().currentUser);
 
     // 1. Local User Check
     let activeUser = null;
