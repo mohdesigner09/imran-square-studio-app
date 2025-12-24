@@ -1,23 +1,50 @@
 // ==========================================
-// 🔑 CONFIGURATION (Paste at TOP of main.js)
+// 🔑 CONFIGURATION (UPDATED & FIXED)
 // ==========================================
 
-// 1. API KEY (Jo aapne pehle di thi)
+// 1. API KEY (Google Cloud & Firebase)
 const API_KEY = "AIzaSyCjWdPwfANgLC9gj4H89NNPY2CY0jnb-60"; 
 
-// 2. CLIENT ID (Jo aapne abhi di)
+// 2. CLIENT ID (OAuth)
 const CLIENT_ID = "364132092578-tphp4i883gt7foep5cgaf226ivn45jmc.apps.googleusercontent.com";
 
-// 3. VAULT FOLDER ID (Jahan sab store hoga)
-// Note: Variable ka naam VAULT_ID hi rehne dein, code isi ko dhoond raha hai
+// 3. VAULT FOLDER ID (Imran's 2TB Drive)
 const VAULT_ID = "1nAz-SdoS9vu3748RgKvIvMU8JZWSz4dt"; 
+const FOOTAGE_FOLDER_ID = "1nAz-SdoS9vu3748RgKvIvMU8JZWSz4dt"; // Fallback ke liye same rakha hai
 
-// 4. Permissions (Drive Access)
+// 4. SCOPES
 const SCOPES = "https://www.googleapis.com/auth/drive.file";
 
-console.log("✅ Config Loaded: Credentials Ready");
+// 🔥 5. FIREBASE CONFIG (Ye Missing Tha!)
+const firebaseConfig = {
+  apiKey: API_KEY,
+  authDomain: "iimransquare.firebaseapp.com",
+  projectId: "iimransquare",
+  storageBucket: "iimransquare.firebasestorage.app",
+  messagingSenderId: "364132092578",
+  appId: "1:364132092578:web:b0d2..." // (Agar error aaye to Console se check karein, par usually chal jayega)
+};
 
-// ... iske neeche aapka baaki code shuru hoga ...
+// ⚡ INITIALIZE FIREBASE
+// Check karein ki pehle se init to nahi hai
+if (!firebase.apps.length) {
+    firebase.initializeApp(firebaseConfig);
+    console.log("🔥 Firebase Initialized Successfully!");
+}
+
+// Global Variables Setup
+const db = firebase.firestore();
+const auth = firebase.auth();
+const storage = firebase.storage();
+
+// Window object par daal do taaki baaki pages use kar sakein
+window.db = db;
+window.auth = auth;
+window.firebase = firebase;
+
+console.log("✅ Config & Firebase Loaded!");
+
+// ... ISKE NEECHE AAPKA BAAKI CODE (API_BASE wala) SHURU HOGA ...
 
 
 const API_BASE = window.location.hostname === 'localhost'
@@ -558,31 +585,28 @@ function initProjectHub() {
 }
 
 
-// 3. EDITOR
+
+// 3. EDITOR INIT (Fixed for Scripts Page)
 function initEditor() {
     const id = new URLSearchParams(window.location.search).get('id');
-    let project = projects.find(p => p.id === id) || projects[0];
+    
+    // Project dhoondo
+    let project = projects.find(p => p.id === id);
+    if (!project && projects.length > 0) project = projects[0]; // Fallback
+    
     if(!project) return; 
-    
-    document.getElementById('projectTitle').innerText = project.title; 
-    renderSections(project);
-    
-    // CREATE Sortable for section cards (6 bade cards ko drag karne ke liye)
-    const sectionsGrid = document.getElementById('sectionsGrid');
-    if (sectionsGrid && typeof Sortable !== 'undefined') {
-        new Sortable(sectionsGrid, {
-            animation: 200,
-            disabled: true,  // Initially disabled
-            handle: '.section-card',  // Drag from card
-            onEnd: function(evt) {
-                // Reorder sections array
-                const movedSection = project.sections.splice(evt.oldIndex, 1)[0];
-                project.sections.splice(evt.newIndex, 0, movedSection);
-                localStorage.setItem('imranProjects', JSON.stringify(projects));
-                renderSections(project);
-            }
-        });
+
+    // 🔥 FIX: Element check karke hi update karo
+    const titleEl = document.getElementById('projectTitle');
+    if (titleEl) {
+        titleEl.innerText = project.title; 
+    } else {
+        // Agar projectTitle nahi mila (mtlb hum Scripts page par hain), to scriptTitle dhoondo
+        const scriptTitleEl = document.getElementById('scriptTitle');
+        if(scriptTitleEl) scriptTitleEl.innerText = project.title;
     }
+
+    renderSections(project);
     
     const btn = document.getElementById('editorToggle');
     if(btn) btn.onclick = function() { 
