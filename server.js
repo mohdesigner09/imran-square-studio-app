@@ -10,7 +10,7 @@ import { google } from 'googleapis';
 import path from 'path';
 import { fileURLToPath } from 'url';
 import fs from 'fs'; 
-
+import bcrypt from 'bcryptjs';
 // ===== 2. CONFIGURATION =====
 dotenv.config();
 
@@ -39,6 +39,8 @@ app.use((req, res, next) => {
 
 app.use(cors());
 app.use(express.json({ limit: '10mb' }));
+
+
 
 // ===== 5. MULTER SETUP (Disk Storage) =====
 // Uploads folder create karo agar nahi hai
@@ -76,18 +78,34 @@ app.get('/index.html', (req, res) => {
 });
 
 // ===== 7. FIREBASE INITIALIZATION =====
+// ===== FIREBASE INIT (SAFE MODE) =====
 try {
-  const serviceAccount = JSON.parse(process.env.FIREBASE_SERVICE_ACCOUNT_JSON);
-  
-  if (!admin.apps.length) { // Check taaki duplicate init na ho
-    admin.initializeApp({
-      credential: admin.credential.cert(serviceAccount),
-      storageBucket: 'iimransquare.firebasestorage.app' // Bucket name check kar lena
-    });
-    console.log('✅ Firebase Admin initialized successfully');
-  }
+    // Option 1: File se load karo (Agar file upload ki hai)
+    if (fs.existsSync('./serviceAccountKey.json')) {
+        const serviceAccount = JSON.parse(fs.readFileSync('./serviceAccountKey.json', 'utf8'));
+        if (!admin.apps.length) {
+            admin.initializeApp({
+                credential: admin.credential.cert(serviceAccount),
+                storageBucket: 'iimransquare.firebasestorage.app'
+            });
+            console.log("✅ Firebase initialized via FILE.");
+        }
+    } 
+    // Option 2: Agar file nahi mili, toh Env Var try karo
+    else if (process.env.FIREBASE_SERVICE_ACCOUNT_JSON) {
+        const serviceAccount = JSON.parse(process.env.FIREBASE_SERVICE_ACCOUNT_JSON);
+        if (!admin.apps.length) {
+            admin.initializeApp({
+                credential: admin.credential.cert(serviceAccount),
+                storageBucket: 'iimransquare.firebasestorage.app'
+            });
+            console.log("✅ Firebase initialized via ENV VAR.");
+        }
+    } else {
+        console.error("❌ CRITICAL: No Firebase Config found (File or Env)!");
+    }
 } catch (error) {
-  console.error('❌ Firebase Init Error:', error.message);
+    console.error("❌ Firebase Init Failed:", error.message);
 }
 
 const db = admin.firestore();
@@ -382,18 +400,17 @@ app.post('/api/complete-registration', async (req, res) => {
   }
 });
 
-// USERNAME + PASSWORD LOGIN
 // ➤ API: Login Username (SAFE VERSION)
 app.post('/api/login-username', async (req, res) => {
-    const { username, password } = req.body;
-    
-    // Check 1: DB Connected?
-    if(!db) {
-        console.error("❌ DB Not Connected");
-        return res.status(500).json({ success: false, message: "Database error (Check Env Vars)" });
-    }
-
     try {
+        const { username, password } = req.body;
+        
+        // Check 1: DB Connected?
+        if(!db) {
+            console.error("❌ DB Not Connected");
+            return res.status(500).json({ success: false, message: "Database connection failed. Server restarting..." });
+        }
+
         // User dhoondo
         const snapshot = await db.collection('users').where('username', '==', username).get();
         
@@ -409,7 +426,7 @@ app.post('/api/login-username', async (req, res) => {
         if (!user.password) {
             return res.status(400).json({ 
                 success: false, 
-                message: "This account uses OTP Login. Please sign in with Email/Google first to set a password." 
+                message: "This account uses Google/OTP Login. Please use that method." 
             });
         }
         
@@ -421,14 +438,19 @@ app.post('/api/login-username', async (req, res) => {
             if (user.email === ADMIN_EMAIL) {
                 user.role = 'admin';
             }
-            return res.json({ success: true, user: { ...user, userId } });
+
+            // SECURITY: Password hash ko delete kar do response bhejne se pehle
+            const userResponse = { ...user, userId };
+            delete userResponse.password; 
+
+            return res.json({ success: true, user: userResponse });
         } else {
-            // ... (baaki code waisa hi)
             return res.status(400).json({ success: false, message: "Incorrect password" });
         }
+
     } catch (error) {
         console.error("❌ Login Crash:", error);
-        return res.status(500).json({ success: false, message: "Server Error (Check Logs)" });
+        return res.status(500).json({ success: false, message: "Server Error: " + error.message });
     }
 });
 
