@@ -816,32 +816,39 @@ He pulls out a crumpled photograph.
     }
 
     // --- 4. CORE: LOAD DATA ---
-    async function loadProjectFromFirestore(projId) {
-        try {
-            const doc = await db.collection('projects').doc(projId).get();
+// 1. Global Variable (Top par jahan let currentProjectID hai wahan ye bhi add karein)
+let currentDriveData = null; 
 
-            if (doc.exists) {
-                const data = doc.data();
-                
-                // Content Set Karo
-                const editor = document.getElementById('scriptEditor');
-                if(editor) editor.innerHTML = data.content || "<p>Start writing...</p>";
-                
-                // Title Set Karo
-                const titleEl = document.getElementById('scriptTitle');
-                if(titleEl) titleEl.textContent = (data.title || "UNTITLED").toUpperCase();
-                
-                // Sections/Files Set Karo
-                sectionsData = data.sections || createDefaultSections();
-                
-                renderSections();
-                console.log("🔥 Script Loaded from Cloud");
-            }
-        } catch (error) {
-            console.error("Load Error:", error);
-            showStatus("Load Error", "text-red-500");
+// 2. Updated Load Function
+async function loadProjectFromFirestore(projId) {
+    try {
+        const doc = await db.collection('projects').doc(projId).get();
+
+        if (doc.exists) {
+            const data = doc.data();
+            
+            // 🔥 NEW: Drive Data save karo taaki upload ke waqt ID mil sake
+            currentDriveData = data.drive || {}; 
+
+            // Content Set Karo
+            const editor = document.getElementById('scriptEditor');
+            if(editor) editor.innerHTML = data.content || "<p>Start writing...</p>";
+            
+            // Title Set Karo
+            const titleEl = document.getElementById('scriptTitle');
+            if(titleEl) titleEl.textContent = (data.title || "UNTITLED").toUpperCase();
+            
+            // Sections/Files Set Karo
+            sectionsData = data.sections || createDefaultSections();
+            
+            renderSections();
+            console.log("🔥 Script Loaded from Cloud");
         }
+    } catch (error) {
+        console.error("Load Error:", error);
+        showStatus("Load Error", "text-red-500");
     }
+}
 
     function createDefaultSections() {
         return [
@@ -982,94 +989,104 @@ He pulls out a crumpled photograph.
         document.getElementById('newSectionName').value = "";
     }
 
-    function confirmAddSection() {
-        const nameInput = document.getElementById('newSectionName');
-        const name = nameInput.value.trim();
+async function confirmAddSection() {
+    const nameInput = document.getElementById('newSectionName');
+    const name = nameInput.value.trim();
 
-        if (!name) return alert("Please enter a section name");
+    if (!name) return alert("Please enter a section name");
+    
+    // Check Main Script Folder ID
+    const mainScriptId = currentDriveData ? currentDriveData.scriptId : null;
+    if(!mainScriptId) return alert("Error: Main Script Folder ID not found!");
 
-        // Create New Section Object
+    showStatus("Creating Drive Folder...", "text-yellow-400");
+    closeAddSectionModal(); // UI pehle band kar do
+
+    try {
+        // 1. Google Drive par Folder banao
+        const newFolderId = await createDriveSubFolder(name, mainScriptId);
+        
+        if(!newFolderId) return; // Agar fail hua to ruk jao
+
+        // 2. Section Object (Ab Drive ID ke saath)
         const newSection = {
             id: Date.now(),
             name: name,
+            driveFolderId: newFolderId, // 🔥 YE HAI JADOO
             files: []
         };
 
         sectionsData.push(newSection);
-        saveToFirestore();
+        
+        // 3. Database Save
+        await saveToFirestore();
         renderSections();
-        closeAddSectionModal();
+        showStatus("Section Created!", "text-green-500");
+
+    } catch(e) {
+        console.error(e);
+        showStatus("Error Creating Section", "text-red-500");
+    }
+}
+
+// 🚀 SMART UPLOAD SYSTEM (Connected to Google Drive)
+async function triggerUpload(sectionId) {
+    const section = sectionsData.find(s => s.id === sectionId);
+    if (!section) return;
+
+    // Limit Check (User requirement: 10 Files Max)
+    if (section.files.length >= FILES_PER_SECTION) {
+        return alert("Section Full (Max 10 files)");
     }
 
-    // --- 8. UPLOAD LOGIC (Real Storage + Firestore) ---
- // 🚀 SMART UPLOAD SYSTEM (Folder Logic: User > Project > Section)
-    async function triggerUpload(sectionId) {
-        const input = document.createElement('input');
-        input.type = 'file';
-        input.accept = '.pdf,.doc,.docx,.txt,.jpg,.png'; // Images allow kiye for reference
-        
-        input.onchange = async (e) => {
-            const file = e.target.files[0];
-            if (!file) return;
-            if (!currentUser || !currentProjectID) return alert("Error: User/Project not identified");
+    const input = document.createElement('input');
+    input.type = 'file';
+    input.accept = '.pdf,.doc,.docx,.txt,.jpg,.png';
+    
+    input.onchange = async (e) => {
+        const file = e.target.files[0];
+        if (!file) return;
 
-            // UI Feedback
-            showStatus(`Syncing to ${currentProjectName}...`, "text-yellow-400");
+        showStatus(`Uploading to ${section.name}...`, "text-yellow-400");
 
-            try {
-                // 1. PROJECT NAME FETCH KARO (Folder banane ke liye)
-                // Agar global variable nahi hai to DB se lo
-                let projName = document.getElementById('scriptTitle').innerText || "Untitled_Project";
-                projName = projName.replace(/\s+/g, '_'); // Spaces hatao (Folder friendly)
+        try {
+            // 🔥 LOGIC: Agar Section ka apna Folder ID hai to wo use karo, 
+            // nahi to Main Script ID use karo (Fallback)
+            const targetFolderId = section.driveFolderId || currentDriveData.scriptId;
+            
+            // Upload to Drive
+            const result = await uploadFileToDrive(file, targetFolderId);
 
-                // 2. DEFINE STORAGE PATH (User > Project > Files)
-                // Pattern: users/{userEmail}/{projectName}/{fileName}
-                const cleanEmail = currentUser.email.replace(/[@.]/g, '_'); // Safe Folder Name
-                const storagePath = `users/${cleanEmail}/${projName}/scripts_assets/${Date.now()}_${file.name}`;
-                
-                // 3. UPLOAD TO FIREBASE STORAGE
-                const storageRef = firebase.storage().ref();
-                const fileRef = storageRef.child(storagePath);
-                
-                await fileRef.put(file);
-                const downloadURL = await fileRef.getDownloadURL();
+            if (!result || !result.success) throw new Error(result.error);
 
-                // 4. UPDATE LOCAL DATA
-                const sectionIndex = sectionsData.findIndex(s => s.id === sectionId);
-                if (sectionIndex === -1) return;
+            // Local Data Update
+            const newFileEntry = {
+                name: file.name,
+                url: result.viewLink,
+                downloadUrl: result.downloadLink,
+                date: new Date().toLocaleDateString(),
+                type: file.type,
+                fileId: result.fileId
+            };
 
-                const newFileEntry = {
-                    name: file.name,
-                    url: downloadURL,
-                    path: storagePath, // Delete karne ke liye path save karna zaroori hai
-                    date: new Date().toLocaleDateString(),
-                    type: file.type,
-                    isMainScript: false
-                };
+            section.files.push(newFileEntry);
 
-                // Limit Check
-                if (sectionsData[sectionIndex].files.length >= FILES_PER_SECTION) {
-                    return alert("Section Full (Max 10 files)");
-                }
+            // Save to DB
+            await db.collection('projects').doc(currentProjectID).update({
+                sections: sectionsData
+            });
 
-                sectionsData[sectionIndex].files.push(newFileEntry);
+            showStatus("Uploaded!", "text-green-500");
+            renderSections();
 
-                // 5. UPDATE FIRESTORE DATABASE
-                await db.collection('projects').doc(currentProjectID).update({
-                    sections: sectionsData
-                });
-
-                showStatus("Saved to Project Vault", "text-green-500");
-                renderSections();
-
-            } catch (error) {
-                console.error("Upload Error:", error);
-                showStatus("Upload Failed", "text-red-500");
-            }
-        };
-        
-        input.click();
-    }
+        } catch (error) {
+            console.error(error);
+            showStatus("Upload Failed", "text-red-500");
+        }
+    };
+    
+    input.click();
+}
 
    // ✅ NAVIGATION LOGIC (With Header Button Control)
     function switchMode(mode) {

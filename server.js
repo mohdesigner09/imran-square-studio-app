@@ -549,11 +549,9 @@ app.post('/api/account/upload-avatar', upload.single('avatar'), async (req, res)
 
 
 // RAW FOOTAGE UPLOAD → GOOGLE DRIVE + FIRESTORE
-// ========================
-// RAW FOOTAGE UPLOAD → GOOGLE DRIVE + FIRESTORE
 app.post('/api/footage/upload', upload.single('file'), async (req, res) => {
   try {
-    // 1. 'folderId' receive karo frontend se
+    // 1. Frontend se data aur Folder ID receive karo
     const { projectId, userId, fileName, sizeMB, thumbnailDataUrl, kind, folderId } = req.body;
 
     if (!projectId || !userId) {
@@ -566,10 +564,10 @@ app.post('/api/footage/upload', upload.single('file'), async (req, res) => {
 
     // 🔥 FIX: Agar Frontend ne Folder ID bheja hai, to wahi use karo.
     // Warna Global 'FOOTAGE_FOLDER_ID' use karo (Fallback).
-    const targetFolderId = folderId || FOOTAGE_FOLDER_ID;
+    const targetFolderId = folderId || process.env.FOOTAGE_FOLDER_ID || FOOTAGE_FOLDER_ID;
 
     if (!targetFolderId) {
-       return res.status(500).json({ success: false, message: 'Target Folder ID missing' });
+       return res.status(500).json({ success: false, message: 'Target Folder ID missing on Server' });
     }
 
     console.log(`🚀 Uploading to Folder ID: ${targetFolderId}`);
@@ -579,7 +577,7 @@ app.post('/api/footage/upload', upload.single('file'), async (req, res) => {
     // 2. Drive pe upload (Specific Folder me)
     const fileMetadata = {
       name: safeFileName,
-      parents: [targetFolderId], // <--- YAHAN HAI JADOO
+      parents: [targetFolderId], // ✅ Sahi Folder
     };
 
     const media = {
@@ -587,29 +585,24 @@ app.post('/api/footage/upload', upload.single('file'), async (req, res) => {
       body: bufferToStream(req.file.buffer),
     };
 
+    // 🔥 UPDATE: Create karte waqt hi Thumbnail aur Links maang lo (Faster)
     const driveRes = await drive.files.create({
       requestBody: fileMetadata,
       media,
-      fields: 'id',
+      fields: 'id, webContentLink, webViewLink, thumbnailLink', // <-- Added thumbnailLink
     });
 
     const fileId = driveRes.data.id;
+    const driveThumbnail = driveRes.data.thumbnailLink || ''; // ✅ Thumbnail pakdo
+    const rawDriveLink = driveRes.data.webContentLink || driveRes.data.webViewLink || '';
 
-    // 3. Permission Public karo
+    // 3. Permission Public karo (Taaki thumbnail aur video dikh sake)
     await drive.permissions.create({
       fileId,
       requestBody: { role: 'reader', type: 'anyone' },
     });
 
-    // 4. Links Generate karo
-    const driveFile = await drive.files.get({
-      fileId,
-      fields: 'webContentLink, webViewLink',
-    });
-
-    const rawDriveLink = driveFile.data.webContentLink || driveFile.data.webViewLink || '';
-
-    // 5. Firestore Save
+    // 4. Firestore Save
     const footageData = {
       projectId,
       userId,
@@ -620,8 +613,9 @@ app.post('/api/footage/upload', upload.single('file'), async (req, res) => {
       status: 'uploaded',
       rawDriveLink,
       editedDriveLink: '',
-      thumbnailDataUrl: thumbnailDataUrl || '',
-      driveFolderId: targetFolderId, // Ye bhi save kar lete hain
+      // 🔥 UPDATE: Agar Frontend ne thumbnail nahi diya, to Drive wala use karo
+      thumbnailDataUrl: thumbnailDataUrl || driveThumbnail,
+      driveFolderId: targetFolderId, 
       createdAt: new Date().toISOString(),
       updatedAt: new Date().toISOString(),
     };
@@ -634,6 +628,7 @@ app.post('/api/footage/upload', upload.single('file'), async (req, res) => {
       footageId: docRef.id,
       driveFileId: fileId,
       rawDriveLink,
+      thumbnail: driveThumbnail // Frontend ko bhi wapis bhejo
     });
 
   } catch (err) {
@@ -709,7 +704,41 @@ app.post('/api/account/update-profile', async (req, res) => {
   }
 });
 
+// ✅ NEW ROUTE: Create Sub-Folder inside Drive
+app.post('/api/drive/create-folder', async (req, res) => {
+    try {
+        const { folderName, parentId } = req.body;
+        
+        if (!folderName || !parentId) {
+            return res.status(400).json({ success: false, message: "Missing Folder Name or Parent ID" });
+        }
 
+        console.log(`📂 Creating Sub-folder: '${folderName}' inside '${parentId}'`);
+
+        const fileMetadata = {
+            'name': folderName,
+            'mimeType': 'application/vnd.google-apps.folder',
+            'parents': [parentId]
+        };
+
+        const file = await drive.files.create({
+            resource: fileMetadata,
+            fields: 'id'
+        });
+
+        // Permission Public kar do (Optional, agar dekhna ho)
+        await drive.permissions.create({
+            fileId: file.data.id,
+            requestBody: { role: 'reader', type: 'anyone' }
+        });
+
+        res.json({ success: true, folderId: file.data.id });
+
+    } catch (error) {
+        console.error("❌ Create Folder Error:", error.message);
+        res.status(500).json({ success: false, error: error.message });
+    }
+});
 // ============= MIDDLEWARE =============
 
 // Check if user is authenticated (has valid userId)
@@ -1228,25 +1257,28 @@ app.get('/api/get-announcement', async (req, res) => {
 });
 
 // 2. FINALIZE UPLOAD (Set Public & Return Links)
+// FINALIZE UPLOAD (For Large Files)
 app.post('/api/drive/finalize-upload', async (req, res) => {
   try {
     const { fileId } = req.body;
     console.log(`✅ Finalizing File: ${fileId}`);
 
-    // 1. File ko Public karo
+    // 1. Permission Public karo
     await setFilePublic(fileId);
 
-    // 2. Links nikalo
+    // 2. Links nikalo (Thumbnail ke saath)
     const fileRes = await drive.files.get({
       fileId,
-      fields: 'webViewLink, webContentLink',
+      // 🔥 ADDED: 'thumbnailLink'
+      fields: 'webViewLink, webContentLink, thumbnailLink',
     });
 
     res.json({
       success: true,
       fileId: fileId,
       viewLink: fileRes.data.webViewLink,
-      downloadLink: fileRes.data.webContentLink
+      downloadLink: fileRes.data.webContentLink,
+      thumbnailLink: fileRes.data.thumbnailLink // ✅ Frontend ko wapis bhejo
     });
 
   } catch (error) {

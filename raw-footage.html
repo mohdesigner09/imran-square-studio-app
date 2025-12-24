@@ -791,9 +791,9 @@
         if(btn) btn.classList.remove('hidden');
 
         for (const file of files) {
+            await uploadFileToDrive(file, currentProject.driveData.footageFolderId, currentProject);
             const queueId = Date.now() + Math.random().toString(36).substr(2, 9);
             
-            // 1. Thumbnail Generation Start karo (Promise Store karo)
             const thumbPromise = generateVideoThumbnail(file);
 
             const queueItem = {
@@ -1581,6 +1581,7 @@
         window.location.href = 'project-hub.html';
     }
 </script>
+<script src="main.js"></script>
 <script src="https://cdn.plyr.io/3.7.8/plyr.js"></script>
 </body>
 </html>

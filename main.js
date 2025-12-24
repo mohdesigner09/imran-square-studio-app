@@ -1360,3 +1360,30 @@ async function uploadFileToDrive(file, folderId) {
         return false;
     }
 }
+
+// 📂 CREATE DRIVE SUB-FOLDER
+async function createDriveSubFolder(name, parentId) {
+    console.log(`Creating Drive Folder: ${name}...`);
+    try {
+        const response = await fetch(`${API_BASE}/api/drive/create-folder`, {
+            method: "POST",
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+                folderName: name,
+                parentId: parentId
+            })
+        });
+        
+        const result = await response.json();
+        if(result.success) {
+            console.log("✅ Folder Created ID:", result.folderId);
+            return result.folderId;
+        } else {
+            throw new Error(result.error || "Failed to create folder");
+        }
+    } catch (e) {
+        console.error(e);
+        alert("Folder Creation Failed: " + e.message);
+        return null;
+    }
+}
