@@ -805,106 +805,41 @@
 
 
 
-    // 1. GLOBAL VARIABLES
+    // 1. Data Save karne ke liye global variable
+    window.cachedProjects = []; 
     let isEditMode = false;
-    let allProjectsData = []; 
 
-    // 2. DATA LOADING (SAFE MODE)
-    function initProjectLoader() {
-        try {
-            const userStr = localStorage.getItem('imranUser');
-            if (!userStr) {
-                console.warn("⚠️ No user found in LocalStorage");
-                return;
-            }
+    // 2. Hum purane render function ko OVERRIDE karenge
+    // Taaki jab main.js data bheje, hum usse pakad lein
+    const originalRender = window.renderProjects; // Backup (agar zaroorat padi)
 
-            const user = JSON.parse(userStr);
-            
-            // 🔥 CRITICAL FIX: ID Dhoondo (uid, userId, ya id)
-            const ownerId = user.uid || user.userId || user.id;
-
-            if (!ownerId) {
-                console.error("❌ CRITICAL: User ID is MISSING in localStorage object!", user);
-                return; // Code yahan rok do taaki crash na ho
-            }
-
-            console.log(`🔄 Fetching projects for Owner ID: ${ownerId}`);
-
-            // DB Query
-            let query = db.collection('projects')
-                          .where('uid', '==', ownerId) // Ab ye crash nahi hoga
-                          .orderBy('createdAt', 'desc');
-
-            // Real-time Listener
-            query.onSnapshot((snapshot) => {
-                allProjectsData = snapshot.docs.map(doc => ({
-                    id: doc.id,
-                    ...doc.data()
-                }));
-                
-                console.log(`✅ Projects Loaded via Editor Script: ${allProjectsData.length}`);
-                
-                // Agar Edit mode ON hai toh turant refresh karo
-                if (isEditMode) {
-                    renderProjects(allProjectsData);
-                }
-            }, (error) => {
-                console.error("❌ Firestore Error:", error);
-            });
-
-        } catch (e) {
-            console.error("❌ Init Loader Crash:", e);
-        }
-    }
-
-    // 3. TOGGLE EDIT MODE (Pencil Button)
-    function toggleEditMode() {
-        isEditMode = !isEditMode;
-        
-        const btn = document.getElementById('edit-mode-btn');
-        if(!btn) return;
-
-        if (isEditMode) {
-            // Check: Agar data load nahi hua hai, to abhi load karo
-            if (allProjectsData.length === 0) {
-                console.warn("⚠️ No data in edit mode, trying to reload...");
-                initProjectLoader();
-            }
-
-            // Green Tick
-            btn.innerHTML = `<i class="fa-solid fa-check"></i>`;
-            btn.className = "text-green-500 hover:text-green-400 transition text-sm scale-110";
-        } else {
-            // Grey Pencil
-            btn.innerHTML = `<i class="fa-solid fa-pencil"></i>`;
-            btn.className = "text-gray-400 hover:text-white transition text-sm";
+    window.renderProjects = function(projects) {
+        // 🔥 STEP 1: Data ko Variable me Save kar lo
+        if(projects && projects.length > 0) {
+            window.cachedProjects = projects;
+            console.log("✅ Data Cached for Editor:", projects.length);
         }
 
-        // List Refresh
-        // IMPORTANT: Agar data khali hai to UI gayab mat karo, purana rehne do
-        if (allProjectsData.length > 0) {
-            renderProjects(allProjectsData);
-        } else {
-            console.log("⚠️ Data empty, skipping empty render to prevent vanishing.");
-        }
-    }
-
-    // 4. RENDER PROJECTS
-    function renderProjects(projects) {
+        // 🔥 STEP 2: Cards Banao (UI Render)
         const container = document.getElementById('projectCards');
         if (!container) return;
 
-        // Container clear karo
         container.innerHTML = "";
 
-        if (!projects || projects.length === 0) {
-            container.innerHTML = `<p class="text-gray-500 text-center col-span-full py-10">No projects found.</p>`;
+        // Agar data khali hai (aur hum edit mode me nahi hain)
+        if ((!projects || projects.length === 0) && !isEditMode) {
+            container.innerHTML = `<p class="text-gray-500 text-center col-span-full py-10">No active projects.</p>`;
             return;
         }
 
-        projects.forEach(proj => {
+        // Agar projects parameter khali hai, lekin cachedData hai, toh cachedData use karo
+        const dataToRender = (projects && projects.length > 0) ? projects : window.cachedProjects;
+
+        dataToRender.forEach(proj => {
+            // Shake Effect
             const shakeClass = isEditMode ? "animate-pulse ring-1 ring-red-500/50" : "";
-            // Normal click disable karo agar edit mode hai
+            
+            // Edit Mode me click disable, Normal mode me redirect
             const clickAction = isEditMode ? "" : `window.location.href='scripts.html?id=${proj.id}'`;
 
             const cardHtml = `
@@ -925,10 +860,12 @@
 
                 ${isEditMode ? `
                     <div class="absolute inset-0 bg-black/80 backdrop-blur-[2px] flex items-center justify-center gap-4 z-20 animate-fade-in">
+                        
                         <button onclick="renameProject(event, '${proj.id}', '${proj.title}')" 
                                 class="w-10 h-10 rounded-full bg-blue-600 hover:bg-blue-500 text-white flex items-center justify-center shadow-lg transform hover:scale-110 transition">
                             <i class="fa-solid fa-pen"></i>
                         </button>
+
                         <button onclick="deleteProject(event, '${proj.id}')" 
                                 class="w-10 h-10 rounded-full bg-red-600 hover:bg-red-500 text-white flex items-center justify-center shadow-lg transform hover:scale-110 transition">
                             <i class="fa-solid fa-trash"></i>
@@ -939,35 +876,56 @@
             </div>`;
             container.innerHTML += cardHtml;
         });
+    };
+
+    // 3. TOGGLE BUTTON LOGIC
+    window.toggleEditMode = function() {
+        isEditMode = !isEditMode;
+        
+        const btn = document.getElementById('edit-mode-btn');
+        if(btn) {
+            if (isEditMode) {
+                // Check Button (Green)
+                btn.innerHTML = `<i class="fa-solid fa-check"></i>`;
+                btn.className = "text-green-500 hover:text-green-400 transition text-sm scale-110";
+            } else {
+                // Pencil Button (Grey)
+                btn.innerHTML = `<i class="fa-solid fa-pencil"></i>`;
+                btn.className = "text-gray-400 hover:text-white transition text-sm";
+            }
+        }
+
+        // Screen Refresh karo (Cached Data use karega)
+        if (window.cachedProjects.length > 0) {
+            window.renderProjects(window.cachedProjects);
+        } else {
+            console.log("Waiting for data...");
+        }
     }
 
-    // 5. RENAME & DELETE ACTIONS
-    async function renameProject(event, projectId, oldName) {
-        event.stopPropagation();
+    // 4. RENAME LOGIC
+    window.renameProject = async function(event, projectId, oldName) {
+        event.stopPropagation(); 
         const newName = prompt("Rename Project:", oldName);
         if (newName && newName.trim() !== "" && newName !== oldName) {
             await db.collection('projects').doc(projectId).update({ title: newName.trim() });
+            // Local update taaki refresh ki zaroorat na pade
+            const p = window.cachedProjects.find(p => p.id === projectId);
+            if(p) p.title = newName.trim();
+            window.renderProjects(window.cachedProjects);
         }
     }
 
-    async function deleteProject(event, projectId) {
+    // 5. DELETE LOGIC
+    window.deleteProject = async function(event, projectId) {
         event.stopPropagation();
-        if (confirm("Delete this project?")) {
+        if (confirm("Permanently delete this project?")) {
             await db.collection('projects').doc(projectId).delete();
+            // List se hatao
+            window.cachedProjects = window.cachedProjects.filter(p => p.id !== projectId);
+            window.renderProjects(window.cachedProjects);
         }
     }
-
-    // 🔥 SAFE START
-    // DB ready hone ka wait karo
-    const checkDB = setInterval(() => {
-        if (typeof db !== 'undefined') {
-            clearInterval(checkDB);
-            initProjectLoader(); // Ab function call karo
-        }
-    }, 500);
-
-
-
 
 </script>
 
