@@ -327,6 +327,26 @@
     </div>
 
     <div class="flex items-center gap-2 md:gap-3">
+        
+        <button id="editorActionBtn" onclick="exportPDF()" class="hidden md:block px-4 py-2 bg-white text-black text-xs font-bold rounded-lg hover:bg-gray-200 transition">Export PDF</button>
+
+        <button id="editModeBtn" onclick="toggleEditMode()" title="Toggle Edit Mode" class="hidden md:flex items-center justify-center w-9 h-9 rounded-full bg-white/10 text-gray-400 border border-white/20 hover:bg-white/20 hover:text-white transition">
+            <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"></path>
+                <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"></path>
+            </svg>
+        </button>
+
+        <button id="headerAddBtn" onclick="openAddSectionModal()" class="hidden md:flex w-9 h-9 rounded-full bg-white/10 items-center justify-center text-white border border-white/20 hover:bg-white hover:text-black transition">
+            <i class="fa-solid fa-plus"></i>
+        </button>
+        
+        <button id="hamburgerBtn" onclick="toggleSidebar()" class="md:hidden p-2 text-gray-400 hover:text-white">
+            <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16M4 18h16"/>
+            </svg>
+        </button>
+    </div>
         <button id="editorActionBtn" onclick="exportPDF()" class="hidden md:block px-4 py-2 bg-white text-black text-xs font-bold rounded-lg hover:bg-gray-200 transition">Export PDF</button>
 
         <button id="headerAddBtn" onclick="openAddSectionModal()" class="hidden w-8 h-8 rounded-full bg-white/10 items-center justify-center text-white border border-white/20 hover:bg-white hover:text-black transition">
@@ -922,49 +942,73 @@ async function loadProjectFromFirestore(projId) {
             }
         }
     }
+// --- 6. RENDER FILES UI (Updated with Editor Mode) ---
+function renderSections() {
+    const grid = document.getElementById('sectionsGrid');
+    if (!grid) return;
+    grid.innerHTML = '';
 
-    // --- 6. RENDER FILES UI ---
-    function renderSections() {
-        const grid = document.getElementById('sectionsGrid');
-        if (!grid) return;
-        grid.innerHTML = '';
+    if(sectionsData.length === 0) {
+        grid.innerHTML = `<div class="text-gray-500 col-span-full text-center py-10">No sections found. Click 'Add Section' to start.</div>`;
+        return;
+    }
 
-        if(sectionsData.length === 0) {
-            grid.innerHTML = `<div class="text-gray-500 col-span-full text-center">No sections found. Click 'Add Section' to start.</div>`;
-            return;
+    sectionsData.forEach(section => {
+        const files = section.files || [];
+        const count = files.length;
+        const percent = (count / FILES_PER_SECTION) * 100;
+        const isFull = count >= FILES_PER_SECTION;
+        const ringColor = isFull ? 'stroke-red-500' : 'stroke-green-500';
+        const dashArray = `${percent}, 100`;
+
+        // 1. FILES LIST HTML GENERATION
+        let filesHtml = '';
+        if(count === 0) {
+            filesHtml = `<div class="h-full flex flex-col items-center justify-center text-gray-600"><span class="text-[10px]">No files yet</span></div>`;
+        } else {
+            [...files].reverse().forEach(file => {
+                const icon = file.isMainScript ? '<i class="fa-solid fa-star text-orange-400 mr-1"></i>' : '<i class="fa-regular fa-file text-gray-400 mr-1"></i>';
+                const highlight = file.isMainScript ? 'bg-orange-500/10 border-orange-500/20' : 'bg-white/5 border-white/5';
+                
+                filesHtml += `
+                <div class="file-item ${highlight} p-2 rounded mb-1 border flex justify-between items-center text-xs group hover:bg-white/10 transition">
+                    <div class="truncate w-[65%] text-gray-300 group-hover:text-white pointer-events-none">${icon}${file.name}</div>
+                    <span class="text-[9px] text-gray-600">${file.date || ''}</span>
+                    
+                    ${isEditMode ? 
+                        // Edit Mode me File Delete ka option (Optional)
+                        `<button onclick="deleteFile(${section.id}, '${file.id}')" class="text-red-500 hover:text-white px-2"><i class="fa-solid fa-xmark"></i></button>` 
+                        : ''}
+                </div>`;
+            });
         }
 
-        sectionsData.forEach(section => {
-            const files = section.files || [];
-            const count = files.length;
-            const percent = (count / FILES_PER_SECTION) * 100;
-            const isFull = count >= FILES_PER_SECTION;
-            const ringColor = isFull ? 'stroke-red-500' : 'stroke-green-500';
-            const dashArray = `${percent}, 100`;
+        const card = document.createElement('div');
+        card.className = 'section-card flex flex-col bg-[#111] border border-white/10 rounded-xl p-4 h-80 relative overflow-hidden hover:border-white/30 transition shadow-lg';
+        
+        // 2. HEADER LOGIC (Normal vs Editor Mode)
+        let headerHtml = '';
 
-            let filesHtml = '';
-            if(count === 0) {
-                filesHtml = `<div class="h-full flex flex-col items-center justify-center text-gray-600"><span class="text-[10px]">No files yet</span></div>`;
-            } else {
-                [...files].reverse().forEach(file => {
-                    const icon = file.isMainScript ? '<i class="fa-solid fa-star text-orange-400 mr-1"></i>' : '<i class="fa-regular fa-file text-gray-400 mr-1"></i>';
-                    const highlight = file.isMainScript ? 'bg-orange-500/10 border-orange-500/20' : 'bg-white/5 border-white/5';
-                    
-                    filesHtml += `
-                    <div class="file-item ${highlight} p-2 rounded mb-1 border flex justify-between items-center text-xs group hover:bg-white/10 transition">
-                        <div class="truncate w-[65%] text-gray-300 group-hover:text-white">${icon}${file.name}</div>
-                        <span class="text-[9px] text-gray-600">${file.date || ''}</span>
-                    </div>`;
-                });
-            }
-
-            const card = document.createElement('div');
-            card.className = 'section-card flex flex-col bg-[#111] border border-white/10 rounded-xl p-4 h-80 relative overflow-hidden hover:border-white/30 transition shadow-lg';
-            
-            card.innerHTML = `
+        if (isEditMode) {
+            // ✏️ EDITOR MODE: Input Field & Delete Button
+            headerHtml = `
+                <div class="flex justify-between items-center mb-3 border-b border-orange-500/30 pb-2">
+                    <input type="text" value="${section.name}" 
+                        onblur="renameSection(${section.id}, this.value)"
+                        class="bg-black/50 text-white font-bold text-sm p-2 rounded border border-orange-500 w-[75%] outline-none focus:ring-1 focus:ring-orange-500 transition"
+                        placeholder="Section Name"
+                    />
+                    <button onclick="deleteSection(${section.id})" class="w-8 h-8 flex items-center justify-center rounded bg-red-500/10 text-red-500 hover:bg-red-500 hover:text-white transition border border-red-500/20">
+                        <i class="fa-solid fa-trash-can"></i>
+                    </button>
+                </div>
+            `;
+        } else {
+            // 👁️ NORMAL MODE: Title & Progress Ring
+            headerHtml = `
                 <div class="flex justify-between items-start mb-3 border-b border-white/5 pb-2">
                     <div>
-                        <h3 class="text-sm font-bold text-white uppercase tracking-wider">${section.name}</h3>
+                        <h3 class="text-sm font-bold text-white uppercase tracking-wider truncate max-w-[150px]" title="${section.name}">${section.name}</h3>
                         <p class="text-[10px] text-gray-500 mt-0.5">${count}/${FILES_PER_SECTION} Files</p>
                     </div>
                     <div class="relative w-8 h-8">
@@ -974,18 +1018,27 @@ async function loadProjectFromFirestore(projId) {
                         </svg>
                     </div>
                 </div>
-
-                <div class="file-list flex-1 overflow-y-auto custom-scrollbar mb-3">
-                    ${filesHtml}
-                </div>
-
-                <button onclick="triggerUpload(${section.id})" class="w-full py-2 rounded bg-white/5 hover:bg-white text-white hover:text-black text-xs font-bold transition border border-white/10 flex items-center justify-center gap-2" ${isFull ? 'disabled' : ''}>
-                    <i class="fa-solid fa-cloud-arrow-up"></i> Upload File
-                </button>
             `;
-            grid.appendChild(card);
-        });
-    }
+        }
+
+        // 3. COMBINE EVERYTHING
+        card.innerHTML = `
+            ${headerHtml}
+
+            <div class="file-list flex-1 overflow-y-auto custom-scrollbar mb-3">
+                ${filesHtml}
+            </div>
+
+            <button onclick="triggerUpload(${section.id})" 
+                class="w-full py-2 rounded bg-white/5 hover:bg-white text-white hover:text-black text-xs font-bold transition border border-white/10 flex items-center justify-center gap-2 ${isFull || isEditMode ? 'opacity-50 cursor-not-allowed' : ''}" 
+                ${isFull || isEditMode ? 'disabled' : ''}>
+                <i class="fa-solid fa-cloud-arrow-up"></i> ${isEditMode ? 'Editing Mode' : 'Upload File'}
+            </button>
+        `;
+        
+        grid.appendChild(card);
+    });
+}
 
     // --- 7. NEW SECTION LOGIC (Popup Handlers) ---
     function openAddSectionModal() {
@@ -1286,6 +1339,54 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 });
     
+
+    // ==========================================
+// ✏️ EDITOR MODE LOGIC
+// ==========================================
+let isEditMode = false;
+
+function toggleEditMode() {
+    isEditMode = !isEditMode;
+    const btn = document.getElementById('editModeBtn');
+    
+    // UI Feedback (Button Orange ho jayega)
+    if (isEditMode) {
+        btn.classList.add('bg-orange-500', 'text-white');
+        btn.classList.remove('bg-gray-800', 'text-gray-400');
+        showStatus("Editor Mode ON", "text-orange-400");
+    } else {
+        btn.classList.remove('bg-orange-500', 'text-white');
+        btn.classList.add('bg-gray-800', 'text-gray-400');
+        showStatus("Editor Mode OFF", "text-gray-400");
+    }
+    
+    // Re-render to show/hide edit controls
+    renderSections();
+}
+
+// 🗑️ DELETE SECTION
+async function deleteSection(sectionId) {
+    if(!confirm("Are you sure you want to delete this section and all its files?")) return;
+
+    // Local Array se hatao
+    sectionsData = sectionsData.filter(s => s.id !== sectionId);
+    
+    // Database Update
+    await saveToFirestore();
+    renderSections();
+    showStatus("Section Deleted", "text-red-500");
+}
+
+// ✏️ RENAME SECTION (Real-time)
+async function renameSection(id, newName) {
+    const section = sectionsData.find(s => s.id === id);
+    if(section && newName.trim() !== "") {
+        section.name = newName.trim();
+        await saveToFirestore(); // Chupchap save kar lo
+        console.log("Renamed to:", newName);
+    }
+}
+
 </script>
 
         <!-- 📱 MOBILE BOTTOM NAVIGATION -->

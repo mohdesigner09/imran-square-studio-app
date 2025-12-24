@@ -1354,48 +1354,68 @@ async function setupDriveFolders(userName, projectName, userEmail) {
     } catch (e) { console.error(e); return null; }
 }
 
-// 2. Upload Function (Magic Link User)
-// Jab user file select kare, is function ko call karein
-async function uploadFileToDrive(file, folderId) {
+// ==========================================
+// 🚀 UPLOAD FILE TO DRIVE (Server Version - Fixes Permissions)
+// ==========================================
+async function uploadFileToDrive(file, folderId, currentProject) {
     console.log(`🚀 Preparing upload for: ${file.name} (${(file.size/1024/1024).toFixed(2)} MB)`);
 
     try {
-        // A. Robot se "Magic Link" maango
-        const linkResponse = await fetch(SCRIPT_URL, {
+        // 1. Server se baat karo (Robot se nahi)
+        const initResponse = await fetch('/api/drive/init-upload', {
             method: "POST",
+            headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({
-                action: "get_upload_url",
-                folderId: folderId,
+                folderId: folderId, 
                 fileName: file.name,
-                mimeType: file.type
+                fileType: file.type,
+                userName: currentProject?.ownerName || 'Creator', 
+                projectName: currentProject?.title || 'Untitled' 
             })
         });
-        const linkResult = await linkResponse.json();
 
-        if (linkResult.status !== "success") throw new Error(linkResult.message);
+        const initResult = await initResponse.json();
+        if (!initResult.success) throw new Error(initResult.error || "Init Failed");
 
-        const magicUrl = linkResult.uploadUrl;
-        console.log("🔗 Magic Link Received. Uploading directly to Imran's 2TB...");
+        const { uploadUrl, fileId } = initResult;
+        console.log("🔗 Upload Link Received. Sending File...");
 
-        // B. File Upload karo (PUT Request on Magic Link)
-        // Note: Ye seedha Google ke server par jayega via Magic Link
-        const upload = await fetch(magicUrl, {
+        // 2. File Upload karo (Directly to Google)
+        const uploadStatus = await fetch(uploadUrl, {
             method: "PUT",
-            body: file // Seedha file stream bhejo
+            headers: { 'Content-Type': file.type },
+            body: file
         });
 
-        if (upload.ok) {
-            console.log("🎉 Upload Successful! (Used Imran's Storage)");
-            alert("Upload Complete!");
-            return true;
+        if (!uploadStatus.ok) throw new Error("Upload Failed to Google Drive");
+
+        console.log("✅ Upload Complete! Getting Final Links...");
+
+        // 3. Finalize (Thumbnail & Public Link)
+        const finalizeResponse = await fetch('/api/drive/finalize-upload', {
+            method: "POST",
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ fileId: fileId })
+        });
+
+        const finalResult = await finalizeResponse.json();
+        
+        if (finalResult.success) {
+            return {
+                success: true,
+                fileId: fileId,
+                viewLink: finalResult.viewLink,
+                downloadLink: finalResult.downloadLink,
+                thumbnailLink: finalResult.thumbnailLink 
+            };
         } else {
-            throw new Error("Upload failed");
+            throw new Error(finalResult.error);
         }
 
     } catch (e) {
         console.error("❌ Upload Error:", e);
         alert("Upload Failed: " + e.message);
-        return false;
+        return { success: false, error: e.message };
     }
 }
 
