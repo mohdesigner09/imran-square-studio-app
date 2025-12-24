@@ -817,7 +817,8 @@ He pulls out a crumpled photograph.
 // 1. GLOBAL VARIABLE (Isay function ke bahar, script ke top par rakhein)
 let currentDriveData = null; 
 
-// 2. UPDATED LOAD FUNCTION
+// scripts.html ke andar
+
 async function loadProjectFromFirestore(projId) {
     try {
         const doc = await db.collection('projects').doc(projId).get();
@@ -825,29 +826,30 @@ async function loadProjectFromFirestore(projId) {
         if (doc.exists) {
             const data = doc.data();
             
-            // 🔥 CRITICAL FIX: Drive Data ko Global Variable mein save karo
-            if (data.drive) {
-                currentDriveData = data.drive; 
-                console.log("📂 Drive Data Loaded:", currentDriveData);
-            } else {
-                console.warn("⚠️ This project has no Drive Data connected.");
-                currentDriveData = null;
-            }
+            // 🔥 DEBUGGING: Console me dekho kya data aa raha hai
+            console.log("🔍 Full Project Data:", data);
 
-            // Content Set Karo
-            const editor = document.getElementById('scriptEditor');
-            if(editor) editor.innerHTML = data.content || "<p>Start writing...</p>";
+            // 🛠️ FIX: Drive Data Load (Variable Name Sambhal ke)
+            if (data.driveData) {
+                currentDriveData = data.driveData; // Kabhi 'driveData' hota hai
+            } else if (data.drive) {
+                currentDriveData = data.drive;     // Kabhi 'drive' hota hai
+            }
             
-            // Title Set Karo
+            console.log("📂 Drive Data Loaded:", currentDriveData);
+
+            // ... (Baaki Text/Title load karne wala code same rahega) ...
+            const editor = document.getElementById('scriptEditor');
+            if(editor) editor.innerHTML = data.content || "";
+            
             const titleEl = document.getElementById('scriptTitle');
             if(titleEl) titleEl.textContent = (data.title || "UNTITLED").toUpperCase();
             
-            // Sections Set Karo
             sectionsData = data.sections || createDefaultSections();
             renderSections();
         }
     } catch (error) {
-        console.error("Load Error:", error);
+        console.error("❌ Load Error:", error);
     }
 }
 
@@ -990,36 +992,40 @@ async function loadProjectFromFirestore(projId) {
         document.getElementById('newSectionName').value = "";
     }
 
+// scripts.html ke andar
+
 async function confirmAddSection() {
     const nameInput = document.getElementById('newSectionName');
     const name = nameInput.value.trim();
 
     if (!name) return alert("Please enter a section name");
     
-    // Check Main Script Folder ID
-    const mainScriptId = currentDriveData ? currentDriveData.scriptId : null;
-    if(!mainScriptId) return alert("Error: Main Script Folder ID not found!");
+    console.log("🔍 Checking Drive Data before creating folder:", currentDriveData);
+
+    // 🔥 FIX: Dono naam check karo (scriptId OR scriptFolderId)
+    const mainScriptId = currentDriveData ? (currentDriveData.scriptFolderId || currentDriveData.scriptId) : null;
+
+    if(!mainScriptId) {
+        console.error("❌ ID Missing. Current Data:", currentDriveData);
+        return alert("Error: Main Script Folder ID not found! (Check Console)");
+    }
 
     showStatus("Creating Drive Folder...", "text-yellow-400");
-    closeAddSectionModal(); // UI pehle band kar do
+    closeAddSectionModal();
 
     try {
-        // 1. Google Drive par Folder banao
+        // ... (Folder creation code same rahega) ...
         const newFolderId = await createDriveSubFolder(name, mainScriptId);
-        
-        if(!newFolderId) return; // Agar fail hua to ruk jao
+        if(!newFolderId) return; 
 
-        // 2. Section Object (Ab Drive ID ke saath)
         const newSection = {
             id: Date.now(),
             name: name,
-            driveFolderId: newFolderId, // 🔥 YE HAI JADOO
+            driveFolderId: newFolderId, 
             files: []
         };
 
         sectionsData.push(newSection);
-        
-        // 3. Database Save
         await saveToFirestore();
         renderSections();
         showStatus("Section Created!", "text-green-500");
