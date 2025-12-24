@@ -30,7 +30,7 @@ app.use(express.json());
 const router = express.Router();
 
 const ADMIN_EMAIL = 'mohdesigner09@gmail.com';
-
+/*
 // ✅ GLOBAL SECURITY UNLOCK (Ye code sabse upar hona chahiye)
 // ✅ SECURITY UNLOCK (Paste this right after 'const app = express();')
 app.use((req, res, next) => {
@@ -51,6 +51,7 @@ app.use((req, res, next) => {
   
   next();
 });
+*/
 
 // Iske baad middlewares aayenge
 app.use(cors());
