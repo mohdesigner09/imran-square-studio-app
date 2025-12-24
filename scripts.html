@@ -821,32 +821,40 @@ let currentDriveData = null;
 
 async function loadProjectFromFirestore(projId) {
     try {
+        console.log("🔄 Loading Project Data from DB...");
         const doc = await db.collection('projects').doc(projId).get();
 
         if (doc.exists) {
             const data = doc.data();
-            
-            // 🔥 DEBUGGING: Console me dekho kya data aa raha hai
-            console.log("🔍 Full Project Data:", data);
+            console.log("📦 Full Data from DB:", data); // Is log ko check karna zaroori hai
 
-            // 🛠️ FIX: Drive Data Load (Variable Name Sambhal ke)
-            if (data.driveData) {
-                currentDriveData = data.driveData; // Kabhi 'driveData' hota hai
-            } else if (data.drive) {
-                currentDriveData = data.drive;     // Kabhi 'drive' hota hai
+            // 🔥 FIX: Data Retrieve Logic (Dono format check karo)
+            if (data.drive && data.drive.enabled) {
+                // New Format (jo abhi main.js save kar raha hai)
+                currentDriveData = data.drive;
+                console.log("✅ Drive Data Loaded (New Format):", currentDriveData);
+            } 
+            else if (data.driveData) {
+                // Old/Backup Format
+                currentDriveData = data.driveData;
+                console.log("✅ Drive Data Loaded (Old Format):", currentDriveData);
+            } 
+            else {
+                console.warn("⚠️ No Drive Data found in Database for this project.");
+                currentDriveData = null;
             }
-            
-            console.log("📂 Drive Data Loaded:", currentDriveData);
 
-            // ... (Baaki Text/Title load karne wala code same rahega) ...
+            // ... (Title/Content load karne wala code same rahega) ...
             const editor = document.getElementById('scriptEditor');
             if(editor) editor.innerHTML = data.content || "";
-            
+
             const titleEl = document.getElementById('scriptTitle');
             if(titleEl) titleEl.textContent = (data.title || "UNTITLED").toUpperCase();
-            
+
             sectionsData = data.sections || createDefaultSections();
             renderSections();
+        } else {
+            console.error("❌ Document does not exist!");
         }
     } catch (error) {
         console.error("❌ Load Error:", error);
@@ -1000,28 +1008,32 @@ async function confirmAddSection() {
 
     if (!name) return alert("Please enter a section name");
     
-    console.log("🔍 Checking Drive Data before creating folder:", currentDriveData);
+    // 🔥 DEBUG: Dekho ab data mila ya nahi?
+    console.log("🔍 Using Drive Data:", currentDriveData);
 
-    // 🔥 FIX: Dono naam check karo (scriptId OR scriptFolderId)
-    const mainScriptId = currentDriveData ? (currentDriveData.scriptFolderId || currentDriveData.scriptId) : null;
+    // Logic: Agar 'scriptId' hai (New) ya 'scriptFolderId' hai (Old)
+    // Note: main.js ab 'scriptId' save kar raha hai 'drive' object ke andar
+    const parentFolderId = currentDriveData ? (currentDriveData.scriptId || currentDriveData.scriptFolderId) : null;
 
-    if(!mainScriptId) {
-        console.error("❌ ID Missing. Current Data:", currentDriveData);
-        return alert("Error: Main Script Folder ID not found! (Check Console)");
+    if(!parentFolderId) {
+        alert("⚠️ Error: Script Folder ID not found.\nTry creating a NEW Project.");
+        console.error("❌ ID Missing. Data was:", currentDriveData);
+        return;
     }
 
     showStatus("Creating Drive Folder...", "text-yellow-400");
     closeAddSectionModal();
 
     try {
-        // ... (Folder creation code same rahega) ...
-        const newFolderId = await createDriveSubFolder(name, mainScriptId);
-        if(!newFolderId) return; 
+        // Folder Create Call
+        const newFolderId = await createDriveSubFolder(name, parentFolderId);
+        
+        if(!newFolderId) throw new Error("Folder creation returned null");
 
         const newSection = {
             id: Date.now(),
             name: name,
-            driveFolderId: newFolderId, 
+            driveFolderId: newFolderId,
             files: []
         };
 
@@ -1033,6 +1045,7 @@ async function confirmAddSection() {
     } catch(e) {
         console.error(e);
         showStatus("Error Creating Section", "text-red-500");
+        alert("Folder Creation Failed: " + e.message);
     }
 }
 
