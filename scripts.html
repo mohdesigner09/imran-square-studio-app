@@ -1125,9 +1125,95 @@ async function confirmAddSection() {
         alert("Error: " + e.message);
     }
 }
+// 🚀 SMART UPLOAD SYSTEM (Connected to Google Drive)
 
-
+// ==========================================
+// 🚀 TRIGGER UPLOAD (FIXED VARIABLE NAME)
+// ==========================================
 async function triggerUpload(sectionId) {
+    console.log(`🚀 Starting Upload for Section: ${sectionId}`);
+
+    // 1. Input Element Dhundo
+    const fileInput = document.getElementById(`file-input-${sectionId}`);
+    if (!fileInput) {
+        console.error("❌ File input element not found!");
+        return;
+    }
+
+    // 2. Files Check
+    const files = fileInput.files;
+    if (!files || files.length === 0) {
+        console.warn("⚠️ No files selected.");
+        return;
+    }
+
+    // 3. Folder ID Logic (CRITICAL FIX HERE)
+    // Pehle hum 'projectData' use kar rahe the jo defined nahi tha.
+    // Ab hum 'currentDriveData' use karenge jo load function me set hota hai.
+    let targetFolderId = "";
+    
+    if (typeof currentDriveData !== 'undefined' && currentDriveData.projectId) {
+        targetFolderId = currentDriveData.projectId;
+    } else {
+        // Fallback: Agar global variable nahi mila, to attribute check karo
+        targetFolderId = fileInput.getAttribute('data-folder-id');
+    }
+
+    if (!targetFolderId) {
+        alert("❌ Error: Target Folder ID missing! Project not loaded correctly.");
+        console.error("Missing Folder ID. currentDriveData:", currentDriveData);
+        return;
+    }
+
+    console.log(`📂 Uploading to Folder ID: ${targetFolderId}`);
+
+    // 4. UI Update (Loading State)
+    const btn = document.getElementById(`upload-btn-${sectionId}`);
+    const originalText = btn ? btn.innerHTML : "Upload";
+    if (btn) {
+        btn.innerHTML = `<i class="fa-solid fa-spinner fa-spin"></i> Uploading ${files.length} files...`;
+        btn.disabled = true; // Button disable kar do taaki double click na ho
+    }
+
+    // 5. FormData Prepare
+    const formData = new FormData();
+    formData.append('folderId', targetFolderId);
+    for (let i = 0; i < files.length; i++) {
+        formData.append('files', files[i]);
+    }
+
+    // 6. API Call
+    try {
+        const response = await fetch('/api/drive/upload-multiple', {
+            method: 'POST',
+            body: formData
+        });
+
+        const result = await response.json();
+
+        if (response.ok) {
+            alert(`✅ Successfully uploaded ${result.data.length} files!`);
+            console.log("Upload Result:", result);
+            
+            // Page ko refresh karo taaki nayi files dikhein
+            location.reload(); 
+        } else {
+            alert("❌ Upload Failed: " + (result.error || "Unknown Server Error"));
+            console.error("Server Error:", result);
+        }
+    } catch (err) {
+        console.error("Network Error:", err);
+        alert("❌ Network Error: Check console for details.");
+    } finally {
+        // Reset Button
+        if (btn) {
+            btn.innerHTML = originalText;
+            btn.disabled = false;
+        }
+        // Input clear karo taaki same file dubara select ho sake
+        fileInput.value = ""; 
+    }
+}
 
    // ✅ NAVIGATION LOGIC (With Header Button Control)
     function switchMode(mode) {
