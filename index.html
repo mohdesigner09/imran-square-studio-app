@@ -389,20 +389,16 @@
       <h2 class="font-display text-lg sm:text-xl font-semibold text-white">Active Projects</h2>
       
       <div id="projectScopeToggle" class="inline-flex bg-black/40 border border-white/10 rounded-full px-1 py-1 text-[11px]">
-        <button data-scope="my" class="px-3 py-1 rounded-full active-scope transition-all bg-orange-500/20 text-orange-400">
-          My
-        </button>
-        <button data-scope="all" class="px-3 py-1 rounded-full transition-all text-gray-400 hover:text-white">
-          All
-        </button>
+        <button data-scope="my" class="px-3 py-1 rounded-full active-scope transition-all bg-orange-500/20 text-orange-400">My</button>
+        <button data-scope="all" class="px-3 py-1 rounded-full transition-all text-gray-400 hover:text-white">All</button>
       </div>
     </div>
 
-    <div class="flex items-center gap-3">
+    <div class="flex items-center gap-4">
       
       <button id="edit-mode-btn" onclick="toggleEditMode()" 
-              class="w-8 h-8 flex items-center justify-center rounded-full bg-white/10 hover:bg-white/20 border border-white/10 transition text-gray-300 hover:text-white"
-              title="Manage Projects">
+              class="text-gray-400 hover:text-white transition text-sm" 
+              title="Edit Projects">
         <i class="fa-solid fa-pencil"></i>
       </button>
 
@@ -804,53 +800,52 @@
     })();
 
 
+
 // ==========================================
-// 🛠️ EDIT MODE LOGIC & RENDER (UPDATED)
+// 🛠️ EDIT MODE LOGIC (SIMPLE & WORKING)
 // ==========================================
 
 let isEditMode = false;
 
 // 1. TOGGLE BUTTON
 function toggleEditMode() {
-    isEditMode = !isEditMode;
+    isEditMode = !isEditMode; // Switch ON/OFF
+    
     const btn = document.getElementById('edit-mode-btn');
 
     if (isEditMode) {
-        // Green Tick Icon
+        // Edit Mode ON: Green Tick dikhao
         btn.innerHTML = `<i class="fa-solid fa-check"></i>`;
-        btn.classList.add('text-green-500', 'border-green-500/50');
-        btn.classList.remove('text-gray-300');
+        btn.className = "text-green-500 hover:text-green-400 transition text-sm"; // Green color
     } else {
-        // Normal Pencil Icon
+        // Normal Mode: Wapas Pencil bana do
         btn.innerHTML = `<i class="fa-solid fa-pencil"></i>`;
-        btn.classList.remove('text-green-500', 'border-green-500/50');
-        btn.classList.add('text-gray-300');
+        btn.className = "text-gray-400 hover:text-white transition text-sm"; // Original color
     }
-    
-    // List Refresh karo taaki buttons dikhe
-    // Note: 'allProjectsData' wo variable hai jisme tumhare projects loaded hain
-    if(typeof allProjectsData !== 'undefined') {
+
+    // List ko refresh karo taaki buttons dikhein
+    // (allProjectsData wo variable hai jisme tumhare projects load hue the)
+    if (typeof allProjectsData !== 'undefined') {
         renderProjects(allProjectsData);
     }
 }
 
-// 2. RENDER FUNCTION (Isse Replace Karo)
+// 2. RENDER FUNCTION (Overlay Logic)
 function renderProjects(projects) {
-    // 🔥 FIX: Tumhari ID 'projectCards' hai
-    const container = document.getElementById('projectCards'); 
+    const container = document.getElementById('projectCards');
+    if (!container) return;
     
-    if (!container) return; // Safety check
     container.innerHTML = "";
 
     if (!projects || projects.length === 0) {
-        container.innerHTML = `<p class="text-gray-500 text-center col-span-full py-4">No active projects found.</p>`;
+        container.innerHTML = `<p class="text-gray-500 text-center col-span-full py-4">No projects found.</p>`;
         return;
     }
 
     projects.forEach(proj => {
-        // Shake Effect jab Edit Mode ON ho
+        // Shake effect agar edit mode on hai
         const shakeClass = isEditMode ? "animate-pulse ring-1 ring-red-500/50" : "";
-        
+
         const cardHtml = `
         <div onclick="${isEditMode ? '' : `window.location.href='scripts.html?id=${proj.id}'`}" 
              class="bg-[#1a1a1a] p-4 rounded-xl border border-white/5 cursor-pointer hover:bg-[#252525] transition relative group overflow-hidden ${shakeClass}">
@@ -868,7 +863,7 @@ function renderProjects(projects) {
             </div>
 
             ${isEditMode ? `
-                <div class="absolute inset-0 bg-black/80 backdrop-blur-[2px] flex items-center justify-center gap-4 z-20 animation-fade-in">
+                <div class="absolute inset-0 bg-black/80 backdrop-blur-[2px] flex items-center justify-center gap-4 z-20">
                     
                     <button onclick="renameProject(event, '${proj.id}', '${proj.title}')" 
                             class="w-10 h-10 rounded-full bg-blue-600 hover:bg-blue-500 text-white flex items-center justify-center shadow-lg transform hover:scale-110 transition">
@@ -881,7 +876,6 @@ function renderProjects(projects) {
                     </button>
                 </div>
             ` : ''}
-
         </div>`;
         
         container.innerHTML += cardHtml;
