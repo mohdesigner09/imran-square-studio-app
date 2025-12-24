@@ -1128,7 +1128,7 @@ async function confirmAddSection() {
 
 
 // ==========================================
-// 🚀 TRIGGER UPLOAD (UPDATED: Upload + Save to DB)
+// 🚀 TRIGGER UPLOAD (FIXED: Undefined Value Handling)
 // ==========================================
 async function triggerUpload(sectionId) {
     console.log(`🚀 Starting Upload for Section: ${sectionId}`);
@@ -1149,7 +1149,7 @@ async function triggerUpload(sectionId) {
         return;
     }
 
-    // 2. UI Update (Button Loading)
+    // 2. UI Update
     const btn = document.getElementById(`upload-btn-${sectionId}`);
     const originalText = btn ? btn.innerHTML : "Upload";
     if (btn) {
@@ -1176,35 +1176,38 @@ async function triggerUpload(sectionId) {
         if (response.ok) {
             console.log("✅ Drive Upload Success:", result.data);
 
-            // --- STEP B: SAVE TO FIREBASE (Ye Missing Tha) ---
+            // --- STEP B: SAVE TO FIREBASE (FIXED) ---
             const uploadedFiles = result.data; 
 
-            // Local Data Update karo
+            // Local Data Find Karo
             const secIndex = sectionsData.findIndex(s => s.id == sectionId);
+            
             if (secIndex > -1) {
                 if (!sectionsData[secIndex].files) sectionsData[secIndex].files = [];
 
                 uploadedFiles.forEach(f => {
+                    // 🔥 HERE IS THE FIX: Undefined values ko roko
                     sectionsData[secIndex].files.push({
-                        name: f.name,
-                        id: f.id,
-                        url: f.webViewLink || "#", // Backend se Link aayega
-                        type: f.mimeType,
+                        name: f.name || "Untitled File",
+                        id: f.id || "",
+                        url: f.webViewLink || "#", 
+                        type: f.mimeType || "file/unknown", // <--- YE FIX KIYA HAI (Crash yahi ho raha tha)
                         date: new Date().toLocaleDateString()
                     });
                 });
 
                 // Database Update
+                // 'sectionsData' ab pure objects contain karta hai, undefined nahi
                 await db.collection('projects').doc(currentProjectID).update({
                     sections: sectionsData
                 });
 
                 alert(`✅ Uploaded & Saved ${uploadedFiles.length} files!`);
                 
-                // UI Refresh (Reload ki zaroorat nahi)
+                // UI Refresh
                 renderSections(); 
             } else {
-                console.error("Section not found in local data");
+                console.error("Section not found locally to update UI");
             }
 
         } else {
@@ -1212,13 +1215,18 @@ async function triggerUpload(sectionId) {
         }
     } catch (err) {
         console.error("Error:", err);
-        alert("❌ Error during upload/save.");
+        // Error message ko user friendly banao
+        if(err.message.includes("undefined")) {
+            alert("❌ Data Error: Database rejected empty value.");
+        } else {
+            alert("❌ Error during upload/save.");
+        }
     } finally {
         if (btn) {
             btn.innerHTML = originalText;
             btn.disabled = false;
         }
-        fileInput.value = ""; // Clear input
+        fileInput.value = ""; 
     }
 }
 
