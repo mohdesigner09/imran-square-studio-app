@@ -326,28 +326,26 @@
         </div>
     </div>
 
-    <div class="flex items-center gap-2 md:gap-3">
-        
-        <button id="editorActionBtn" onclick="exportPDF()" class="hidden md:block px-4 py-2 bg-white text-black text-xs font-bold rounded-lg hover:bg-gray-200 transition">Export PDF</button>
+   <div class="flex items-center gap-3">
+    
+    <button id="editModeBtn" onclick="toggleEditMode()" class="w-9 h-9 flex items-center justify-center rounded-full bg-white/10 text-white border border-white/20 hover:bg-white hover:text-black transition">
+        <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M17 3a2.828 2.828 0 1 1 4 4L7.5 20.5 2 22l1.5-5.5L17 3z"></path>
+        </svg>
+    </button>
 
-        <button id="editModeBtn" onclick="toggleEditMode()" title="Toggle Edit Mode" class="hidden md:flex items-center justify-center w-9 h-9 rounded-full bg-white/10 text-gray-400 border border-white/20 hover:bg-white/20 hover:text-white transition">
-            <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"></path>
-                <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"></path>
-            </svg>
-        </button>
+    <button id="headerAddBtn" onclick="openAddSectionModal()" class="w-9 h-9 flex items-center justify-center rounded-full bg-white/10 text-white border border-white/20 hover:bg-white hover:text-black transition">
+        <i class="fa-solid fa-plus"></i>
+    </button>
+    
+    <button id="hamburgerBtn" onclick="toggleSidebar()" class="md:hidden p-2 text-gray-400 hover:text-white">
+        <svg class="w-7 h-7" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16M4 18h16"/>
+        </svg>
+    </button>
 
-        <button id="headerAddBtn" onclick="openAddSectionModal()" class="hidden md:flex w-9 h-9 rounded-full bg-white/10 items-center justify-center text-white border border-white/20 hover:bg-white hover:text-black transition">
-            <i class="fa-solid fa-plus"></i>
-        </button>
-        
-        <button id="hamburgerBtn" onclick="toggleSidebar()" class="md:hidden p-2 text-gray-400 hover:text-white">
-            <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16M4 18h16"/>
-            </svg>
-        </button>
-    </div>
-        <button id="editorActionBtn" onclick="exportPDF()" class="hidden md:block px-4 py-2 bg-white text-black text-xs font-bold rounded-lg hover:bg-gray-200 transition">Export PDF</button>
+    <button onclick="exportPDF()" class="hidden md:block px-4 py-2 bg-white text-black text-xs font-bold rounded-lg hover:bg-gray-200 transition">Export PDF</button>
+</div>
 
         <button id="headerAddBtn" onclick="openAddSectionModal()" class="hidden w-8 h-8 rounded-full bg-white/10 items-center justify-center text-white border border-white/20 hover:bg-white hover:text-black transition">
             <i class="fa-solid fa-plus"></i>
@@ -966,21 +964,39 @@ function renderSections() {
         if(count === 0) {
             filesHtml = `<div class="h-full flex flex-col items-center justify-center text-gray-600"><span class="text-[10px]">No files yet</span></div>`;
         } else {
-            [...files].reverse().forEach(file => {
-                const icon = file.isMainScript ? '<i class="fa-solid fa-star text-orange-400 mr-1"></i>' : '<i class="fa-regular fa-file text-gray-400 mr-1"></i>';
-                const highlight = file.isMainScript ? 'bg-orange-500/10 border-orange-500/20' : 'bg-white/5 border-white/5';
-                
-                filesHtml += `
-                <div class="file-item ${highlight} p-2 rounded mb-1 border flex justify-between items-center text-xs group hover:bg-white/10 transition">
-                    <div class="truncate w-[65%] text-gray-300 group-hover:text-white pointer-events-none">${icon}${file.name}</div>
-                    <span class="text-[9px] text-gray-600">${file.date || ''}</span>
-                    
-                    ${isEditMode ? 
-                        // Edit Mode me File Delete ka option (Optional)
-                        `<button onclick="deleteFile(${section.id}, '${file.id}')" class="text-red-500 hover:text-white px-2"><i class="fa-solid fa-xmark"></i></button>` 
-                        : ''}
-                </div>`;
-            });
+            [// Loop through files
+[...files].reverse().forEach(file => {
+    // Icon Logic
+    const icon = file.isMainScript 
+        ? '<i class="fa-solid fa-star text-orange-400 mr-2 text-sm"></i>' 
+        : '<i class="fa-regular fa-file-pdf text-gray-400 mr-2 text-sm"></i>';
+    
+    const highlight = file.isMainScript ? 'bg-orange-500/10 border-orange-500/20' : 'bg-white/5 border-white/5';
+    
+    // File URL (Url ya ViewLink jo bhi ho)
+    const fileUrl = file.url || file.viewLink || '#';
+
+    filesHtml += `
+    <div class="file-item ${highlight} p-3 rounded-lg mb-2 border border-white/5 flex justify-between items-center group hover:bg-white/10 transition">
+        
+        <a href="${fileUrl}" target="_blank" class="flex items-center w-[85%] overflow-hidden cursor-pointer">
+            ${icon}
+            <span class="text-sm text-gray-300 truncate group-hover:text-white font-medium">${file.name}</span>
+        </a>
+        
+        <div class="flex items-center">
+            ${isEditMode ? 
+                // Agar Edit Mode ON hai to DELETE button dikhao
+                `<button onclick="deleteFile(${section.id}, '${file.id}')" class="text-red-500 hover:text-white p-2 rounded-full hover:bg-red-500/20 transition">
+                    <i class="fa-solid fa-trash text-xs"></i>
+                </button>` 
+                : 
+                // Agar Normal Mode hai to DATE dikhao
+                `<span class="text-[10px] text-gray-600 font-mono">${file.date || ''}</span>`
+            }
+        </div>
+    </div>`;
+});
         }
 
         const card = document.createElement('div');
