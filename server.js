@@ -1634,6 +1634,13 @@ app.post('/api/drive/upload-multiple', upload.array('files', 10), async (req, re
     fields: 'id, name, webViewLink, webContentLink' // <--- YE LINE ADD KARNA ZAROORI HAI
 });
 
+await drive.permissions.create({
+    fileId: response.data.id,
+    requestBody: {
+        role: 'reader', // View only
+        type: 'anyone', // Koi bhi link se khol sake
+    },
+});
             // Cleanup: Delete temp file
             fs.unlink(file.path, (err) => {
                 if(err) console.error("Cleanup error:", err);
