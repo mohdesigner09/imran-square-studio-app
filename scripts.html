@@ -1125,65 +1125,47 @@ async function confirmAddSection() {
         alert("Error: " + e.message);
     }
 }
-// 🚀 SMART UPLOAD SYSTEM (Connected to Google Drive)
+
 
 // ==========================================
-// 🚀 TRIGGER UPLOAD (FIXED VARIABLE NAME)
+// 🚀 TRIGGER UPLOAD (UPDATED: Upload + Save to DB)
 // ==========================================
 async function triggerUpload(sectionId) {
     console.log(`🚀 Starting Upload for Section: ${sectionId}`);
 
-    // 1. Input Element Dhundo
     const fileInput = document.getElementById(`file-input-${sectionId}`);
-    if (!fileInput) {
-        console.error("❌ File input element not found!");
-        return;
-    }
+    if (!fileInput || fileInput.files.length === 0) return;
 
-    // 2. Files Check
-    const files = fileInput.files;
-    if (!files || files.length === 0) {
-        console.warn("⚠️ No files selected.");
-        return;
-    }
-
-    // 3. Folder ID Logic (CRITICAL FIX HERE)
-    // Pehle hum 'projectData' use kar rahe the jo defined nahi tha.
-    // Ab hum 'currentDriveData' use karenge jo load function me set hota hai.
+    // 1. Folder ID Logic
     let targetFolderId = "";
-    
     if (typeof currentDriveData !== 'undefined' && currentDriveData.projectId) {
         targetFolderId = currentDriveData.projectId;
     } else {
-        // Fallback: Agar global variable nahi mila, to attribute check karo
         targetFolderId = fileInput.getAttribute('data-folder-id');
     }
 
     if (!targetFolderId) {
-        alert("❌ Error: Target Folder ID missing! Project not loaded correctly.");
-        console.error("Missing Folder ID. currentDriveData:", currentDriveData);
+        alert("❌ Error: Target Folder ID missing!");
         return;
     }
 
-    console.log(`📂 Uploading to Folder ID: ${targetFolderId}`);
-
-    // 4. UI Update (Loading State)
+    // 2. UI Update (Button Loading)
     const btn = document.getElementById(`upload-btn-${sectionId}`);
     const originalText = btn ? btn.innerHTML : "Upload";
     if (btn) {
-        btn.innerHTML = `<i class="fa-solid fa-spinner fa-spin"></i> Uploading ${files.length} files...`;
-        btn.disabled = true; // Button disable kar do taaki double click na ho
+        btn.innerHTML = `<i class="fa-solid fa-spinner fa-spin"></i> Saving...`;
+        btn.disabled = true;
     }
 
-    // 5. FormData Prepare
+    // 3. Prepare Data
     const formData = new FormData();
     formData.append('folderId', targetFolderId);
-    for (let i = 0; i < files.length; i++) {
-        formData.append('files', files[i]);
+    for (let i = 0; i < fileInput.files.length; i++) {
+        formData.append('files', fileInput.files[i]);
     }
 
-    // 6. API Call
     try {
+        // --- STEP A: UPLOAD TO DRIVE ---
         const response = await fetch('/api/drive/upload-multiple', {
             method: 'POST',
             body: formData
@@ -1192,26 +1174,51 @@ async function triggerUpload(sectionId) {
         const result = await response.json();
 
         if (response.ok) {
-            alert(`✅ Successfully uploaded ${result.data.length} files!`);
-            console.log("Upload Result:", result);
-            
-            // Page ko refresh karo taaki nayi files dikhein
-            location.reload(); 
+            console.log("✅ Drive Upload Success:", result.data);
+
+            // --- STEP B: SAVE TO FIREBASE (Ye Missing Tha) ---
+            const uploadedFiles = result.data; 
+
+            // Local Data Update karo
+            const secIndex = sectionsData.findIndex(s => s.id == sectionId);
+            if (secIndex > -1) {
+                if (!sectionsData[secIndex].files) sectionsData[secIndex].files = [];
+
+                uploadedFiles.forEach(f => {
+                    sectionsData[secIndex].files.push({
+                        name: f.name,
+                        id: f.id,
+                        url: f.webViewLink || "#", // Backend se Link aayega
+                        type: f.mimeType,
+                        date: new Date().toLocaleDateString()
+                    });
+                });
+
+                // Database Update
+                await db.collection('projects').doc(currentProjectID).update({
+                    sections: sectionsData
+                });
+
+                alert(`✅ Uploaded & Saved ${uploadedFiles.length} files!`);
+                
+                // UI Refresh (Reload ki zaroorat nahi)
+                renderSections(); 
+            } else {
+                console.error("Section not found in local data");
+            }
+
         } else {
-            alert("❌ Upload Failed: " + (result.error || "Unknown Server Error"));
-            console.error("Server Error:", result);
+            alert("❌ Upload Failed: " + (result.error || "Unknown Error"));
         }
     } catch (err) {
-        console.error("Network Error:", err);
-        alert("❌ Network Error: Check console for details.");
+        console.error("Error:", err);
+        alert("❌ Error during upload/save.");
     } finally {
-        // Reset Button
         if (btn) {
             btn.innerHTML = originalText;
             btn.disabled = false;
         }
-        // Input clear karo taaki same file dubara select ho sake
-        fileInput.value = ""; 
+        fileInput.value = ""; // Clear input
     }
 }
 

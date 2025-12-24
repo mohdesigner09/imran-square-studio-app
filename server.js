@@ -1623,15 +1623,16 @@ app.post('/api/drive/upload-multiple', upload.array('files', 10), async (req, re
             const drive = google.drive({ version: 'v3', auth: oauth2Client }); // Ensure auth client is valid
             
             const response = await drive.files.create({
-                requestBody: {
-                    name: file.originalname,
-                    parents: [folderId],
-                },
-                media: {
-                    mimeType: file.mimetype,
-                    body: fs.createReadStream(file.path), // <--- Ye line ab chalegi
-                },
-            });
+    requestBody: {
+        name: file.originalname,
+        parents: [folderId],
+    },
+    media: {
+        mimeType: file.mimetype,
+        body: fs.createReadStream(file.path),
+    },
+    fields: 'id, name, webViewLink, webContentLink' // <--- YE LINE ADD KARNA ZAROORI HAI
+});
 
             // Cleanup: Delete temp file
             fs.unlink(file.path, (err) => {
