@@ -317,10 +317,11 @@
         </div>
     </div>
 
-    <div class="absolute left-1/2 transform -translate-x-1/2 hidden md:block">
+ <div class="absolute left-1/2 transform -translate-x-1/2 hidden md:block">
         <div class="mode-switch flex bg-black/50 rounded-lg p-1 border border-white/10">
-            <button onclick="switchMode('editor')" id="btnEditor" class="px-4 py-1 text-xs font-bold rounded text-white bg-white/10">Writer</button>
-            <button onclick="switchMode('files')" id="btnFiles" class="px-4 py-1 text-xs font-bold rounded text-gray-400 hover:text-white">Files</button>
+            <button onclick="switchMode('files')" id="btnFiles" class="px-4 py-1 text-xs font-bold rounded text-white bg-white/10">Files</button>
+            
+            <button onclick="switchMode('editor')" id="btnEditor" class="px-4 py-1 text-xs font-bold rounded text-gray-400 hover:text-white">Writer</button>
         </div>
     </div>
 
@@ -360,20 +361,15 @@
             <!-- Mode Toggle -->
             <div class="bg-white/5 rounded-lg p-3 border border-white/10">
                 <p class="text-gray-400 text-xs mb-2 uppercase tracking-wider">View Mode</p>
-                <div class="grid grid-cols-2 gap-2">
-                    <button onclick="switchMode('editor'); closeMobileMenu();" id="mobileWriterBtn" class="py-2.5 px-3 bg-orange-500 text-white rounded-lg text-sm font-medium transition-all">
-                        <svg class="w-4 h-4 mx-auto mb-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"/>
-                        </svg>
-                        Writer
-                    </button>
-                    <button onclick="switchMode('files'); closeMobileMenu();" id="mobileFilesBtn" class="py-2.5 px-3 bg-white/10 text-gray-300 rounded-lg text-sm font-medium hover:bg-white/20 transition-all">
-                        <svg class="w-4 h-4 mx-auto mb-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 7v10a2 2 0 002 2h14a2 2 0 002-2V9a2 2 0 00-2-2h-6l-2-2H5a2 2 0 00-2 2z"/>
-                        </svg>
-                        Files
-                    </button>
-                </div>
+              <div class="grid grid-cols-2 gap-2">
+    <button onclick="switchMode('files'); closeMobileMenu();" id="mobileFilesBtn" class="py-2.5 px-3 bg-orange-500 text-white rounded-lg text-sm font-medium transition-all">
+        <i class="fa-solid fa-folder mr-2"></i> Files
+    </button>
+
+    <button onclick="switchMode('editor'); closeMobileMenu();" id="mobileWriterBtn" class="py-2.5 px-3 bg-white/10 text-gray-300 rounded-lg text-sm font-medium hover:bg-white/20 transition-all">
+        <i class="fa-solid fa-pen-nib mr-2"></i> Writer
+    </button>
+</div>
             </div>
             
             <!-- Actions -->
@@ -1302,23 +1298,28 @@ async function triggerUpload(sectionId) {
     function toggleSidebar() { document.getElementById('mobileSidebar').classList.toggle('open'); document.getElementById('sidebarOverlay').classList.toggle('open'); }
     function toggleAISheet() { document.getElementById('mobileAISheet').classList.toggle('open'); }
 
-    // ==========================================
-// 🚀 INITIALIZATION (Engine Start)
+// ==========================================
+// 🚀 INITIALIZATION (Default: FILES MODE)
 // ==========================================
 document.addEventListener('DOMContentLoaded', () => {
-    console.log("🚀 Script Page Loaded. Checking Project ID...");
+    console.log("🚀 Script Page Loaded...");
     
-    // URL se ID nikalo
     const urlParams = new URLSearchParams(window.location.search);
     const projectId = urlParams.get('id');
 
     if (projectId) {
-        console.log("✅ Project ID Found:", projectId);
-        // 🔥 Ye function call karna zaroori hai!
+        // 1. Data Load karo
         loadProjectFromFirestore(projectId);
+        
+        // 2. 🔥 DEFAULT MODE SET KARO (Files)
+        // Thoda timeout diya taaki data load ho jaye
+        setTimeout(() => {
+            if(typeof switchMode === 'function') {
+                switchMode('files'); // <--- YE LINE MAGIC KAREGI
+            }
+        }, 500);
+        
     } else {
-        console.error("❌ No Project ID in URL!");
-        alert("Error: No Project Selected. Go back to Dashboard.");
         window.location.href = 'index.html';
     }
 });
