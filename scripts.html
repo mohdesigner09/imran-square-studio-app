@@ -936,15 +936,15 @@ alert("Project Setup Incomplete: Google Drive folders are missing for this proje
         }
     }
 // ==========================================
-// 🎨 RENDER SECTIONS (Fixed Syntax & Links)
+// 🎨 RENDER SECTIONS (CORRECTED & COMPLETE)
 // ==========================================
 function renderSections() {
     const grid = document.getElementById('sectionsGrid');
     if (!grid) return;
     grid.innerHTML = '';
 
-    // Empty State
-    if(sectionsData.length === 0) {
+    // Empty State Check
+    if(!sectionsData || sectionsData.length === 0) {
         grid.innerHTML = `<div class="text-gray-500 col-span-full text-center py-10">No sections found. Click '+' to add one.</div>`;
         return;
     }
@@ -957,17 +957,17 @@ function renderSections() {
         const ringColor = isFull ? 'stroke-red-500' : 'stroke-green-500';
         const dashArray = `${percent}, 100`;
 
-        // 1. Files List Generate Karo
+        // 1. Files List Logic
         let filesHtml = '';
         if(count === 0) {
             filesHtml = `<div class="h-full flex flex-col items-center justify-center text-gray-600"><span class="text-[10px]">No files yet</span></div>`;
         } else {
+            // Reverse files to show newest first
             [...files].reverse().forEach(file => {
                 const icon = file.isMainScript 
                     ? '<i class="fa-solid fa-star text-orange-400 mr-2"></i>' 
                     : '<i class="fa-regular fa-file-pdf text-gray-400 mr-2"></i>';
                 
-                // File Link Logic
                 const fileUrl = file.url || file.viewLink || '#';
 
                 filesHtml += `
@@ -978,29 +978,27 @@ function renderSections() {
                     </a>
                     
                     ${isEditMode ? 
-                        `<button onclick="deleteFile(${section.id}, '${file.id}')" class="text-red-500 hover:text-white px-2"><i class="fa-solid fa-xmark"></i></button>` 
+                        `<button onclick="deleteFile('${section.id}', '${file.id}')" class="text-red-500 hover:text-white px-2"><i class="fa-solid fa-xmark"></i></button>` 
                         : `<span class="text-[9px] text-gray-600">${file.date || ''}</span>`
                     }
                 </div>`;
             });
         }
 
-        // 2. Card Header Logic
+        // 2. Header Logic (Edit vs Normal Mode)
         let headerHtml = '';
         if (isEditMode) {
-            // EDIT MODE
             headerHtml = `
                 <div class="flex justify-between items-center mb-3 border-b border-orange-500/30 pb-2">
                     <input type="text" value="${section.name}" 
-                        onblur="renameSection(${section.id}, this.value)"
+                        onblur="renameSection('${section.id}', this.value)"
                         class="bg-black/50 text-white font-bold text-xs p-1 rounded border border-orange-500 w-[70%] outline-none"
                     />
-                    <button onclick="deleteSection(${section.id})" class="text-red-500 hover:bg-red-500/10 p-1 rounded border border-red-500/20">
+                    <button onclick="deleteSection('${section.id}')" class="text-red-500 hover:bg-red-500/10 p-1 rounded border border-red-500/20">
                         <i class="fa-solid fa-trash-can text-xs"></i>
                     </button>
                 </div>`;
         } else {
-            // NORMAL MODE
             headerHtml = `
                 <div class="flex justify-between items-start mb-3 border-b border-white/5 pb-2">
                     <div>
@@ -1015,7 +1013,13 @@ function renderSections() {
                     </div>
                 </div>`;
         }
-card.innerHTML = `
+
+        // 3. CREATE CARD ELEMENT (Ye Line MISSING thi tumhare code me)
+        const card = document.createElement('div');
+        card.className = 'section-card flex flex-col bg-[#111] border border-white/10 rounded-xl p-4 h-80 relative overflow-hidden shadow-lg';
+        
+        // 4. Set Inner HTML
+        card.innerHTML = `
             ${headerHtml}
             <div class="file-list flex-1 overflow-y-auto custom-scrollbar mb-3 space-y-1">
                 ${filesHtml}
@@ -1032,17 +1036,17 @@ card.innerHTML = `
 
                 <button 
                     id="upload-btn-${section.id}"
-                    class="w-full py-2 rounded bg-white/5 hover:bg-white/10 border border-white/10 text-gray-300 text-xs transition" 
+                    class="w-full py-2 rounded bg-white/5 hover:bg-white/10 border border-white/10 text-gray-300 text-xs transition flex justify-center items-center gap-2" 
                     onclick="document.getElementById('file-input-${section.id}').click();"
                 >
-                    <i class="fa-solid fa-cloud-arrow-up mr-2"></i> Upload File
+                    <i class="fa-solid fa-cloud-arrow-up"></i> Upload File
                 </button>
             </div>
         `;
 
         grid.appendChild(card);
     });
-} // <--- YE BRACKET ZAROORI HAI!
+}
 
     // --- 7. NEW SECTION LOGIC (Popup Handlers) ---
     function openAddSectionModal() {
