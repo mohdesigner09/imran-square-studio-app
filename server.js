@@ -21,6 +21,8 @@ dotenv.config();
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
+// 2. Static Files Serve Karna (CSS/JS load karne ke liye)
+app.use(express.static(__dirname));
 
 // ===== 3. APP INITIALIZATION =====
 const app = express();
@@ -55,11 +57,6 @@ app.use(cors());
 app.use(express.json({ limit: '10mb' }));
 // ... baaki code ...
 
-// Static Files
-app.use(express.static(__dirname));
-
-// ... ISKE NEECHE JO CODE HAI USE MAT CHEDHNA ...
-// ... (Routes, Firebase Init, etc. waisa hi rahega) ...
 
 // ===== ROUTES =====
 
