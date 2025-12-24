@@ -1,14 +1,17 @@
 // ==========================================
 // 🔑 CONFIGURATION (FIXED API KEY)
 // ==========================================
+// ==========================================
+// 🔑 CONFIGURATION (CORRECTED & FINAL)
+// ==========================================
 
-// ✅ CORRECT API KEY (From your index.html)
-const API_KEY = "AIzaSyA_D3AuwSzHKgs5svcwRoP0St2Nc-delF8"; 
+// ✅ SAHI API KEY (Ye change karna zaroori hai)
+const API_KEY = "AIzaSyCjWdPwfANgLC9gj4H89NNPY2CY0jnb-60"; 
 
 // 2. CLIENT ID
 const CLIENT_ID = "364132092578-tphp4i883gt7foep5cgaf226ivn45jmc.apps.googleusercontent.com";
 
-// 3. Drive Folders
+// 3. VAULT IDs
 const VAULT_ID = "1nAz-SdoS9vu3748RgKvIvMU8JZWSz4dt"; 
 const FOOTAGE_FOLDER_ID = "1nAz-SdoS9vu3748RgKvIvMU8JZWSz4dt"; 
 
@@ -17,15 +20,17 @@ const SCOPES = "https://www.googleapis.com/auth/drive.file";
 
 // 5. Firebase Config
 const firebaseConfig = {
-  apiKey: API_KEY, // Ab ye sahi key use karega
+  apiKey: "AIzaSyCjWdPwfANgLC9gj4H89NNPY2CY0jnb-60",
   authDomain: "iimransquare.firebaseapp.com",
   projectId: "iimransquare",
   storageBucket: "iimransquare.firebasestorage.app",
-  messagingSenderId: "431645042472", // Updated Sender ID
+  messagingSenderId: "431645042472", 
   appId: "1:431645042472:web:87e7cea4659d6a0564121d"
 };
 
-// ... baaki code same rahega ...
+console.log("✅ Config Loaded with CORRECT Key (delF8)");
+
+// ... Iske neeche ka code waisa hi rehne dein ...
 
 // 5. Initialize Firebase (Safety Check)
 if (typeof firebase !== 'undefined' && !firebase.apps.length) {
@@ -1256,51 +1261,47 @@ function drawAvatarFireAnim() {
 
 
 // ==========================================
-// ⚡ FINAL FIX: CONNECT CREATE BUTTON
+// ⚡ FINAL FIX: CONNECT CREATE BUTTON (Safe Mode)
 // ==========================================
 document.addEventListener('DOMContentLoaded', () => {
     
-    // 1. Create Button dhoondo
-    const createBtn = document.getElementById('createProject');
-    
-    if (createBtn) {
-        // Purane connections saaf karo
-        const newBtn = createBtn.cloneNode(true);
-        createBtn.parentNode.replaceChild(newBtn, createBtn);
+    // Sirf tab dhoondo jab hum Dashboard (index.html) par hon
+    if (window.location.pathname.endsWith('index.html') || window.location.pathname === '/' || window.location.pathname.endsWith('/')) {
+        
+        const createBtn = document.getElementById('createProject');
+        const modal = document.getElementById('projectModal');
 
-        console.log("✅ Create Button Found & Reset");
-
-        // 2. Click Logic Lagao
-        newBtn.addEventListener('click', async (e) => {
-            e.preventDefault(); // Form submit roko
+        if (createBtn) {
+            console.log("✅ Create Button Found!");
             
-            console.log("🚀 Create Clicked!");
-            
-            // User ko dikhao ki kaam chal raha hai (Freeze na lage)
-            const originalText = newBtn.innerText;
-            newBtn.innerText = "Creating...";
-            newBtn.style.opacity = "0.7";
-            newBtn.disabled = true; // Double click se bachne ke liye
+            // Purana listener hatane ke liye clone
+            const newBtn = createBtn.cloneNode(true);
+            createBtn.parentNode.replaceChild(newBtn, createBtn);
 
-            try {
-                // Main function call karo
-                if (typeof createNewProject === 'function') {
-                    await createNewProject(false);
-                } else {
-                    alert("Error: Create Function Missing!");
+            newBtn.addEventListener('click', async (e) => {
+                e.preventDefault();
+                console.log("🚀 Create Clicked!");
+
+                const originalText = newBtn.innerText;
+                newBtn.innerText = "Creating...";
+                newBtn.disabled = true;
+
+                try {
+                    if (typeof createNewProject === 'function') {
+                        // Modal close karo agar open hai
+                        if(modal) modal.classList.add('hidden');
+                        await createNewProject(false);
+                    }
+                } catch (err) {
+                    alert("Error: " + err.message);
+                } finally {
+                    newBtn.innerText = originalText;
+                    newBtn.disabled = false;
                 }
-            } catch (err) {
-                console.error(err);
-                alert("Creation Failed: " + err.message);
-            } finally {
-                // Kaam khatam hone par wapis normal karo
-                newBtn.innerText = originalText;
-                newBtn.style.opacity = "1";
-                newBtn.disabled = false;
-            }
-        });
-    } else {
-        console.error("❌ Create Button Not Found in HTML");
+            });
+        } else {
+            console.warn("⚠️ Create Button not found (Might be loading...)");
+        }
     }
 });
 
