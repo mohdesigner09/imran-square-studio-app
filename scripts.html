@@ -752,7 +752,8 @@ He pulls out a crumpled photograph.
     <div id="uploadQueue"></div>
 
     <!-- Hidden Input -->
-    <input type="file" id="fileInput" class="hidden" accept=".pdf,.doc,.docx,.txt">
+    <input type="file" id="fileInput" class="hidden" accept=".pdf,.doc,.docx,.txt" name="files" multiple />
+<button onclick="uploadFiles()">Upload</button>
 
 <script>
     // ✅ FINAL SCRIPT ENGINE (Merged: AI + Real Upload + Add Section + Navigation)
@@ -833,6 +834,7 @@ He pulls out a crumpled photograph.
 async function loadProjectFromFirestore(projId) {
     console.log("🔄 Fetching Project Data for:", projId);
     currentProjectID = projId; // ID save kar lo
+alert("Project Setup Incomplete: Google Drive folders are missing for this project.");
 
     try {
         const doc = await db.collection('projects').doc(projId).get();
@@ -1101,18 +1103,23 @@ async function confirmAddSection() {
     }
 }
 // 🚀 SMART UPLOAD SYSTEM (Connected to Google Drive)
-async function triggerUpload(sectionId) {
-    const section = sectionsData.find(s => s.id === sectionId);
-    if (!section) return;
 
-    // Limit Check (User requirement: 10 Files Max)
-    if (section.files.length >= FILES_PER_SECTION) {
-        return alert("Section Full (Max 10 files)");
+async function triggerUpload(sectionId) {
+    // 1. Element dhundo
+    const fileInput = document.getElementById(`file-input-${sectionId}`); // Jo bhi tumhara ID pattern hai
+
+    // 2. SAFETY CHECK ADD KARO (Ye missing hai)
+    if (!fileInput) {
+        console.error("Upload input not found! Maybe sections did not load?");
+        alert("Upload section not ready. Please refresh.");
+        return;
     }
 
-    const input = document.createElement('input');
-    input.type = 'file';
-    input.accept = '.pdf,.doc,.docx,.txt,.jpg,.png';
+    const files = fileInput.files; 
+    if (!files || files.length === 0) { // Yahan 'length' check karne se pehle 'files' check karo
+        alert("Please select a file first.");
+        return;
+    }
     
     input.onchange = async (e) => {
         const file = e.target.files[0];

@@ -1624,6 +1624,56 @@ app.post('/api/drive/delete-file', async (req, res) => {
     }
 });
 
+// Import Multer at the top if not present
+// const multer = require('multer');
+// const upload = multer({ dest: 'uploads/' });
+
+// --- PASTE THIS NEW ROUTE ---
+
+app.post('/api/drive/upload-multiple', upload.array('files', 10), async (req, res) => {
+    try {
+        const folderId = req.body.folderId; // Frontend se bheja hua Folder ID
+        
+        if (!req.files || req.files.length === 0) {
+            return res.status(400).json({ error: 'No files selected' });
+        }
+        
+        if (!folderId) {
+             return res.status(400).json({ error: 'Target Folder ID missing' });
+        }
+
+        console.log(`Uploading ${req.files.length} files to Folder: ${folderId}`);
+
+        // Helper function to upload single file
+        const uploadToDrive = async (file) => {
+            const drive = google.drive({ version: 'v3', auth: oauth2Client });
+            const response = await drive.files.create({
+                requestBody: {
+                    name: file.originalname,
+                    parents: [folderId], // Is folder me jayega
+                },
+                media: {
+                    mimeType: file.mimetype,
+                    body: fs.createReadStream(file.path),
+                },
+            });
+            // Cleanup: Delete temp file
+            fs.unlinkSync(file.path);
+            return response.data;
+        };
+
+        // Run all uploads in parallel
+        const uploadPromises = req.files.map(file => uploadToDrive(file));
+        const results = await Promise.all(uploadPromises);
+
+        res.status(200).json({ message: "Success", data: results });
+
+    } catch (error) {
+        console.error("Upload Error:", error);
+        res.status(500).json({ error: error.message });
+    }
+});
+
 // ===== SERVER START =====
 const PORT = process.env.PORT || 10000;
 app.listen(PORT, () => {
