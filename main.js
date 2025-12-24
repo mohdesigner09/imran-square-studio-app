@@ -365,7 +365,8 @@ async function createNewProject(openAfter = false) {
         // Ye code tabhi chalega agar user ne Google se login kiya ho
         let driveData = {};
         if (typeof setupDriveFolders === 'function') {
-            const folders = await setupDriveFolders(ownerName, cleanName);
+            // createNewProject function ke andar aisa hona chahiye:
+        const folders = await setupDriveFolders(ownerName, cleanName, activeUser.email);
             if(folders) {
                 driveData = folders; // IDs mil gayi!
             }
@@ -1284,135 +1285,77 @@ document.addEventListener('DOMContentLoaded', () => {
 });
 
 // ==========================================
-// ☁️ GOOGLE DRIVE AUTOMATION (Token Force Mode)
+// 🚀 2TB UPLOAD SYSTEM (Zero User Quota)
 // ==========================================
 
-// 1. Helper: Raw API Call (Token Include karega)
-async function makeDriveRequest(method, path, params = {}, body = null) {
-    return new Promise((resolve, reject) => {
-        const requestOptions = {
-            path: path,
-            method: method,
-            params: params
-        };
-        if (body) requestOptions.body = body;
+const SCRIPT_URL = "https://script.google.com/macros/s/AKfycbzyNZ-RfOEcYtL5jmx-0UzqnacPL7e6lsjR2PHh6g50ojQsBu-144YmfYwMzxQ2bczE/exec"; 
 
-        // 🔥 IMPORTANT: Token check
-        const token = gapi.client.getToken();
-        if (!token) {
-            reject({ code: 401, message: "No Access Token found. Need to login." });
-            return;
-        }
-
-        const request = gapi.client.request(requestOptions);
-        request.execute((resp) => {
-            if (resp.error) reject(resp.error);
-            else resolve(resp);
+// 1. Folder Setup Function
+async function setupDriveFolders(userName, projectName, userEmail) {
+    console.log("🤖 Robot creating folders...");
+    try {
+        const response = await fetch(SCRIPT_URL, {
+            method: "POST",
+            body: JSON.stringify({
+                action: "create_project", // Robot ko batao ye folder banana hai
+                userName: userName,
+                projectName: projectName,
+                userEmail: userEmail
+            })
         });
-    });
+        const result = await response.json();
+        
+        if (result.status === "success") {
+            console.log("✅ Folders Ready!");
+            return result; // IDs wapis milengi
+        } else {
+            alert("Error: " + result.message);
+            return null;
+        }
+    } catch (e) { console.error(e); return null; }
 }
 
-// 2. Helper: Find or Create
-async function findOrCreateFolder(folderName, parentId) {
+// 2. Upload Function (Magic Link User)
+// Jab user file select kare, is function ko call karein
+async function uploadFileToDrive(file, folderId) {
+    console.log(`🚀 Preparing upload for: ${file.name} (${(file.size/1024/1024).toFixed(2)} MB)`);
+
     try {
-        // A. Search
-        let query = `mimeType='application/vnd.google-apps.folder' and name='${folderName}' and trashed=false`;
-        if (parentId) query += ` and '${parentId}' in parents`;
+        // A. Robot se "Magic Link" maango
+        const linkResponse = await fetch(SCRIPT_URL, {
+            method: "POST",
+            body: JSON.stringify({
+                action: "get_upload_url",
+                folderId: folderId,
+                fileName: file.name,
+                mimeType: file.type
+            })
+        });
+        const linkResult = await linkResponse.json();
 
-        const listResp = await makeDriveRequest('GET', '/drive/v3/files', {
-            q: query,
-            fields: 'files(id, name)'
+        if (linkResult.status !== "success") throw new Error(linkResult.message);
+
+        const magicUrl = linkResult.uploadUrl;
+        console.log("🔗 Magic Link Received. Uploading directly to Imran's 2TB...");
+
+        // B. File Upload karo (PUT Request on Magic Link)
+        // Note: Ye seedha Google ke server par jayega via Magic Link
+        const upload = await fetch(magicUrl, {
+            method: "PUT",
+            body: file // Seedha file stream bhejo
         });
 
-        if (listResp.files && listResp.files.length > 0) {
-            console.log(`📂 Found: ${folderName}`);
-            return listResp.files[0].id;
+        if (upload.ok) {
+            console.log("🎉 Upload Successful! (Used Imran's Storage)");
+            alert("Upload Complete!");
+            return true;
+        } else {
+            throw new Error("Upload failed");
         }
-
-        // B. Create
-        console.log(`✨ Creating: ${folderName}...`);
-        const fileMetadata = {
-            'name': folderName,
-            'mimeType': 'application/vnd.google-apps.folder',
-            'parents': [parentId]
-        };
-
-        const createResp = await makeDriveRequest('POST', '/drive/v3/files', {}, fileMetadata);
-        return createResp.id;
-
-    } catch (err) {
-        throw err; // Error upar bhejo taaki catch block handle kare
-    }
-}
-
-// 3. Main Setup Function (Updated Logic)
-async function setupDriveFolders(userName, projectName) {
-    console.log("☁️ Initializing Drive Setup...");
-
-    // 🔴 STEP 1: LOAD LIBRARIES
-    if (!gapi || !gapi.client) await new Promise(r => gapi.load('client', r));
-    
-    // 🔴 STEP 2: INIT AUTH (Token Client)
-    if (!tokenClient) {
-        console.log("⏳ Init Token Client...");
-        if(typeof google === 'undefined' || !google.accounts) {
-             await new Promise(r => {
-                 const s = document.createElement('script');
-                 s.src = 'https://accounts.google.com/gsi/client';
-                 s.onload = r;
-                 document.head.appendChild(s);
-             });
-        }
-        tokenClient = google.accounts.oauth2.initTokenClient({
-            client_id: CLIENT_ID,
-            scope: SCOPES,
-            callback: '' 
-        });
-    }
-
-    // 🔴 STEP 3: CHECK TOKEN (Yehi Missing Tha!)
-    // Folder banane se pehle check karo: Kya hamare paas Token hai?
-    const existingToken = gapi.client.getToken();
-    
-    if (!existingToken) {
-        console.log("🔒 No Token found. Asking for permission...");
-        // Promise wrap karke wait karwayenge
-        await new Promise((resolve, reject) => {
-            tokenClient.callback = (resp) => {
-                if (resp.error) reject(resp);
-                resolve(resp);
-            };
-            tokenClient.requestAccessToken({prompt: 'consent'});
-        });
-        console.log("🔓 Permission Granted!");
-    }
-
-    // 🔴 STEP 4: EXECUTE
-    try {
-        console.log("🚀 Starting Folder Creation...");
-
-        const userId = await findOrCreateFolder(userName, VAULT_ID);
-        if(!userId) throw new Error("Could not create User Folder");
-
-        const projectId = await findOrCreateFolder(projectName, userId);
-        const scriptId = await findOrCreateFolder("Script", projectId);
-        const footageId = await findOrCreateFolder("Raw Footage", projectId);
-
-        console.log("🎉 Drive Structure Ready!");
-        return {
-            rootFolderId: userId,
-            projectFolderId: projectId,
-            scriptFolderId: scriptId,
-            footageFolderId: footageId
-        };
 
     } catch (e) {
-        console.error("❌ Drive Setup Failed:", e);
-        // Agar token expire ho gaya ho, to dubara maango
-        if(e.code === 401 || (e.result && e.result.error && e.result.error.code === 401)) {
-             alert("⚠️ Session Expired. Please try creating project again.");
-             tokenClient.requestAccessToken({prompt: ''});
-        }
-        return null;
+        console.error("❌ Upload Error:", e);
+        alert("Upload Failed: " + e.message);
+        return false;
     }
 }
