@@ -807,77 +807,104 @@
 
     // 1. GLOBAL VARIABLES
     let isEditMode = false;
-    let allProjectsData = []; // Ye variable projects ka data hold karega
+    let allProjectsData = []; 
 
-    // 2. DATA LOADING (Firestore se direct connect)
+    // 2. DATA LOADING (SAFE MODE)
     function initProjectLoader() {
-        const userStr = localStorage.getItem('imranUser');
-        if (!userStr) return;
-        const user = JSON.parse(userStr);
+        try {
+            const userStr = localStorage.getItem('imranUser');
+            if (!userStr) {
+                console.warn("⚠️ No user found in LocalStorage");
+                return;
+            }
 
-        console.log("🔄 Connecting to Firestore for Projects...");
-
-        // Tumhara DB Query
-        let query = db.collection('projects')
-                      .where('uid', '==', user.uid)
-                      .orderBy('createdAt', 'desc');
-
-        // Real-time Listener (Jaise hi DB badlega, ye chalega)
-        query.onSnapshot((snapshot) => {
-            allProjectsData = snapshot.docs.map(doc => ({
-                id: doc.id,
-                ...doc.data()
-            }));
+            const user = JSON.parse(userStr);
             
-            console.log(`✅ Projects Loaded: ${allProjectsData.length}`);
-            renderProjects(allProjectsData); // List banao
-        }, (error) => {
-            console.error("❌ Error loading projects:", error);
-        });
+            // 🔥 CRITICAL FIX: ID Dhoondo (uid, userId, ya id)
+            const ownerId = user.uid || user.userId || user.id;
+
+            if (!ownerId) {
+                console.error("❌ CRITICAL: User ID is MISSING in localStorage object!", user);
+                return; // Code yahan rok do taaki crash na ho
+            }
+
+            console.log(`🔄 Fetching projects for Owner ID: ${ownerId}`);
+
+            // DB Query
+            let query = db.collection('projects')
+                          .where('uid', '==', ownerId) // Ab ye crash nahi hoga
+                          .orderBy('createdAt', 'desc');
+
+            // Real-time Listener
+            query.onSnapshot((snapshot) => {
+                allProjectsData = snapshot.docs.map(doc => ({
+                    id: doc.id,
+                    ...doc.data()
+                }));
+                
+                console.log(`✅ Projects Loaded via Editor Script: ${allProjectsData.length}`);
+                
+                // Agar Edit mode ON hai toh turant refresh karo
+                if (isEditMode) {
+                    renderProjects(allProjectsData);
+                }
+            }, (error) => {
+                console.error("❌ Firestore Error:", error);
+            });
+
+        } catch (e) {
+            console.error("❌ Init Loader Crash:", e);
+        }
     }
 
-    // 3. TOGGLE EDIT MODE (Pencil Button Logic)
+    // 3. TOGGLE EDIT MODE (Pencil Button)
     function toggleEditMode() {
-        // Toggle Switch
         isEditMode = !isEditMode;
         
         const btn = document.getElementById('edit-mode-btn');
-        if(!btn) {
-            console.error("❌ Button 'edit-mode-btn' not found!");
-            return;
-        }
+        if(!btn) return;
 
         if (isEditMode) {
-            // GREEN TICK ✅
+            // Check: Agar data load nahi hua hai, to abhi load karo
+            if (allProjectsData.length === 0) {
+                console.warn("⚠️ No data in edit mode, trying to reload...");
+                initProjectLoader();
+            }
+
+            // Green Tick
             btn.innerHTML = `<i class="fa-solid fa-check"></i>`;
             btn.className = "text-green-500 hover:text-green-400 transition text-sm scale-110";
-            console.log("✏️ Edit Mode ON");
         } else {
-            // GREY PENCIL ✏️
+            // Grey Pencil
             btn.innerHTML = `<i class="fa-solid fa-pencil"></i>`;
             btn.className = "text-gray-400 hover:text-white transition text-sm";
-            console.log("🔒 Edit Mode OFF");
         }
 
-        // UI Refresh karo taaki naye buttons dikhein
-        renderProjects(allProjectsData);
+        // List Refresh
+        // IMPORTANT: Agar data khali hai to UI gayab mat karo, purana rehne do
+        if (allProjectsData.length > 0) {
+            renderProjects(allProjectsData);
+        } else {
+            console.log("⚠️ Data empty, skipping empty render to prevent vanishing.");
+        }
     }
 
-    // 4. RENDER PROJECTS (List Banane wala function)
+    // 4. RENDER PROJECTS
     function renderProjects(projects) {
         const container = document.getElementById('projectCards');
         if (!container) return;
 
-        container.innerHTML = ""; // Purana data saaf karo
+        // Container clear karo
+        container.innerHTML = "";
 
         if (!projects || projects.length === 0) {
-            container.innerHTML = `<p class="text-gray-500 text-center col-span-full py-10">No active projects found. Create one +</p>`;
+            container.innerHTML = `<p class="text-gray-500 text-center col-span-full py-10">No projects found.</p>`;
             return;
         }
 
         projects.forEach(proj => {
-            // Edit Mode Animation
             const shakeClass = isEditMode ? "animate-pulse ring-1 ring-red-500/50" : "";
+            // Normal click disable karo agar edit mode hai
             const clickAction = isEditMode ? "" : `window.location.href='scripts.html?id=${proj.id}'`;
 
             const cardHtml = `
@@ -898,12 +925,10 @@
 
                 ${isEditMode ? `
                     <div class="absolute inset-0 bg-black/80 backdrop-blur-[2px] flex items-center justify-center gap-4 z-20 animate-fade-in">
-                        
                         <button onclick="renameProject(event, '${proj.id}', '${proj.title}')" 
                                 class="w-10 h-10 rounded-full bg-blue-600 hover:bg-blue-500 text-white flex items-center justify-center shadow-lg transform hover:scale-110 transition">
                             <i class="fa-solid fa-pen"></i>
                         </button>
-
                         <button onclick="deleteProject(event, '${proj.id}')" 
                                 class="w-10 h-10 rounded-full bg-red-600 hover:bg-red-500 text-white flex items-center justify-center shadow-lg transform hover:scale-110 transition">
                             <i class="fa-solid fa-trash"></i>
@@ -912,51 +937,32 @@
                 ` : ''}
 
             </div>`;
-            
             container.innerHTML += cardHtml;
         });
     }
 
-    // 5. RENAME FUNCTION
+    // 5. RENAME & DELETE ACTIONS
     async function renameProject(event, projectId, oldName) {
-        event.stopPropagation(); // Card open hone se roko
+        event.stopPropagation();
         const newName = prompt("Rename Project:", oldName);
-        
         if (newName && newName.trim() !== "" && newName !== oldName) {
-            try {
-                await db.collection('projects').doc(projectId).update({ title: newName.trim() });
-                // Note: UI auto-update ho jayega kyunki humne onSnapshot lagaya hai
-                alert("✅ Renamed!");
-            } catch (error) {
-                console.error(error);
-                alert("❌ Error Renaming");
-            }
+            await db.collection('projects').doc(projectId).update({ title: newName.trim() });
         }
     }
 
-    // 6. DELETE FUNCTION
     async function deleteProject(event, projectId) {
-        event.stopPropagation(); // Card open hone se roko
-        if (confirm("⚠️ Are you sure you want to delete this project? This cannot be undone.")) {
-            try {
-                await db.collection('projects').doc(projectId).delete();
-                alert("🗑️ Project Deleted");
-            } catch (error) {
-                console.error(error);
-                alert("❌ Error Deleting");
-            }
+        event.stopPropagation();
+        if (confirm("Delete this project?")) {
+            await db.collection('projects').doc(projectId).delete();
         }
     }
 
-    // 🔥 SCRIPT START KARO
-    // Thoda delay dete hain taaki Firebase DB initialize ho jaye
-    setTimeout(() => {
-        if(typeof db !== 'undefined') {
-            initProjectLoader();
-        } else {
-            console.error("Firebase DB not found! Make sure main.js is loaded.");
-            // Retry once
-            setTimeout(initProjectLoader, 1000);
+    // 🔥 SAFE START
+    // DB ready hone ka wait karo
+    const checkDB = setInterval(() => {
+        if (typeof db !== 'undefined') {
+            clearInterval(checkDB);
+            initProjectLoader(); // Ab function call karo
         }
     }, 500);
 
