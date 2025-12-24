@@ -17,7 +17,7 @@ dotenv.config();
 // __dirname setup (ES Modules ke liye)
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
-
+const ADMIN_EMAIL = 'mohdesigner09@gmail.com'; // (Ya jo bhi tumhara email hai)
 // ===== 3. APP INITIALIZATION (Ye Line Sabse Important Hai) =====
 const app = express();  // <--- ISKO PEHLE AANA ZAROORI HAI
 
