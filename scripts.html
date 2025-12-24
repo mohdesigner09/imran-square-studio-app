@@ -1186,19 +1186,18 @@ async function triggerUpload(sectionId) {
                 if (!sectionsData[secIndex].files) sectionsData[secIndex].files = [];
 
                 uploadedFiles.forEach(f => {
-                    // 🔥 TAGDA LOGIC: Direct Open Link banao ID se
-                    // Ye link bina Gmail puche seedha file kholega
-                    const directLink = `https://drive.google.com/uc?export=view&id=${f.id}`;
+    // 🔥 TAGDA LOGIC V2: Preview Mode
+    // Ye link file ko Browser me Embed karke dikhayega (No Download, No Gmail)
+    const directLink = `https://drive.google.com/file/d/${f.id}/preview`;
 
-                    sectionsData[secIndex].files.push({
-                        name: f.name || "Untitled File",
-                        id: f.id || "",
-                        url: directLink, // <--- YAHAN CHANGE KIYA HAI (Ab Direct Link save hoga)
-                        type: f.mimeType || "file/unknown",
-                        date: new Date().toLocaleDateString()
-                    });
-                });
-
+    sectionsData[secIndex].files.push({
+        name: f.name || "Untitled File",
+        id: f.id || "",
+        url: directLink, // <--- AB YE WALA LINK SAVE HOGA
+        type: f.mimeType || "file/unknown",
+        date: new Date().toLocaleDateString()
+    });
+});
                 // Update Database
                 await db.collection('projects').doc(currentProjectID).update({
                     sections: sectionsData
