@@ -979,20 +979,23 @@ function renderSections() {
                     ? '<i class="fa-solid fa-star text-orange-400 mr-2"></i>' 
                     : '<i class="fa-regular fa-file-pdf text-gray-400 mr-2"></i>';
                 
-                const fileUrl = file.url || file.viewLink || '#';
+               // renderSections ke andar...
+               
+const fileUrl = file.url || file.viewLink || '#';
 
-                filesHtml += `
-                <div class="p-2 rounded mb-1 border border-white/5 bg-white/5 flex justify-between items-center group hover:bg-white/10 transition">
-                    <a href="${fileUrl}" target="_blank" class="flex items-center w-[85%] overflow-hidden cursor-pointer no-underline">
-                        ${icon}
-                        <span class="text-xs text-gray-300 truncate group-hover:text-white">${file.name}</span>
-                    </a>
-                    
-                    ${isEditMode ? 
-                        `<button onclick="deleteFile('${section.id}', '${file.id}')" class="text-red-500 hover:text-white px-2"><i class="fa-solid fa-xmark"></i></button>` 
-                        : `<span class="text-[9px] text-gray-600">${file.date || ''}</span>`
-                    }
-                </div>`;
+filesHtml += `
+<div class="p-2 rounded mb-1 border border-white/5 bg-white/5 flex justify-between items-center group hover:bg-white/10 transition">
+    <a href="${fileUrl}" target="_blank" class="flex items-center w-[85%] overflow-hidden cursor-pointer no-underline">
+        ${icon}
+        <span class="text-xs text-gray-300 truncate group-hover:text-white">${file.name}</span>
+    </a>
+    
+    ${isEditMode ? 
+        `<button onclick="deleteFile('${section.id}', '${file.id}')" class="text-red-500 hover:text-white px-2"><i class="fa-solid fa-xmark"></i></button>` 
+        : `<span class="text-[9px] text-gray-600">${file.date || ''}</span>`
+    }
+</div>`;
+
             });
         }
 
@@ -1227,6 +1230,59 @@ async function triggerUpload(sectionId) {
             btn.disabled = false;
         }
         fileInput.value = ""; 
+    }
+}
+
+// ==========================================
+// 🗑️ DELETE FUNCTIONS (Paste this inside <script>)
+// ==========================================
+
+// 1. DELETE FILE
+async function deleteFile(sectionId, fileId) {
+    if (!confirm("⚠️ Are you sure you want to delete this file?")) return;
+
+    console.log(`Deleting file: ${fileId} from section: ${sectionId}`);
+
+    // Local Data Update
+    const secIndex = sectionsData.findIndex(s => s.id == sectionId);
+    if (secIndex > -1) {
+        // Filter out the file
+        sectionsData[secIndex].files = sectionsData[secIndex].files.filter(f => f.id !== fileId);
+
+        try {
+            // Firebase Update
+            await db.collection('projects').doc(currentProjectID).update({
+                sections: sectionsData
+            });
+            
+            // Note: Drive se delete karne ka logic alag hota hai, 
+            // abhi ke liye hum sirf App list se hata rahe hain.
+            
+            alert("🗑️ File Removed!");
+            renderSections(); // Refresh UI
+        } catch (error) {
+            console.error("Error deleting file:", error);
+            alert("❌ Error deleting file from database.");
+        }
+    }
+}
+
+// 2. DELETE SECTION
+async function deleteSection(sectionId) {
+    if (!confirm("⚠️ Delete this entire section? All files inside it will be removed from the list.")) return;
+
+    // Filter out the section
+    sectionsData = sectionsData.filter(s => s.id != sectionId);
+
+    try {
+        await db.collection('projects').doc(currentProjectID).update({
+            sections: sectionsData
+        });
+        
+        renderSections(); // Refresh UI
+    } catch (error) {
+        console.error("Error deleting section:", error);
+        alert("❌ Error removing section.");
     }
 }
 
