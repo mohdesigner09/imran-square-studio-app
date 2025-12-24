@@ -550,42 +550,36 @@ app.post('/api/account/upload-avatar', upload.single('avatar'), async (req, res)
 
 // RAW FOOTAGE UPLOAD → GOOGLE DRIVE + FIRESTORE
 // ========================
+// RAW FOOTAGE UPLOAD → GOOGLE DRIVE + FIRESTORE
 app.post('/api/footage/upload', upload.single('file'), async (req, res) => {
   try {
-    const { projectId, userId, fileName, sizeMB, thumbnailDataUrl, kind } = req.body;
-
-    if (!FOOTAGE_FOLDER_ID) {
-      console.error('❌ FOOTAGE_FOLDER_ID not configured in env');
-      return res.status(500).json({
-        success: false,
-        message: 'Footage Drive folder not configured on server'
-      });
-    }
+    // 1. 'folderId' receive karo frontend se
+    const { projectId, userId, fileName, sizeMB, thumbnailDataUrl, kind, folderId } = req.body;
 
     if (!projectId || !userId) {
-      return res.status(400).json({
-        success: false,
-        message: 'Missing projectId or userId'
-      });
+      return res.status(400).json({ success: false, message: 'Missing projectId or userId' });
     }
 
     if (!req.file) {
-      return res.status(400).json({
-        success: false,
-        message: 'No video file uploaded'
-      });
+      return res.status(400).json({ success: false, message: 'No video file uploaded' });
     }
 
-    // ✅ File name safe bana lo
-    const safeFileName =
-      fileName ||
-      req.file.originalname ||
-      `footage-${Date.now()}.mp4`;
+    // 🔥 FIX: Agar Frontend ne Folder ID bheja hai, to wahi use karo.
+    // Warna Global 'FOOTAGE_FOLDER_ID' use karo (Fallback).
+    const targetFolderId = folderId || FOOTAGE_FOLDER_ID;
 
-    // ✅ Google Drive pe upload
+    if (!targetFolderId) {
+       return res.status(500).json({ success: false, message: 'Target Folder ID missing' });
+    }
+
+    console.log(`🚀 Uploading to Folder ID: ${targetFolderId}`);
+
+    const safeFileName = fileName || req.file.originalname || `footage-${Date.now()}.mp4`;
+
+    // 2. Drive pe upload (Specific Folder me)
     const fileMetadata = {
       name: safeFileName,
-      parents: [FOOTAGE_FOLDER_ID],
+      parents: [targetFolderId], // <--- YAHAN HAI JADOO
     };
 
     const media = {
@@ -601,27 +595,21 @@ app.post('/api/footage/upload', upload.single('file'), async (req, res) => {
 
     const fileId = driveRes.data.id;
 
-    // ✅ Public permission (anyone with link can view)
+    // 3. Permission Public karo
     await drive.permissions.create({
       fileId,
-      requestBody: {
-        role: 'reader',
-        type: 'anyone',
-      },
+      requestBody: { role: 'reader', type: 'anyone' },
     });
 
-    // ✅ Download/View link le lo
+    // 4. Links Generate karo
     const driveFile = await drive.files.get({
       fileId,
       fields: 'webContentLink, webViewLink',
     });
 
-    const rawDriveLink =
-      driveFile.data.webContentLink ||
-      driveFile.data.webViewLink ||
-      '';
+    const rawDriveLink = driveFile.data.webContentLink || driveFile.data.webViewLink || '';
 
-    // ✅ Firestore me metadata doc banao (footage collection)
+    // 5. Firestore Save
     const footageData = {
       projectId,
       userId,
@@ -629,21 +617,16 @@ app.post('/api/footage/upload', upload.single('file'), async (req, res) => {
       sizeMB: parseFloat(sizeMB) || 0,
       title: safeFileName,
       kind: kind || 'raw',
-      status: 'uploaded',      // queued / processing / ready later change kar sakte ho
+      status: 'uploaded',
       rawDriveLink,
       editedDriveLink: '',
       thumbnailDataUrl: thumbnailDataUrl || '',
+      driveFolderId: targetFolderId, // Ye bhi save kar lete hain
       createdAt: new Date().toISOString(),
       updatedAt: new Date().toISOString(),
     };
 
     const docRef = await db.collection('footage').add(footageData);
-
-    console.log('✅ Footage uploaded:', {
-      footageId: docRef.id,
-      fileId,
-      rawDriveLink,
-    });
 
     return res.json({
       success: true,
@@ -655,11 +638,7 @@ app.post('/api/footage/upload', upload.single('file'), async (req, res) => {
 
   } catch (err) {
     console.error('❌ Footage upload error:', err);
-    return res.status(500).json({
-      success: false,
-      message: 'Failed to upload footage',
-      error: err.message,
-    });
+    return res.status(500).json({ success: false, message: err.message });
   }
 });
 
@@ -1458,25 +1437,36 @@ app.get('/api/auth/get-playback-token', async (req, res) => {
 });
 
 // ==========================================
-// 🚀 UNIVERSAL UPLOAD ROUTE (Admin Storage)
+// 🚀 UNIVERSAL UPLOAD ROUTE (Specific Folder Support)
 // ==========================================
 app.post('/api/drive/init-upload', async (req, res) => {
     try {
-        const { userName, projectName, fileName, fileType } = req.body;
+        const { userName, projectName, fileName, fileType, folderId } = req.body;
         
-        // 1. Root Folder (Admin ki Drive)
-        const ROOT_ID = process.env.DRIVE_FOLDER_ID;
-        if (!ROOT_ID) throw new Error("DRIVE_FOLDER_ID missing in .env");
+        console.log(`🚀 Init Upload Request for: ${fileName}`);
 
-        // 2. Folder Structure: Admin Drive > User Email > Project Name
-        // Hum 'userName' ki jagah user ka EMAIL use karenge folder name ke liye
-        const userFolderId = await findOrCreateFolder(userName, ROOT_ID); 
-        const projectFolderId = await findOrCreateFolder(projectName, userFolderId);
-        
+        let targetFolderId;
+
+        // 🔥 OPTION A: Agar Frontend ne seedha ID diya hai (BEST WAY)
+        if (folderId) {
+            targetFolderId = folderId;
+            console.log(`📂 Using provided Folder ID: ${targetFolderId}`);
+        } 
+        // ⚠️ OPTION B: Fallback (Purana Logic - Name se dhoondo)
+        else {
+            console.log("⚠️ No Folder ID provided. Falling back to Name search...");
+            const ROOT_ID = process.env.DRIVE_FOLDER_ID;
+            if (!ROOT_ID) throw new Error("DRIVE_FOLDER_ID missing in .env");
+
+            const userFolderId = await findOrCreateFolder(userName, ROOT_ID); 
+            // Note: Ye seedha Project folder me dalega, 'Raw Footage' me nahi
+            targetFolderId = await findOrCreateFolder(projectName, userFolderId);
+        }
+
         // 3. Placeholder File Create karo
         const fileMetadata = {
             name: fileName,
-            parents: [projectFolderId], // Sahi project folder me daalo
+            parents: [targetFolderId], // <--- CORRECT FOLDER
             mimeType: fileType
         };
 
@@ -1487,22 +1477,15 @@ app.post('/api/drive/init-upload', async (req, res) => {
 
         const fileId = file.data.id;
 
-        // 4. Public Permission (Taaki App par dikh sake)
+        // 4. Public Permission
         await drive.permissions.create({
             fileId: fileId,
             requestBody: { role: 'reader', type: 'anyone' }
         });
 
- 
-
-     // ✅ REPLACE THIS BLOCK IN server.js (inside /api/drive/init-upload)
-
         // 5. Generate Resumable Upload Link
         const tokenResponse = await oauth2Client.getAccessToken();
-        
-        // Browser ka Origin pakdo (Dynamic)
         const clientOrigin = req.headers.origin || 'https://imran-square-studio.onrender.com';
-        console.log(`🔗 Origin Set to: ${clientOrigin}`); // Debugging ke liye
 
         const uploadResponse = await axios.patch(
             `https://www.googleapis.com/upload/drive/v3/files/${fileId}?uploadType=resumable`,
@@ -1510,13 +1493,14 @@ app.post('/api/drive/init-upload', async (req, res) => {
             {
                 headers: {
                     'Authorization': `Bearer ${tokenResponse.token}`,
-                    'X-Upload-Content-Type': fileType,  // Match File Type
+                    'X-Upload-Content-Type': fileType,
                     'Content-Type': 'application/json; charset=UTF-8',
                     'Content-Length': 0,
-                    'Origin': clientOrigin // 👈 YE HAI WO MISSING KEY (Jadoo yahan hai)
+                    'Origin': clientOrigin
                 }
             }
         );
+
         res.json({
             success: true,
             uploadUrl: uploadResponse.headers.location,
