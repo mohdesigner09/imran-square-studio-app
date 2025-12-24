@@ -1,12 +1,9 @@
 // ==========================================
-// 🔑 CONFIGURATION (FIXED API KEY)
-// ==========================================
-// ==========================================
-// 🔑 CONFIGURATION (CORRECTED & FINAL)
+// 🔑 CONFIGURATION
 // ==========================================
 
-// ✅ SAHI API KEY (Ye change karna zaroori hai)
-const API_KEY = "AIzaSyCjWdPwfANgLC9gj4H89NNPY2CY0jnb-60"; 
+// ✅ IS KEY KO TRY KAREIN (Ye aapke index.html me thi aur working thi)
+const API_KEY = "AIzaSyA_D3AuwSzHKgs5svcwRoP0St2Nc-delF8"; 
 
 // 2. CLIENT ID
 const CLIENT_ID = "364132092578-tphp4i883gt7foep5cgaf226ivn45jmc.apps.googleusercontent.com";
@@ -20,7 +17,7 @@ const SCOPES = "https://www.googleapis.com/auth/drive.file";
 
 // 5. Firebase Config
 const firebaseConfig = {
-  apiKey: "AIzaSyCjWdPwfANgLC9gj4H89NNPY2CY0jnb-60",
+  apiKey: "AIzaSyA_D3AuwSzHKgs5svcwRoP0St2Nc-delF8", // Ab ye delF8 wali key use karega
   authDomain: "iimransquare.firebaseapp.com",
   projectId: "iimransquare",
   storageBucket: "iimransquare.firebasestorage.app",
