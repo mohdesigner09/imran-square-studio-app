@@ -161,10 +161,9 @@ async function setFilePublic(fileId) {
 
 // ============ MULTER + GOOGLE DRIVE SETUP ============
 const upload = multer({
-  storage: multer.memoryStorage(),
+  dest: 'uploads/', // <--- YE CHANGE KIYA HAI (Path issue fix)
   limits: {
-    // sirf file size limit rakhenge, fields par koi limit nahi
-    fileSize: 800 * 1024 * 1024, // 800 MB tak allowed
+    fileSize: 800 * 1024 * 1024, // 800 MB disk par safe hai, RAM par nahi
   },
 });
 
@@ -1625,48 +1624,51 @@ app.post('/api/drive/delete-file', async (req, res) => {
     }
 });
 
-// Import Multer at the top if not present
-// const multer = require('multer');
-// const upload = multer({ dest: 'uploads/' });
 
 // --- PASTE THIS NEW ROUTE ---
 
+// Route: Upload Multiple Files
 app.post('/api/drive/upload-multiple', upload.array('files', 10), async (req, res) => {
     try {
-        const folderId = req.body.folderId; // Frontend se bheja hua Folder ID
-        
         if (!req.files || req.files.length === 0) {
-            return res.status(400).json({ error: 'No files selected' });
+            return res.status(400).json({ error: 'No files received' });
         }
-        
+
+        const folderId = req.body.folderId;
         if (!folderId) {
              return res.status(400).json({ error: 'Target Folder ID missing' });
         }
 
-        console.log(`Uploading ${req.files.length} files to Folder: ${folderId}`);
+        console.log(`Processing ${req.files.length} files...`);
 
-        // Helper function to upload single file
-        const uploadToDrive = async (file) => {
-            const drive = google.drive({ version: 'v3', auth: oauth2Client });
+        const uploadPromises = req.files.map(async (file) => {
+            // Yahan check karo ki file.path exist karta hai ya nahi
+            if (!file.path) {
+                throw new Error("File path is undefined. Multer 'dest' config might be missing.");
+            }
+
+            const drive = google.drive({ version: 'v3', auth: oauth2Client }); // Ensure auth client is valid
+            
             const response = await drive.files.create({
                 requestBody: {
                     name: file.originalname,
-                    parents: [folderId], // Is folder me jayega
+                    parents: [folderId],
                 },
                 media: {
                     mimeType: file.mimetype,
-                    body: fs.createReadStream(file.path),
+                    body: fs.createReadStream(file.path), // <--- Ye line ab chalegi
                 },
             });
+
             // Cleanup: Delete temp file
-            fs.unlinkSync(file.path);
+            fs.unlink(file.path, (err) => {
+                if(err) console.error("Cleanup error:", err);
+            });
+
             return response.data;
-        };
+        });
 
-        // Run all uploads in parallel
-        const uploadPromises = req.files.map(file => uploadToDrive(file));
         const results = await Promise.all(uploadPromises);
-
         res.status(200).json({ message: "Success", data: results });
 
     } catch (error) {
