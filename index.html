@@ -803,157 +803,174 @@
 
     })();
 
-
-let isEditMode = false;
-
-    function toggleEditMode() {
-        isEditMode = !isEditMode;
+// 1. CSS STYLES INJECT KARO (Overlay ko control karne ke liye)
+    const style = document.createElement('style');
+    style.innerHTML = `
+        /* By default overlay hidden rahega */
+        .editor-overlay { display: none !important; }
         
-        const btn = document.getElementById('edit-mode-btn');
-        const container = document.getElementById('projectCards');
+        /* Jab Edit Mode ON hoga, tab overlay dikhega */
+        .edit-mode-active .editor-overlay { display: flex !important; }
         
-        // Safety Check
-        if (!container || container.children.length === 0) {
-            console.log("No projects to edit.");
-            return;
+        /* Shake Animation Edit Mode mein */
+        .edit-mode-active .project-card-item { 
+            animation: shake 0.5s infinite alternate; 
+            border-color: rgba(220, 38, 38, 0.5) !important;
         }
+        
+        @keyframes shake { from { transform: rotate(-1deg); } to { transform: rotate(1deg); } }
+    `;
+    document.head.appendChild(style);
 
-        const cards = Array.from(container.children); // Saare cards uthao
 
-        if (isEditMode) {
-            // --- ENTER EDIT MODE ---
-            
-            // 1. Change Icon to Green Tick
+    // 2. TOGGLE BUTTON LOGIC
+    window.toggleEditMode = function() {
+        const container = document.getElementById('projectCards');
+        const btn = document.getElementById('edit-mode-btn');
+        
+        // Toggle Class on Container
+        container.classList.toggle('edit-mode-active');
+        
+        const isActive = container.classList.contains('edit-mode-active');
+
+        if (isActive) {
+            // GREEN TICK ✅
             if(btn) {
                 btn.innerHTML = `<i class="fa-solid fa-check"></i>`;
                 btn.className = "text-green-500 hover:text-green-400 transition text-sm scale-110";
             }
-
-            // 2. Har Card par Button Lagao
-            cards.forEach(card => {
-                // Card ka purana Click Action (ID nikalne ke liye)
-                const originalOnClick = card.getAttribute('onclick');
-                
-                // Agar pehle se process nahi hua hai
-                if (originalOnClick && !card.dataset.originalClick) {
-                    
-                    // ID Nikalo (Regex se 'id=XYZ' dhoondo)
-                    let projId = "";
-                    if (originalOnClick.includes('?id=')) {
-                        projId = originalOnClick.split('?id=')[1].split("'")[0];
-                    }
-
-                    if (projId) {
-                        // Click save karo aur disable kar do (taaki page na khule)
-                        card.dataset.originalClick = originalOnClick;
-                        card.removeAttribute('onclick'); 
-                        
-                        // Shake Effect Add Karo
-                        card.classList.add('animate-pulse', 'ring-1', 'ring-red-500/50');
-
-                        // OVERLAY BUTTONS HTML CREATE KARO
-                        const overlay = document.createElement('div');
-                        overlay.className = 'editor-overlay absolute inset-0 bg-black/80 backdrop-blur-[2px] flex items-center justify-center gap-4 z-20 animate-fade-in';
-                        overlay.innerHTML = `
-                            <button onclick="renameProjectDirect(event, '${projId}')" 
-                                    class="w-10 h-10 rounded-full bg-blue-600 hover:bg-blue-500 text-white flex items-center justify-center shadow-lg transform hover:scale-110 transition">
-                                <i class="fa-solid fa-pen"></i>
-                            </button>
-                            <button onclick="deleteProjectDirect(event, '${projId}', this)" 
-                                    class="w-10 h-10 rounded-full bg-red-600 hover:bg-red-500 text-white flex items-center justify-center shadow-lg transform hover:scale-110 transition">
-                                <i class="fa-solid fa-trash"></i>
-                            </button>
-                        `;
-                        
-                        // Card me ghusa do
-                        card.appendChild(overlay);
-                    }
-                }
-            });
-
         } else {
-            // --- EXIT EDIT MODE (RESET) ---
-
-            // 1. Icon Wapas Pencil
+            // GREY PENCIL ✏️
             if(btn) {
                 btn.innerHTML = `<i class="fa-solid fa-pencil"></i>`;
                 btn.className = "text-gray-400 hover:text-white transition text-sm";
             }
-
-            // 2. Cards ko Normal Karo
-            cards.forEach(card => {
-                // Overlay hatao
-                const overlay = card.querySelector('.editor-overlay');
-                if (overlay) overlay.remove();
-
-                // Shake effect hatao
-                card.classList.remove('animate-pulse', 'ring-1', 'ring-red-500/50');
-
-                // Click wapas lagao (Agar save kiya tha)
-                if (card.dataset.originalClick) {
-                    card.setAttribute('onclick', card.dataset.originalClick);
-                    delete card.dataset.originalClick;
-                }
-            });
         }
-    }
+    };
 
-    // --- ACTIONS ---
 
-    // 1. RENAME
-    async function renameProjectDirect(event, projectId) {
-        event.stopPropagation(); // Parent click roko
-        
-        // Find Card Title Element
-        // Hum DOM traverse karke title dhoond rahe hain
-        const btn = event.target.closest('button');
-        const card = btn.closest('.bg-\\[\\#1a1a1a\\]'); // Parent Card
-        const titleEl = card.querySelector('h3');
-        const oldName = titleEl ? titleEl.innerText : "Project";
-
-        const newName = prompt("Rename Project:", oldName);
-        
-        if (newName && newName.trim() !== "" && newName !== oldName) {
-            try {
-                // Update UI Immediately
-                if(titleEl) titleEl.innerText = newName.trim();
-
-                // Update DB
-                await db.collection('projects').doc(projectId).update({ title: newName.trim() });
-            } catch (error) {
-                console.error(error);
-                alert("❌ Update Failed");
+    // 3. THE WATCHMAN (MutationObserver)
+    // Ye function hamesha chalta rahega aur naye cards par button lagata rahega
+    const observer = new MutationObserver((mutations) => {
+        mutations.forEach((mutation) => {
+            if (mutation.addedNodes.length) {
+                attachEditorsToCards();
             }
-        }
+        });
+    });
+
+    // Start Watching
+    const targetNode = document.getElementById('projectCards');
+    if (targetNode) {
+        observer.observe(targetNode, { childList: true });
+        // Page load hote hi ek baar chala do
+        setTimeout(attachEditorsToCards, 500);
+        setTimeout(attachEditorsToCards, 2000); // Backup for slow internet
     }
 
-    // 2. DELETE
-    async function deleteProjectDirect(event, projectId, btnElement) {
-        event.stopPropagation();
-        
-        if (confirm("⚠️ Permanently delete this project?")) {
-            try {
-                // Remove UI Immediately (Fast feel ke liye)
-                const card = btnElement.closest('.relative');
-                if(card) card.remove();
 
-                // Delete from DB
-                await db.collection('projects').doc(projectId).delete();
-                console.log("🗑️ Deleted:", projectId);
+    // 4. BUTTON ATTACHER (Ye asli kaam karega)
+    function attachEditorsToCards() {
+        const cards = document.querySelectorAll('#projectCards > div');
+        
+        cards.forEach(card => {
+            // Check karo agar pehle se button laga hai to dubara mat lagao
+            if (card.querySelector('.editor-overlay')) return;
+
+            // Card ko class do taaki CSS control kar sake
+            card.classList.add('project-card-item');
+
+            // ID Nikalo (onclick attribute se)
+            const onclickAttr = card.getAttribute('onclick');
+            let projId = null;
+
+            if (onclickAttr && onclickAttr.includes('?id=')) {
+                // ID extract karo: window.location.href='scripts.html?id=XYZ'
+                try {
+                    projId = onclickAttr.split('?id=')[1].split("'")[0];
+                } catch(e) {}
+            }
+
+            if (projId) {
+                // Overlay HTML Banao
+                const overlay = document.createElement('div');
+                overlay.className = 'editor-overlay absolute inset-0 bg-black/80 backdrop-blur-[2px] items-center justify-center gap-4 z-20 animate-fade-in';
                 
-                // Agar saare cards delete ho gaye to empty message dikhao
-                const container = document.getElementById('projectCards');
-                if(container && container.children.length === 0) {
-                    container.innerHTML = `<p class="text-gray-500 text-center col-span-full py-10">No active projects.</p>`;
+                // Buttons HTML
+                overlay.innerHTML = `
+                    <button onclick="window.renameProjectDirect(event, '${projId}')" 
+                            class="w-10 h-10 rounded-full bg-blue-600 hover:bg-blue-500 text-white flex items-center justify-center shadow-lg transform hover:scale-110 transition cursor-pointer">
+                        <i class="fa-solid fa-pen"></i>
+                    </button>
+                    <button onclick="window.deleteProjectDirect(event, '${projId}', this)" 
+                            class="w-10 h-10 rounded-full bg-red-600 hover:bg-red-500 text-white flex items-center justify-center shadow-lg transform hover:scale-110 transition cursor-pointer">
+                        <i class="fa-solid fa-trash"></i>
+                    </button>
+                `;
+
+                // Card ke andar ghusa do
+                card.style.position = 'relative'; // Safety
+                card.appendChild(overlay);
+                
+                // IMPORTANT: Jab Edit Mode ON ho, to Card par click disable karo
+                // Hum overlay ko click intercept karne denge
+            }
+        });
+    }
+
+
+    // 5. GLOBAL ACTIONS (Rename & Delete)
+    
+    // RENAME
+    window.renameProjectDirect = async function(event, projectId) {
+        event.stopPropagation(); // Card open hone se roko
+        event.preventDefault();
+
+        const newName = prompt("Rename Project:");
+        
+        if (newName && newName.trim() !== "") {
+            try {
+                // Database Update
+                await db.collection('projects').doc(projectId).update({ title: newName.trim() });
+                
+                // UI Update (Page reload ki zaroorat nahi)
+                const card = event.target.closest('.project-card-item');
+                const titleEl = card.querySelector('h3');
+                if(titleEl) titleEl.textContent = newName.trim();
+                
+            } catch (error) {
+                console.error(error);
+                alert("❌ Error Updating Name");
+            }
+        }
+    };
+
+    // DELETE
+    window.deleteProjectDirect = async function(event, projectId, btnElement) {
+        event.stopPropagation(); // Card open hone se roko
+        event.preventDefault();
+
+        if (confirm("⚠️ Are you sure you want to DELETE this project?")) {
+            try {
+                // UI se turant hata do (Fast feel ke liye)
+                const card = btnElement.closest('.project-card-item');
+                if(card) {
+                    card.style.transition = "all 0.3s";
+                    card.style.transform = "scale(0)";
+                    setTimeout(() => card.remove(), 300);
                 }
+
+                // Database se uda do
+                await db.collection('projects').doc(projectId).delete();
+                console.log("Deleted:", projectId);
 
             } catch (error) {
                 console.error(error);
-                alert("❌ Delete Failed");
+                alert("❌ Error Deleting");
             }
         }
-    }
-
+    };
+    
 </script>
 
  <div id="dashToast" class="hidden fixed bottom-6 left-1/2 -translate-x-1/2 px-4 py-2 rounded-full bg-white/90 text-xs text-black shadow-lg z-50">
