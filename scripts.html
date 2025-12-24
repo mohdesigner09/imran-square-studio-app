@@ -1131,7 +1131,7 @@ async function confirmAddSection() {
 
 
 // ==========================================
-// 🚀 TRIGGER UPLOAD (FIXED: Undefined Value Handling)
+// 🚀 TRIGGER UPLOAD (TAGDA LOGIC: DIRECT PDF OPEN)
 // ==========================================
 async function triggerUpload(sectionId) {
     console.log(`🚀 Starting Upload for Section: ${sectionId}`);
@@ -1139,7 +1139,7 @@ async function triggerUpload(sectionId) {
     const fileInput = document.getElementById(`file-input-${sectionId}`);
     if (!fileInput || fileInput.files.length === 0) return;
 
-    // 1. Folder ID Logic
+    // 1. Target Folder
     let targetFolderId = "";
     if (typeof currentDriveData !== 'undefined' && currentDriveData.projectId) {
         targetFolderId = currentDriveData.projectId;
@@ -1152,7 +1152,7 @@ async function triggerUpload(sectionId) {
         return;
     }
 
-    // 2. UI Update
+    // 2. UI Loading
     const btn = document.getElementById(`upload-btn-${sectionId}`);
     const originalText = btn ? btn.innerHTML : "Upload";
     if (btn) {
@@ -1168,7 +1168,7 @@ async function triggerUpload(sectionId) {
     }
 
     try {
-        // --- STEP A: UPLOAD TO DRIVE ---
+        // --- STEP A: UPLOAD ---
         const response = await fetch('/api/drive/upload-multiple', {
             method: 'POST',
             body: formData
@@ -1177,40 +1177,35 @@ async function triggerUpload(sectionId) {
         const result = await response.json();
 
         if (response.ok) {
-            console.log("✅ Drive Upload Success:", result.data);
-
-            // --- STEP B: SAVE TO FIREBASE (FIXED) ---
             const uploadedFiles = result.data; 
 
-            // Local Data Find Karo
+            // --- STEP B: SAVE TO FIREBASE (MAGIC LINK LOGIC) ---
             const secIndex = sectionsData.findIndex(s => s.id == sectionId);
             
             if (secIndex > -1) {
                 if (!sectionsData[secIndex].files) sectionsData[secIndex].files = [];
 
                 uploadedFiles.forEach(f => {
-                    // 🔥 HERE IS THE FIX: Undefined values ko roko
+                    // 🔥 TAGDA LOGIC: Direct Open Link banao ID se
+                    // Ye link bina Gmail puche seedha file kholega
+                    const directLink = `https://drive.google.com/uc?export=view&id=${f.id}`;
+
                     sectionsData[secIndex].files.push({
                         name: f.name || "Untitled File",
                         id: f.id || "",
-                        url: f.webViewLink || "#", 
-                        type: f.mimeType || "file/unknown", // <--- YE FIX KIYA HAI (Crash yahi ho raha tha)
+                        url: directLink, // <--- YAHAN CHANGE KIYA HAI (Ab Direct Link save hoga)
+                        type: f.mimeType || "file/unknown",
                         date: new Date().toLocaleDateString()
                     });
                 });
 
-                // Database Update
-                // 'sectionsData' ab pure objects contain karta hai, undefined nahi
+                // Update Database
                 await db.collection('projects').doc(currentProjectID).update({
                     sections: sectionsData
                 });
 
-                alert(`✅ Uploaded & Saved ${uploadedFiles.length} files!`);
-                
-                // UI Refresh
+                alert(`✅ Uploaded! Ab PDF makkhan ki tarah khulega.`);
                 renderSections(); 
-            } else {
-                console.error("Section not found locally to update UI");
             }
 
         } else {
@@ -1218,12 +1213,7 @@ async function triggerUpload(sectionId) {
         }
     } catch (err) {
         console.error("Error:", err);
-        // Error message ko user friendly banao
-        if(err.message.includes("undefined")) {
-            alert("❌ Data Error: Database rejected empty value.");
-        } else {
-            alert("❌ Error during upload/save.");
-        }
+        alert("❌ Error during upload.");
     } finally {
         if (btn) {
             btn.innerHTML = originalText;
