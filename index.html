@@ -804,126 +804,153 @@
     })();
 
 
+let isEditMode = false;
 
-    // 1. Data Save karne ke liye global variable
-    window.cachedProjects = []; 
-    let isEditMode = false;
-
-    // 2. Hum purane render function ko OVERRIDE karenge
-    // Taaki jab main.js data bheje, hum usse pakad lein
-    const originalRender = window.renderProjects; // Backup (agar zaroorat padi)
-
-    window.renderProjects = function(projects) {
-        // 🔥 STEP 1: Data ko Variable me Save kar lo
-        if(projects && projects.length > 0) {
-            window.cachedProjects = projects;
-            console.log("✅ Data Cached for Editor:", projects.length);
-        }
-
-        // 🔥 STEP 2: Cards Banao (UI Render)
-        const container = document.getElementById('projectCards');
-        if (!container) return;
-
-        container.innerHTML = "";
-
-        // Agar data khali hai (aur hum edit mode me nahi hain)
-        if ((!projects || projects.length === 0) && !isEditMode) {
-            container.innerHTML = `<p class="text-gray-500 text-center col-span-full py-10">No active projects.</p>`;
-            return;
-        }
-
-        // Agar projects parameter khali hai, lekin cachedData hai, toh cachedData use karo
-        const dataToRender = (projects && projects.length > 0) ? projects : window.cachedProjects;
-
-        dataToRender.forEach(proj => {
-            // Shake Effect
-            const shakeClass = isEditMode ? "animate-pulse ring-1 ring-red-500/50" : "";
-            
-            // Edit Mode me click disable, Normal mode me redirect
-            const clickAction = isEditMode ? "" : `window.location.href='scripts.html?id=${proj.id}'`;
-
-            const cardHtml = `
-            <div onclick="${clickAction}" 
-                 class="bg-[#1a1a1a] p-4 rounded-xl border border-white/5 cursor-pointer hover:bg-[#252525] transition relative group overflow-hidden ${shakeClass}">
-                
-                <h3 class="font-bold text-white text-lg truncate pr-8">${proj.title}</h3>
-                <p class="text-xs text-gray-400 mt-1 uppercase tracking-wider">${proj.genre || 'General'}</p>
-                
-                <div class="mt-4 flex justify-between items-end">
-                     <div class="bg-white/10 px-2 py-1 rounded text-[10px] text-gray-300">
-                        ${proj.progress || 0}% Done
-                     </div>
-                     <span class="text-[10px] text-gray-500">
-                        ${proj.createdAt ? new Date(proj.createdAt.toDate()).toLocaleDateString() : ''}
-                     </span>
-                </div>
-
-                ${isEditMode ? `
-                    <div class="absolute inset-0 bg-black/80 backdrop-blur-[2px] flex items-center justify-center gap-4 z-20 animate-fade-in">
-                        
-                        <button onclick="renameProject(event, '${proj.id}', '${proj.title}')" 
-                                class="w-10 h-10 rounded-full bg-blue-600 hover:bg-blue-500 text-white flex items-center justify-center shadow-lg transform hover:scale-110 transition">
-                            <i class="fa-solid fa-pen"></i>
-                        </button>
-
-                        <button onclick="deleteProject(event, '${proj.id}')" 
-                                class="w-10 h-10 rounded-full bg-red-600 hover:bg-red-500 text-white flex items-center justify-center shadow-lg transform hover:scale-110 transition">
-                            <i class="fa-solid fa-trash"></i>
-                        </button>
-                    </div>
-                ` : ''}
-
-            </div>`;
-            container.innerHTML += cardHtml;
-        });
-    };
-
-    // 3. TOGGLE BUTTON LOGIC
-    window.toggleEditMode = function() {
+    function toggleEditMode() {
         isEditMode = !isEditMode;
         
         const btn = document.getElementById('edit-mode-btn');
-        if(btn) {
-            if (isEditMode) {
-                // Check Button (Green)
+        const container = document.getElementById('projectCards');
+        
+        // Safety Check
+        if (!container || container.children.length === 0) {
+            console.log("No projects to edit.");
+            return;
+        }
+
+        const cards = Array.from(container.children); // Saare cards uthao
+
+        if (isEditMode) {
+            // --- ENTER EDIT MODE ---
+            
+            // 1. Change Icon to Green Tick
+            if(btn) {
                 btn.innerHTML = `<i class="fa-solid fa-check"></i>`;
                 btn.className = "text-green-500 hover:text-green-400 transition text-sm scale-110";
-            } else {
-                // Pencil Button (Grey)
+            }
+
+            // 2. Har Card par Button Lagao
+            cards.forEach(card => {
+                // Card ka purana Click Action (ID nikalne ke liye)
+                const originalOnClick = card.getAttribute('onclick');
+                
+                // Agar pehle se process nahi hua hai
+                if (originalOnClick && !card.dataset.originalClick) {
+                    
+                    // ID Nikalo (Regex se 'id=XYZ' dhoondo)
+                    let projId = "";
+                    if (originalOnClick.includes('?id=')) {
+                        projId = originalOnClick.split('?id=')[1].split("'")[0];
+                    }
+
+                    if (projId) {
+                        // Click save karo aur disable kar do (taaki page na khule)
+                        card.dataset.originalClick = originalOnClick;
+                        card.removeAttribute('onclick'); 
+                        
+                        // Shake Effect Add Karo
+                        card.classList.add('animate-pulse', 'ring-1', 'ring-red-500/50');
+
+                        // OVERLAY BUTTONS HTML CREATE KARO
+                        const overlay = document.createElement('div');
+                        overlay.className = 'editor-overlay absolute inset-0 bg-black/80 backdrop-blur-[2px] flex items-center justify-center gap-4 z-20 animate-fade-in';
+                        overlay.innerHTML = `
+                            <button onclick="renameProjectDirect(event, '${projId}')" 
+                                    class="w-10 h-10 rounded-full bg-blue-600 hover:bg-blue-500 text-white flex items-center justify-center shadow-lg transform hover:scale-110 transition">
+                                <i class="fa-solid fa-pen"></i>
+                            </button>
+                            <button onclick="deleteProjectDirect(event, '${projId}', this)" 
+                                    class="w-10 h-10 rounded-full bg-red-600 hover:bg-red-500 text-white flex items-center justify-center shadow-lg transform hover:scale-110 transition">
+                                <i class="fa-solid fa-trash"></i>
+                            </button>
+                        `;
+                        
+                        // Card me ghusa do
+                        card.appendChild(overlay);
+                    }
+                }
+            });
+
+        } else {
+            // --- EXIT EDIT MODE (RESET) ---
+
+            // 1. Icon Wapas Pencil
+            if(btn) {
                 btn.innerHTML = `<i class="fa-solid fa-pencil"></i>`;
                 btn.className = "text-gray-400 hover:text-white transition text-sm";
             }
-        }
 
-        // Screen Refresh karo (Cached Data use karega)
-        if (window.cachedProjects.length > 0) {
-            window.renderProjects(window.cachedProjects);
-        } else {
-            console.log("Waiting for data...");
+            // 2. Cards ko Normal Karo
+            cards.forEach(card => {
+                // Overlay hatao
+                const overlay = card.querySelector('.editor-overlay');
+                if (overlay) overlay.remove();
+
+                // Shake effect hatao
+                card.classList.remove('animate-pulse', 'ring-1', 'ring-red-500/50');
+
+                // Click wapas lagao (Agar save kiya tha)
+                if (card.dataset.originalClick) {
+                    card.setAttribute('onclick', card.dataset.originalClick);
+                    delete card.dataset.originalClick;
+                }
+            });
         }
     }
 
-    // 4. RENAME LOGIC
-    window.renameProject = async function(event, projectId, oldName) {
-        event.stopPropagation(); 
+    // --- ACTIONS ---
+
+    // 1. RENAME
+    async function renameProjectDirect(event, projectId) {
+        event.stopPropagation(); // Parent click roko
+        
+        // Find Card Title Element
+        // Hum DOM traverse karke title dhoond rahe hain
+        const btn = event.target.closest('button');
+        const card = btn.closest('.bg-\\[\\#1a1a1a\\]'); // Parent Card
+        const titleEl = card.querySelector('h3');
+        const oldName = titleEl ? titleEl.innerText : "Project";
+
         const newName = prompt("Rename Project:", oldName);
+        
         if (newName && newName.trim() !== "" && newName !== oldName) {
-            await db.collection('projects').doc(projectId).update({ title: newName.trim() });
-            // Local update taaki refresh ki zaroorat na pade
-            const p = window.cachedProjects.find(p => p.id === projectId);
-            if(p) p.title = newName.trim();
-            window.renderProjects(window.cachedProjects);
+            try {
+                // Update UI Immediately
+                if(titleEl) titleEl.innerText = newName.trim();
+
+                // Update DB
+                await db.collection('projects').doc(projectId).update({ title: newName.trim() });
+            } catch (error) {
+                console.error(error);
+                alert("❌ Update Failed");
+            }
         }
     }
 
-    // 5. DELETE LOGIC
-    window.deleteProject = async function(event, projectId) {
+    // 2. DELETE
+    async function deleteProjectDirect(event, projectId, btnElement) {
         event.stopPropagation();
-        if (confirm("Permanently delete this project?")) {
-            await db.collection('projects').doc(projectId).delete();
-            // List se hatao
-            window.cachedProjects = window.cachedProjects.filter(p => p.id !== projectId);
-            window.renderProjects(window.cachedProjects);
+        
+        if (confirm("⚠️ Permanently delete this project?")) {
+            try {
+                // Remove UI Immediately (Fast feel ke liye)
+                const card = btnElement.closest('.relative');
+                if(card) card.remove();
+
+                // Delete from DB
+                await db.collection('projects').doc(projectId).delete();
+                console.log("🗑️ Deleted:", projectId);
+                
+                // Agar saare cards delete ho gaye to empty message dikhao
+                const container = document.getElementById('projectCards');
+                if(container && container.children.length === 0) {
+                    container.innerHTML = `<p class="text-gray-500 text-center col-span-full py-10">No active projects.</p>`;
+                }
+
+            } catch (error) {
+                console.error(error);
+                alert("❌ Delete Failed");
+            }
         }
     }
 
