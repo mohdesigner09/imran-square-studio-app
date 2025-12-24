@@ -752,7 +752,8 @@ He pulls out a crumpled photograph.
     let sectionsData = []; 
     const FILES_PER_SECTION = 10;
     let saveTimer; // Auto-save debounce
-    
+    let currentDriveData = null; 
+
     // Status UI Element
     const statusLabel = document.createElement('div');
     statusLabel.id = 'saveStatus';
@@ -814,50 +815,47 @@ He pulls out a crumpled photograph.
             setTimeout(() => { statusLabel.classList.remove('opacity-100'); statusLabel.classList.add('opacity-0'); }, 3000);
         }
     }
-// 1. GLOBAL VARIABLE (Isay function ke bahar, script ke top par rakhein)
-let currentDriveData = null; 
 
-// scripts.html ke andar
 
+
+// 2. LOAD FUNCTION
 async function loadProjectFromFirestore(projId) {
+    console.log("🔄 Fetching Project Data for:", projId);
+    currentProjectID = projId; // ID save kar lo
+
     try {
-        console.log("🔄 Loading Project Data from DB...");
         const doc = await db.collection('projects').doc(projId).get();
 
         if (doc.exists) {
             const data = doc.data();
-            console.log("📦 Full Data from DB:", data); // Is log ko check karna zaroori hai
+            console.log("📦 DATA RECEIVED:", data); // Ye log dikhna chahiye!
 
-            // 🔥 FIX: Data Retrieve Logic (Dono format check karo)
-            if (data.drive && data.drive.enabled) {
-                // New Format (jo abhi main.js save kar raha hai)
+            // 🔥 Drive Data Save Karo
+            if (data.drive) {
                 currentDriveData = data.drive;
-                console.log("✅ Drive Data Loaded (New Format):", currentDriveData);
-            } 
-            else if (data.driveData) {
-                // Old/Backup Format
+                console.log("📂 Drive Data Set:", currentDriveData);
+            } else if (data.driveData) {
                 currentDriveData = data.driveData;
-                console.log("✅ Drive Data Loaded (Old Format):", currentDriveData);
-            } 
-            else {
-                console.warn("⚠️ No Drive Data found in Database for this project.");
-                currentDriveData = null;
+                console.log("📂 Drive Data Set (Backup):", currentDriveData);
+            } else {
+                console.warn("⚠️ No Drive Data Found in DB");
             }
 
-            // ... (Title/Content load karne wala code same rahega) ...
-            const editor = document.getElementById('scriptEditor');
-            if(editor) editor.innerHTML = data.content || "";
-
+            // Title Set
             const titleEl = document.getElementById('scriptTitle');
-            if(titleEl) titleEl.textContent = (data.title || "UNTITLED").toUpperCase();
+            if(titleEl) titleEl.innerText = (data.title || "Untitled").toUpperCase();
 
-            sectionsData = data.sections || createDefaultSections();
-            renderSections();
+            // Sections Render
+            if (data.sections) {
+                sectionsData = data.sections;
+                renderSections();
+            }
+
         } else {
-            console.error("❌ Document does not exist!");
+            console.error("❌ Project Document Not Found!");
         }
     } catch (error) {
-        console.error("❌ Load Error:", error);
+        console.error("❌ Error Loading Project:", error);
     }
 }
 
@@ -1260,6 +1258,27 @@ async function triggerUpload(sectionId) {
 
     function toggleSidebar() { document.getElementById('mobileSidebar').classList.toggle('open'); document.getElementById('sidebarOverlay').classList.toggle('open'); }
     function toggleAISheet() { document.getElementById('mobileAISheet').classList.toggle('open'); }
+
+    // ==========================================
+// 🚀 INITIALIZATION (Engine Start)
+// ==========================================
+document.addEventListener('DOMContentLoaded', () => {
+    console.log("🚀 Script Page Loaded. Checking Project ID...");
+    
+    // URL se ID nikalo
+    const urlParams = new URLSearchParams(window.location.search);
+    const projectId = urlParams.get('id');
+
+    if (projectId) {
+        console.log("✅ Project ID Found:", projectId);
+        // 🔥 Ye function call karna zaroori hai!
+        loadProjectFromFirestore(projectId);
+    } else {
+        console.error("❌ No Project ID in URL!");
+        alert("Error: No Project Selected. Go back to Dashboard.");
+        window.location.href = 'index.html';
+    }
+});
     
 </script>
 
