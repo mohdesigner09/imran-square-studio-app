@@ -1000,53 +1000,59 @@ async function loadProjectFromFirestore(projId) {
 
 // scripts.html ke andar
 
+// ==========================================
+// ➕ ADD NEW SECTION (Final Fix with Save)
+// ==========================================
 async function confirmAddSection() {
     const nameInput = document.getElementById('newSectionName');
     const name = nameInput.value.trim();
 
+    // 1. Validation
     if (!name) return alert("Please enter a section name");
-    
-    // 🔥 DEBUG: Dekho ab data mila ya nahi?
-    console.log("🔍 Using Drive Data:", currentDriveData);
+    if (!currentDriveData) return alert("Wait! Data not loaded yet.");
 
-    // Logic: Agar 'scriptId' hai (New) ya 'scriptFolderId' hai (Old)
-    // Note: main.js ab 'scriptId' save kar raha hai 'drive' object ke andar
-    const parentFolderId = currentDriveData ? (currentDriveData.scriptId || currentDriveData.scriptFolderId) : null;
-
-    if(!parentFolderId) {
-        alert("⚠️ Error: Script Folder ID not found.\nTry creating a NEW Project.");
-        console.error("❌ ID Missing. Data was:", currentDriveData);
-        return;
-    }
+    // 2. ID Check (Jo ab sahi chal raha hai)
+    const parentFolderId = currentDriveData.scriptId || currentDriveData.scriptFolderId;
+    if(!parentFolderId) return alert("Script Folder ID missing!");
 
     showStatus("Creating Drive Folder...", "text-yellow-400");
     closeAddSectionModal();
 
     try {
-        // Folder Create Call
+        // 3. Google Drive Folder Banao
         const newFolderId = await createDriveSubFolder(name, parentFolderId);
-        
-        if(!newFolderId) throw new Error("Folder creation returned null");
+        if(!newFolderId) throw new Error("Drive Folder Creation Failed");
 
+        // 4. Local Array Update Karo
         const newSection = {
             id: Date.now(),
             name: name,
-            driveFolderId: newFolderId,
+            driveFolderId: newFolderId, // ✅ Drive ID save hui
             files: []
         };
 
         sectionsData.push(newSection);
-        await saveToFirestore();
+
+        // 5. 🔥 CRITICAL STEP: Database me Save Karo!
+        // (Ye line pehle missing thi, isliye refresh pe udd raha tha)
+        console.log("💾 Saving Section to Database...", currentProjectID);
+        
+        await db.collection('projects').doc(currentProjectID).update({
+            sections: sectionsData
+        });
+
+        console.log("✅ Database Updated Successfully!");
+
+        // 6. UI Update
         renderSections();
-        showStatus("Section Created!", "text-green-500");
+        showStatus("Section Saved!", "text-green-500");
 
     } catch(e) {
-        console.error(e);
-        showStatus("Error Creating Section", "text-red-500");
-        alert("Folder Creation Failed: " + e.message);
+        console.error("Save Error:", e);
+        showStatus("Save Failed!", "text-red-500");
+        alert("Error: " + e.message);
     }
 }
-
 // 🚀 SMART UPLOAD SYSTEM (Connected to Google Drive)
 async function triggerUpload(sectionId) {
     const section = sectionsData.find(s => s.id === sectionId);
