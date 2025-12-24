@@ -803,34 +803,73 @@
 
     })();
 
-    
-// 1. CSS STYLES (Shake & Overlay)
+    // 1. CSS STYLES (Clean Look)
     const style = document.createElement('style');
     style.innerHTML = `
-        .editor-overlay { display: none !important; }
-        .edit-mode-active .editor-overlay { display: flex !important; }
+        /* Overlay hidden by default */
+        .editor-actions-bar { display: none !important; }
         
-        /* Shake Animation */
+        /* EDIT MODE ACTIVE STATE */
         .edit-mode-active .project-card-item { 
-            animation: shake 0.5s infinite alternate; 
-            border: 1px dashed rgba(220, 38, 38, 0.5) !important;
+            border: 1px solid rgba(255, 255, 255, 0.8) !important; /* Slim White Border */
+            box-shadow: 0 0 15px rgba(255, 255, 255, 0.1);
+            position: relative;
         }
-        @keyframes shake { from { transform: rotate(-1deg); } to { transform: rotate(1deg); } }
+
+        /* Disable Normal Click in Edit Mode */
+        .edit-mode-active .project-card-item > *:not(.editor-actions-bar) {
+            pointer-events: none; /* Andar ka content click nahi hoga */
+            opacity: 0.6; /* Thoda dim kar do taaki focus border par rahe */
+        }
+
+        /* BUTTONS STRIP (At the Bottom) */
+        .edit-mode-active .editor-actions-bar { 
+            display: flex !important;
+            position: absolute;
+            bottom: 0;
+            left: 0;
+            width: 100%;
+            padding: 10px;
+            gap: 10px;
+            background: linear-gradient(to top, rgba(0,0,0,0.9), transparent);
+            z-index: 50;
+            justify-content: center;
+            pointer-events: auto; /* Buttons click honge */
+        }
+
+        .editor-btn {
+            background: rgba(255, 255, 255, 0.1);
+            backdrop-filter: blur(4px);
+            border: 1px solid rgba(255, 255, 255, 0.2);
+            color: white;
+            padding: 6px 16px;
+            border-radius: 6px;
+            font-size: 11px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.2s;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+        
+        .editor-btn:hover { background: white; color: black; }
+        .editor-btn.delete:hover { background: #ef4444; color: white; border-color: #ef4444; }
     `;
     document.head.appendChild(style);
 
-    // 2. TOGGLE BUTTON LOGIC
+
+    // 2. TOGGLE LOGIC
     window.toggleEditMode = function() {
         const container = document.getElementById('projectCards');
         const btn = document.getElementById('edit-mode-btn');
         
         if (!container) return;
 
-        // Toggle Class
+        // Class Toggle
         container.classList.toggle('edit-mode-active');
         const isActive = container.classList.contains('edit-mode-active');
 
-        // Button Icon Change
+        // Icon Change
         if(btn) {
             if (isActive) {
                 btn.innerHTML = `<i class="fa-solid fa-check"></i>`;
@@ -842,11 +881,12 @@
         }
     };
 
-    // 3. WATCHMAN (Cards scan karta rahega)
+
+    // 3. WATCHMAN (Cards Detector)
     const observer = new MutationObserver((mutations) => {
         mutations.forEach((mutation) => {
             if (mutation.addedNodes.length) {
-                attachEditorsToCards();
+                setTimeout(attachCleanEditors, 100); // Thoda wait taaki data render ho jaye
             }
         });
     });
@@ -854,85 +894,100 @@
     const targetNode = document.getElementById('projectCards');
     if (targetNode) {
         observer.observe(targetNode, { childList: true, subtree: true });
-        setTimeout(attachEditorsToCards, 500); // Start immediately
-        setTimeout(attachEditorsToCards, 1500); // Backup
+        // Initial Runs
+        setTimeout(attachCleanEditors, 1000);
+        setTimeout(attachCleanEditors, 3000);
     }
 
-    // 4. BUTTON ATTACHER (Isme Fix Hai)
-    function attachEditorsToCards() {
-        // Sirf wahi cards uthao jo project cards hain
-        const cards = document.querySelectorAll('#projectCards > div');
+
+    // 4. ATTACH BUTTONS (With ID Recovery Logic)
+    function attachCleanEditors() {
+        // Main container ke direct children (cards) uthao
+        // Note: Kabhi kabhi structure nested hoti hai, isliye hum deep search karenge
+        let cards = document.querySelectorAll('#projectCards .bg-\\[\\#1a1a1a\\]'); 
+        
+        // Agar upar wala selector fail hua to generic selector try karo
+        if(cards.length === 0) {
+            cards = document.querySelectorAll('#projectCards > div');
+        }
         
         cards.forEach(card => {
-            // Agar pehle se button hai toh skip karo
-            if (card.querySelector('.editor-overlay')) return;
+            // Agar pehle se processed hai to chhodo
+            if (card.querySelector('.editor-actions-bar')) return;
 
-            // Class add karo (Shake ke liye)
+            // Class add karo styling ke liye
             card.classList.add('project-card-item');
 
-            // --- 🔥 SMART ID DETECTION START ---
+            // --- 🕵️‍♂️ FIND ID STRATEGY ---
             let projId = null;
-            const onclickAttr = card.getAttribute('onclick') || "";
 
-            // METHOD 1: Agar code hai "window.location... ?id=XYZ"
-            if (onclickAttr.includes('?id=')) {
-                try {
-                    projId = onclickAttr.split('?id=')[1].split("'")[0].split('"')[0];
-                } catch(e) {}
-            }
-            // METHOD 2: Agar code hai "openProject('XYZ')"
-            else if (onclickAttr.includes('openProject')) {
-                try {
-                    // Bracket ke andar jo bhi hai use nikalo
+            // Try 1: Onclick Attribute
+            const onclickAttr = card.getAttribute('onclick');
+            if (onclickAttr) {
+                if (onclickAttr.includes('?id=')) projId = onclickAttr.split('?id=')[1].split("'")[0].split('"')[0];
+                else if (onclickAttr.includes('openProject')) {
                     const match = onclickAttr.match(/openProject\(['"]([^'"]+)['"]\)/);
                     if (match) projId = match[1];
-                } catch(e) {}
+                }
             }
-            // --- SMART ID DETECTION END ---
 
+            // Try 2: Title Match (Agar ID nahi mili)
+            // Logs mein dikh raha hai ki 'main.js' ne 28 projects load kiye hain
+            if (!projId && typeof allProjectsData !== 'undefined') {
+                const titleEl = card.querySelector('h3'); // Usually title h3 mein hota hai
+                if (titleEl) {
+                    const titleText = titleEl.innerText.trim();
+                    const foundProj = allProjectsData.find(p => p.title === titleText);
+                    if (foundProj) projId = foundProj.id;
+                }
+            }
+
+            // --- ATTACH UI ---
             if (projId) {
-                console.log("✅ Editor Attached to:", projId); // Debug Log
-
-                // Safety: Card ko relative banao taaki overlay uske upar aaye
-                card.style.position = 'relative'; 
-
-                // Overlay Create Karo
-                const overlay = document.createElement('div');
-                overlay.className = 'editor-overlay absolute inset-0 bg-black/90 backdrop-blur-sm items-center justify-center gap-4 z-50 rounded-xl';
-                
-                overlay.innerHTML = `
-                    <div onclick="window.renameProjectDirect(event, '${projId}')" 
-                         class="w-12 h-12 rounded-full bg-blue-600 hover:bg-blue-500 text-white flex items-center justify-center shadow-lg transform hover:scale-110 transition cursor-pointer border border-white/20">
-                        <i class="fa-solid fa-pen text-lg"></i>
-                    </div>
-
-                    <div onclick="window.deleteProjectDirect(event, '${projId}', this)" 
-                         class="w-12 h-12 rounded-full bg-red-600 hover:bg-red-500 text-white flex items-center justify-center shadow-lg transform hover:scale-110 transition cursor-pointer border border-white/20">
-                        <i class="fa-solid fa-trash text-lg"></i>
-                    </div>
+                // Actions Bar HTML
+                const actionBar = document.createElement('div');
+                actionBar.className = 'editor-actions-bar';
+                actionBar.innerHTML = `
+                    <button onclick="window.renameProjectDirect(event, '${projId}')" class="editor-btn">
+                        <i class="fa-solid fa-pen"></i> Rename
+                    </button>
+                    <button onclick="window.deleteProjectDirect(event, '${projId}', this)" class="editor-btn delete">
+                        <i class="fa-solid fa-trash"></i> Delete
+                    </button>
                 `;
-
-                card.appendChild(overlay);
+                
+                // Card ko relative banao taaki absolute positioning kaam kare
+                card.style.position = 'relative';
+                card.style.overflow = 'hidden'; // Rounded corners maintain karne ke liye
+                card.appendChild(actionBar);
+                
+                console.log("✅ Fixed Card:", projId);
             } else {
-                console.warn("⚠️ Card found but NO ID detected:", card);
+                // Debug: Kyun fail hua?
+                console.warn("⚠️ ID Finding Failed for Card:", card);
             }
         });
     }
 
-    // 5. ACTIONS (Rename/Delete)
+
+    // 5. ACTIONS
     window.renameProjectDirect = async function(event, projectId) {
         event.stopPropagation();
         event.preventDefault();
-        const newName = prompt("Rename Project:");
+        const newName = prompt("Enter new project name:");
+        
         if (newName && newName.trim() !== "") {
             try {
+                // DB Update
                 await db.collection('projects').doc(projectId).update({ title: newName.trim() });
+                
                 // UI Update
                 const card = event.target.closest('.project-card-item');
                 const titleEl = card.querySelector('h3');
-                if(titleEl) titleEl.textContent = newName.trim();
+                if(titleEl) titleEl.innerText = newName.trim();
+                
             } catch (error) {
-                alert("❌ Error: " + error.message);
+                alert("Error: " + error.message);
             }
         }
     };
@@ -940,16 +995,21 @@
     window.deleteProjectDirect = async function(event, projectId, btnElement) {
         event.stopPropagation();
         event.preventDefault();
-        if (confirm("⚠️ Delete this project permanently?")) {
+        
+        if (confirm("Permanently delete this project?")) {
             try {
-                // UI remove first
+                // UI Remove
                 const card = btnElement.closest('.project-card-item');
-                if(card) card.remove();
+                if(card) {
+                    card.style.opacity = '0';
+                    setTimeout(() => card.remove(), 300);
+                }
                 
-                // DB delete
+                // DB Delete
                 await db.collection('projects').doc(projectId).delete();
+                
             } catch (error) {
-                alert("❌ Error: " + error.message);
+                alert("Error: " + error.message);
             }
         }
     };
