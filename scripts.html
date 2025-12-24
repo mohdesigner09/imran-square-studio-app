@@ -305,56 +305,39 @@
     </button>
 </div>
 
-<header class="h-14 md:h-16 glass-header flex items-center justify-between px-3 md:px-6 shrink-0 z-50">
-    <div class="flex items-center gap-2 md:gap-4">
+<header class="h-14 md:h-16 glass-header flex items-center justify-between px-4 md:px-6 shrink-0 z-50 relative">
+    
+    <div class="flex items-center gap-3">
         <button onclick="goBackToHub()" class="p-2 rounded-lg hover:bg-white/10 text-gray-400 hover:text-white transition">
-            <svg class="w-4 h-4 md:w-5 md:h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 19l-7-7m0 0l7-7m-7 7h18"/>
-            </svg>
+            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 19l-7-7m0 0l7-7m-7 7h18"/></svg>
         </button>
-        
         <div>
-            <h1 class="text-xs md:text-sm font-bold text-white tracking-wide truncate max-w-[120px] md:max-w-none" id="scriptTitle">UNTITLED PROJECT</h1>
-            <p class="text-[9px] md:text-[10px] text-gray-500 uppercase tracking-widest hidden sm:block">Script Workspace</p>
+            <h1 class="text-sm font-bold text-white tracking-wide truncate max-w-[120px] md:max-w-none" id="scriptTitle">LOADING...</h1>
+            <p class="text-[10px] text-gray-500 uppercase tracking-widest hidden sm:block">Workspace</p>
         </div>
     </div>
 
     <div class="absolute left-1/2 transform -translate-x-1/2 hidden md:block">
-        <div class="mode-switch">
-            <button onclick="switchMode('editor')" id="btnEditor" class="mode-btn active">Writer</button>
-            <button onclick="switchMode('files')" id="btnFiles" class="mode-btn">Files</button>
+        <div class="mode-switch flex bg-black/50 rounded-lg p-1 border border-white/10">
+            <button onclick="switchMode('editor')" id="btnEditor" class="px-4 py-1 text-xs font-bold rounded text-white bg-white/10">Writer</button>
+            <button onclick="switchMode('files')" id="btnFiles" class="px-4 py-1 text-xs font-bold rounded text-gray-400 hover:text-white">Files</button>
         </div>
     </div>
 
-   <div class="flex items-center gap-3">
-    
-    <button id="editModeBtn" onclick="toggleEditMode()" class="w-9 h-9 flex items-center justify-center rounded-full bg-white/10 text-white border border-white/20 hover:bg-white hover:text-black transition">
-        <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-            <path d="M17 3a2.828 2.828 0 1 1 4 4L7.5 20.5 2 22l1.5-5.5L17 3z"></path>
-        </svg>
-    </button>
+    <div class="flex items-center gap-2">
+        
+        <button onclick="exportPDF()" class="hidden md:block px-3 py-1.5 bg-white text-black text-xs font-bold rounded hover:bg-gray-200 transition">Export PDF</button>
 
-    <button id="headerAddBtn" onclick="openAddSectionModal()" class="w-9 h-9 flex items-center justify-center rounded-full bg-white/10 text-white border border-white/20 hover:bg-white hover:text-black transition">
-        <i class="fa-solid fa-plus"></i>
-    </button>
-    
-    <button id="hamburgerBtn" onclick="toggleSidebar()" class="md:hidden p-2 text-gray-400 hover:text-white">
-        <svg class="w-7 h-7" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16M4 18h16"/>
-        </svg>
-    </button>
+        <button id="editModeBtn" onclick="toggleEditMode()" class="w-8 h-8 flex items-center justify-center rounded-full bg-white/5 text-gray-400 border border-white/10 hover:bg-white hover:text-black transition">
+            <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M17 3a2.828 2.828 0 1 1 4 4L7.5 20.5 2 22l1.5-5.5L17 3z"></path></svg>
+        </button>
 
-    <button onclick="exportPDF()" class="hidden md:block px-4 py-2 bg-white text-black text-xs font-bold rounded-lg hover:bg-gray-200 transition">Export PDF</button>
-</div>
-
-        <button id="headerAddBtn" onclick="openAddSectionModal()" class="hidden w-8 h-8 rounded-full bg-white/10 items-center justify-center text-white border border-white/20 hover:bg-white hover:text-black transition">
-            <i class="fa-solid fa-plus"></i>
+        <button id="headerAddBtn" onclick="openAddSectionModal()" class="w-8 h-8 flex items-center justify-center rounded-full bg-white/5 text-gray-400 border border-white/10 hover:bg-white hover:text-black transition">
+            <i class="fa-solid fa-plus text-xs"></i>
         </button>
         
-        <button id="hamburgerBtn" onclick="toggleSidebar()" class="md:hidden p-2 text-gray-400 hover:text-white">
-            <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16M4 18h16"/>
-            </svg>
+        <button id="hamburgerBtn" onclick="toggleSidebar()" class="md:hidden ml-1 p-2 text-gray-400 hover:text-white">
+            <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16M4 18h16"/></svg>
         </button>
     </div>
 </header>
@@ -940,14 +923,17 @@ async function loadProjectFromFirestore(projId) {
             }
         }
     }
-// --- 6. RENDER FILES UI (Updated with Editor Mode) ---
+// ==========================================
+// 🎨 RENDER SECTIONS (Fixed Syntax & Links)
+// ==========================================
 function renderSections() {
     const grid = document.getElementById('sectionsGrid');
     if (!grid) return;
     grid.innerHTML = '';
 
+    // Empty State
     if(sectionsData.length === 0) {
-        grid.innerHTML = `<div class="text-gray-500 col-span-full text-center py-10">No sections found. Click 'Add Section' to start.</div>`;
+        grid.innerHTML = `<div class="text-gray-500 col-span-full text-center py-10">No sections found. Click '+' to add one.</div>`;
         return;
     }
 
@@ -959,102 +945,84 @@ function renderSections() {
         const ringColor = isFull ? 'stroke-red-500' : 'stroke-green-500';
         const dashArray = `${percent}, 100`;
 
-        // 1. FILES LIST HTML GENERATION
+        // 1. Files List Generate Karo
         let filesHtml = '';
         if(count === 0) {
             filesHtml = `<div class="h-full flex flex-col items-center justify-center text-gray-600"><span class="text-[10px]">No files yet</span></div>`;
         } else {
-            [// Loop through files
-[...files].reverse().forEach(file => {
-    // Icon Logic
-    const icon = file.isMainScript 
-        ? '<i class="fa-solid fa-star text-orange-400 mr-2 text-sm"></i>' 
-        : '<i class="fa-regular fa-file-pdf text-gray-400 mr-2 text-sm"></i>';
-    
-    const highlight = file.isMainScript ? 'bg-orange-500/10 border-orange-500/20' : 'bg-white/5 border-white/5';
-    
-    // File URL (Url ya ViewLink jo bhi ho)
-    const fileUrl = file.url || file.viewLink || '#';
+            [...files].reverse().forEach(file => {
+                const icon = file.isMainScript 
+                    ? '<i class="fa-solid fa-star text-orange-400 mr-2"></i>' 
+                    : '<i class="fa-regular fa-file-pdf text-gray-400 mr-2"></i>';
+                
+                // File Link Logic
+                const fileUrl = file.url || file.viewLink || '#';
 
-    filesHtml += `
-    <div class="file-item ${highlight} p-3 rounded-lg mb-2 border border-white/5 flex justify-between items-center group hover:bg-white/10 transition">
-        
-        <a href="${fileUrl}" target="_blank" class="flex items-center w-[85%] overflow-hidden cursor-pointer">
-            ${icon}
-            <span class="text-sm text-gray-300 truncate group-hover:text-white font-medium">${file.name}</span>
-        </a>
-        
-        <div class="flex items-center">
-            ${isEditMode ? 
-                // Agar Edit Mode ON hai to DELETE button dikhao
-                `<button onclick="deleteFile(${section.id}, '${file.id}')" class="text-red-500 hover:text-white p-2 rounded-full hover:bg-red-500/20 transition">
-                    <i class="fa-solid fa-trash text-xs"></i>
-                </button>` 
-                : 
-                // Agar Normal Mode hai to DATE dikhao
-                `<span class="text-[10px] text-gray-600 font-mono">${file.date || ''}</span>`
-            }
-        </div>
-    </div>`;
-});
+                filesHtml += `
+                <div class="p-2 rounded mb-1 border border-white/5 bg-white/5 flex justify-between items-center group hover:bg-white/10 transition">
+                    <a href="${fileUrl}" target="_blank" class="flex items-center w-[85%] overflow-hidden cursor-pointer no-underline">
+                        ${icon}
+                        <span class="text-xs text-gray-300 truncate group-hover:text-white">${file.name}</span>
+                    </a>
+                    
+                    ${isEditMode ? 
+                        `<button onclick="deleteFile(${section.id}, '${file.id}')" class="text-red-500 hover:text-white px-2"><i class="fa-solid fa-xmark"></i></button>` 
+                        : `<span class="text-[9px] text-gray-600">${file.date || ''}</span>`
+                    }
+                </div>`;
+            });
         }
 
-        const card = document.createElement('div');
-        card.className = 'section-card flex flex-col bg-[#111] border border-white/10 rounded-xl p-4 h-80 relative overflow-hidden hover:border-white/30 transition shadow-lg';
-        
-        // 2. HEADER LOGIC (Normal vs Editor Mode)
+        // 2. Card Header Logic
         let headerHtml = '';
-
         if (isEditMode) {
-            // ✏️ EDITOR MODE: Input Field & Delete Button
+            // EDIT MODE
             headerHtml = `
                 <div class="flex justify-between items-center mb-3 border-b border-orange-500/30 pb-2">
                     <input type="text" value="${section.name}" 
                         onblur="renameSection(${section.id}, this.value)"
-                        class="bg-black/50 text-white font-bold text-sm p-2 rounded border border-orange-500 w-[75%] outline-none focus:ring-1 focus:ring-orange-500 transition"
-                        placeholder="Section Name"
+                        class="bg-black/50 text-white font-bold text-xs p-1 rounded border border-orange-500 w-[70%] outline-none"
                     />
-                    <button onclick="deleteSection(${section.id})" class="w-8 h-8 flex items-center justify-center rounded bg-red-500/10 text-red-500 hover:bg-red-500 hover:text-white transition border border-red-500/20">
-                        <i class="fa-solid fa-trash-can"></i>
+                    <button onclick="deleteSection(${section.id})" class="text-red-500 hover:bg-red-500/10 p-1 rounded border border-red-500/20">
+                        <i class="fa-solid fa-trash-can text-xs"></i>
                     </button>
-                </div>
-            `;
+                </div>`;
         } else {
-            // 👁️ NORMAL MODE: Title & Progress Ring
+            // NORMAL MODE
             headerHtml = `
                 <div class="flex justify-between items-start mb-3 border-b border-white/5 pb-2">
                     <div>
-                        <h3 class="text-sm font-bold text-white uppercase tracking-wider truncate max-w-[150px]" title="${section.name}">${section.name}</h3>
-                        <p class="text-[10px] text-gray-500 mt-0.5">${count}/${FILES_PER_SECTION} Files</p>
+                        <h3 class="text-sm font-bold text-white uppercase tracking-wider truncate max-w-[150px]">${section.name}</h3>
+                        <p class="text-[10px] text-gray-500">${count}/${FILES_PER_SECTION} Files</p>
                     </div>
                     <div class="relative w-8 h-8">
                         <svg class="w-full h-full transform -rotate-90" viewBox="0 0 36 36">
                             <path class="text-gray-800" d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831" fill="none" stroke="currentColor" stroke-width="3" />
-                            <path class="${ringColor} drop-shadow-[0_0_5px_rgba(0,255,0,0.5)]" stroke-dasharray="${dashArray}" d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" />
+                            <path class="${ringColor}" stroke-dasharray="${dashArray}" d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" />
                         </svg>
                     </div>
-                </div>
-            `;
+                </div>`;
         }
 
-        // 3. COMBINE EVERYTHING
+        // 3. Card Create
+        const card = document.createElement('div');
+        card.className = 'section-card flex flex-col bg-[#111] border border-white/10 rounded-xl p-4 h-80 relative overflow-hidden shadow-lg';
+        
         card.innerHTML = `
             ${headerHtml}
-
-            <div class="file-list flex-1 overflow-y-auto custom-scrollbar mb-3">
+            <div class="file-list flex-1 overflow-y-auto custom-scrollbar mb-3 space-y-1">
                 ${filesHtml}
             </div>
-
             <button onclick="triggerUpload(${section.id})" 
                 class="w-full py-2 rounded bg-white/5 hover:bg-white text-white hover:text-black text-xs font-bold transition border border-white/10 flex items-center justify-center gap-2 ${isFull || isEditMode ? 'opacity-50 cursor-not-allowed' : ''}" 
                 ${isFull || isEditMode ? 'disabled' : ''}>
-                <i class="fa-solid fa-cloud-arrow-up"></i> ${isEditMode ? 'Editing Mode' : 'Upload File'}
+                <i class="fa-solid fa-cloud-arrow-up"></i> ${isEditMode ? 'Editing...' : 'Upload File'}
             </button>
         `;
-        
+
         grid.appendChild(card);
     });
-}
+} // <--- YE BRACKET ZAROORI HAI!
 
     // --- 7. NEW SECTION LOGIC (Popup Handlers) ---
     function openAddSectionModal() {
