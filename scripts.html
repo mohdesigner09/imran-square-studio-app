@@ -1152,7 +1152,7 @@ async function confirmAddSection() {
 
 
 // ==========================================
-// 🚀 TRIGGER UPLOAD (TAGDA LOGIC: DIRECT PDF OPEN)
+// 🚀 TRIGGER UPLOAD (UPDATED: Silent & Smooth)
 // ==========================================
 async function triggerUpload(sectionId) {
     console.log(`🚀 Starting Upload for Section: ${sectionId}`);
@@ -1160,7 +1160,7 @@ async function triggerUpload(sectionId) {
     const fileInput = document.getElementById(`file-input-${sectionId}`);
     if (!fileInput || fileInput.files.length === 0) return;
 
-    // 1. Target Folder
+    // 1. Target Folder Logic
     let targetFolderId = "";
     if (typeof currentDriveData !== 'undefined' && currentDriveData.projectId) {
         targetFolderId = currentDriveData.projectId;
@@ -1173,7 +1173,7 @@ async function triggerUpload(sectionId) {
         return;
     }
 
-    // 2. UI Loading
+    // 2. UI Loading (Button par spinner)
     const btn = document.getElementById(`upload-btn-${sectionId}`);
     const originalText = btn ? btn.innerHTML : "Upload";
     if (btn) {
@@ -1189,7 +1189,7 @@ async function triggerUpload(sectionId) {
     }
 
     try {
-        // --- STEP A: UPLOAD ---
+        // --- STEP A: UPLOAD (Server Call) ---
         const response = await fetch('/api/drive/upload-multiple', {
             method: 'POST',
             body: formData
@@ -1200,41 +1200,48 @@ async function triggerUpload(sectionId) {
         if (response.ok) {
             const uploadedFiles = result.data; 
 
-            // --- STEP B: SAVE TO FIREBASE (MAGIC LINK LOGIC) ---
+            // --- STEP B: SAVE TO FIREBASE & UPDATE LOCAL DATA ---
             const secIndex = sectionsData.findIndex(s => s.id == sectionId);
             
             if (secIndex > -1) {
                 if (!sectionsData[secIndex].files) sectionsData[secIndex].files = [];
 
                 uploadedFiles.forEach(f => {
-    // 🔥 TAGDA LOGIC V2: Preview Mode
-    // Ye link file ko Browser me Embed karke dikhayega (No Download, No Gmail)
-    const directLink = `https://drive.google.com/file/d/${f.id}/preview`;
+                    // 🔥 TAGDA LOGIC V2: Preview Mode
+                    // Ye link file ko direct clean viewer me kholta hai
+                    const directLink = `https://drive.google.com/file/d/${f.id}/preview`;
 
-    sectionsData[secIndex].files.push({
-        name: f.name || "Untitled File",
-        id: f.id || "",
-        url: directLink, // <--- AB YE WALA LINK SAVE HOGA
-        type: f.mimeType || "file/unknown",
-        date: new Date().toLocaleDateString()
-    });
-});
-                // Update Database
-                await db.collection('projects').doc(currentProjectID).update({
-                    sections: sectionsData
+                    sectionsData[secIndex].files.push({
+                        name: f.name || "Untitled File",
+                        id: f.id || "",
+                        url: directLink, // <--- Correct Preview Link
+                        type: f.mimeType || "file/unknown",
+                        date: new Date().toLocaleDateString()
+                    });
                 });
 
-                alert(`✅ Uploaded! Ab PDF makkhan ki tarah khulega.`);
+                // Update Database
+                if (typeof db !== 'undefined' && typeof currentProjectID !== 'undefined') {
+                    await db.collection('projects').doc(currentProjectID).update({
+                        sections: sectionsData
+                    });
+                }
+
+                console.log("✅ Upload Successful (Silent Update)");
+                
+                // 🔥 UI Refresh (Bina Popup ke)
                 renderSections(); 
             }
 
         } else {
+            console.error("Server Error:", result);
             alert("❌ Upload Failed: " + (result.error || "Unknown Error"));
         }
     } catch (err) {
-        console.error("Error:", err);
+        console.error("Network Error:", err);
         alert("❌ Error during upload.");
     } finally {
+        // Reset Button & Input
         if (btn) {
             btn.innerHTML = originalText;
             btn.disabled = false;
@@ -1242,7 +1249,6 @@ async function triggerUpload(sectionId) {
         fileInput.value = ""; 
     }
 }
-
 // ==========================================
 // 🗑️ DELETE FUNCTIONS (Paste this inside <script>)
 // ==========================================
