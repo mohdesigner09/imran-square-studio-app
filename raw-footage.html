@@ -480,15 +480,7 @@
     <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-firestore-compat.js"></script>
     
     <script>
-        const firebaseConfig = {
-            apiKey: "AIzaSyA_D3AuwSzHKgs5svcwRoP0St2Nc-delF8",
-            authDomain: "iimransquare.firebaseapp.com",
-            projectId: "iimransquare",
-            storageBucket: "iimransquare.firebasestorage.app",
-            messagingSenderId: "431645042472",
-            appId: "1:431645042472:web:87e7cea4659d6a0564121d",
-            measurementId: "G-Z0EN14J4XM"
-        };
+        
 
         // Firebase start karo
         if (!firebase.apps.length) {
@@ -791,7 +783,7 @@
         if(btn) btn.classList.remove('hidden');
 
         for (const file of files) {
-            await uploadFileToDrive(file, currentProject.driveData.footageFolderId, currentProject);
+            
             const queueId = Date.now() + Math.random().toString(36).substr(2, 9);
             
             const thumbPromise = generateVideoThumbnail(file);
