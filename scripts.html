@@ -947,59 +947,69 @@ async function loadProjectFromFirestore(projId) {
         }
     }
 // ==========================================
-// 🎨 RENDER SECTIONS (CORRECTED & COMPLETE)
+// 📦 RENDER SECTIONS (FIXED: Auto-Hide Button & Clean Code)
 // ==========================================
 function renderSections() {
-    const grid = document.getElementById('sectionsGrid');
-    if (!grid) return;
-    grid.innerHTML = '';
+    // Note: ID 'sections-container' check karlena, agar HTML me 'sectionsGrid' hai to wo use karna
+    const container = document.getElementById('sections-container') || document.getElementById('sectionsGrid');
+    if (!container) return;
+    
+    container.innerHTML = "";
+    const FILES_PER_SECTION = 10; // Limit define kar di
 
-    // Empty State Check
+    // Empty Check
     if(!sectionsData || sectionsData.length === 0) {
-        grid.innerHTML = `<div class="text-gray-500 col-span-full text-center py-10">No sections found. Click '+' to add one.</div>`;
+        container.innerHTML = `<div class="text-gray-500 col-span-full text-center py-10">No sections found. Click '+' to add one.</div>`;
         return;
     }
 
     sectionsData.forEach(section => {
         const files = section.files || [];
         const count = files.length;
-        const percent = (count / FILES_PER_SECTION) * 100;
-        const isFull = count >= FILES_PER_SECTION;
-        const ringColor = isFull ? 'stroke-red-500' : 'stroke-green-500';
-        const dashArray = `${percent}, 100`;
+        const isFull = count >= FILES_PER_SECTION; // Limit Check
+        
+        // 1. Status Circle Color Logic
+        let statusColor = "border-gray-600 text-gray-400"; 
+        if (count > 0 && count < FILES_PER_SECTION) statusColor = "border-green-500 text-green-500 shadow-[0_0_10px_rgba(34,197,94,0.4)]";
+        if (isFull) statusColor = "border-red-500 text-red-500 shadow-[0_0_10px_rgba(239,68,68,0.4)]";
 
-        // 1. Files List Logic
+        // 2. Generate Files HTML
         let filesHtml = '';
         if(count === 0) {
-            filesHtml = `<div class="h-full flex flex-col items-center justify-center text-gray-600"><span class="text-[10px]">No files yet</span></div>`;
+            filesHtml = `<div class="h-full flex flex-col items-center justify-center text-gray-600 opacity-50"><i class="fa-regular fa-folder-open text-2xl mb-2"></i><span class="text-[10px]">Empty Section</span></div>`;
         } else {
-            // Reverse files to show newest first
+            // Newest First
             [...files].reverse().forEach(file => {
-                const icon = file.isMainScript 
-                    ? '<i class="fa-solid fa-star text-orange-400 mr-2"></i>' 
-                    : '<i class="fa-regular fa-file-pdf text-gray-400 mr-2"></i>';
+                // Icon Logic
+                let icon = '<i class="fa-regular fa-file text-gray-400"></i>';
+                if(file.type && file.type.includes('pdf')) icon = '<i class="fa-solid fa-file-pdf text-red-400"></i>';
+                else if(file.type && file.type.includes('image')) icon = '<i class="fa-solid fa-file-image text-blue-400"></i>';
                 
-               // renderSections ke andar...
-               
-const fileUrl = file.url || file.viewLink || '#';
+                const fileUrl = file.url || file.viewLink || '#';
 
-filesHtml += `
-<div class="p-2 rounded mb-1 border border-white/5 bg-white/5 flex justify-between items-center group hover:bg-white/10 transition">
-    <a href="${fileUrl}" target="_blank" class="flex items-center w-[85%] overflow-hidden cursor-pointer no-underline">
-        ${icon}
-        <span class="text-xs text-gray-300 truncate group-hover:text-white">${file.name}</span>
-    </a>
-    
-    ${isEditMode ? 
-        `<button onclick="deleteFile('${section.id}', '${file.id}')" class="text-red-500 hover:text-white px-2"><i class="fa-solid fa-xmark"></i></button>` 
-        : `<span class="text-[9px] text-gray-600">${file.date || ''}</span>`
-    }
-</div>`;
-
+                filesHtml += `
+                <div class="bg-white/5 hover:bg-white/10 border border-white/5 rounded-lg p-2 flex justify-between items-center group transition-colors mb-1">
+                    <a href="${fileUrl}" target="_blank" class="flex items-center gap-3 flex-1 min-w-0 cursor-pointer text-decoration-none">
+                        <div class="w-6 h-6 flex items-center justify-center flex-shrink-0">
+                            ${icon}
+                        </div>
+                        <div class="flex-1 min-w-0">
+                            <p class="text-xs text-gray-200 truncate group-hover:text-white transition">${file.name}</p>
+                            <p class="text-[9px] text-gray-500">${file.date || ''}</p>
+                        </div>
+                    </a>
+                    
+                    ${isEditMode ? 
+                        `<button onclick="deleteFile('${section.id}', '${file.id}')" class="w-6 h-6 rounded-full hover:bg-red-500/20 text-red-500 flex items-center justify-center transition ml-2">
+                            <i class="fa-solid fa-xmark text-xs"></i>
+                         </button>` 
+                        : ''
+                    }
+                </div>`;
             });
         }
 
-        // 2. Header Logic (Edit vs Normal Mode)
+        // 3. Header Logic (Edit Mode Input vs Normal Title)
         let headerHtml = '';
         if (isEditMode) {
             headerHtml = `
@@ -1017,48 +1027,47 @@ filesHtml += `
                 <div class="flex justify-between items-start mb-3 border-b border-white/5 pb-2">
                     <div>
                         <h3 class="text-sm font-bold text-white uppercase tracking-wider truncate max-w-[150px]">${section.name}</h3>
-                        <p class="text-[10px] text-gray-500">${count}/${FILES_PER_SECTION} Files</p>
+                        <p class="text-[10px] text-gray-500 mt-0.5">${count}/${FILES_PER_SECTION} Files</p>
                     </div>
-                    <div class="relative w-8 h-8">
-                        <svg class="w-full h-full transform -rotate-90" viewBox="0 0 36 36">
-                            <path class="text-gray-800" d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831" fill="none" stroke="currentColor" stroke-width="3" />
-                            <path class="${ringColor}" stroke-dasharray="${dashArray}" d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" />
-                        </svg>
+                    <div class="w-7 h-7 rounded-full border-2 ${statusColor} flex items-center justify-center text-[10px] font-bold">
+                       ${isFull ? '!' : count}
                     </div>
                 </div>`;
         }
 
-        // 3. CREATE CARD ELEMENT (Ye Line MISSING thi tumhare code me)
-        const card = document.createElement('div');
-        card.className = 'section-card flex flex-col bg-[#111] border border-white/10 rounded-xl p-4 h-80 relative overflow-hidden shadow-lg';
-        
-        // 4. Set Inner HTML
-        card.innerHTML = `
-            ${headerHtml}
-            <div class="file-list flex-1 overflow-y-auto custom-scrollbar mb-3 space-y-1">
-                ${filesHtml}
-            </div>
-            
-            <div class="mt-auto pt-2">
-                <input 
-                    type="file" 
-                    id="file-input-${section.id}" 
-                    multiple 
-                    style="display: none;" 
-                    onchange="triggerUpload('${section.id}')" 
-                />
-
-                <button 
-                    id="upload-btn-${section.id}"
-                    class="w-full py-2 rounded bg-white/5 hover:bg-white/10 border border-white/10 text-gray-300 text-xs transition flex justify-center items-center gap-2" 
-                    onclick="document.getElementById('file-input-${section.id}').click();"
-                >
-                    <i class="fa-solid fa-cloud-arrow-up"></i> Upload File
+        // 4. Upload Button HTML (CONDITIONAL LOGIC)
+        // 🔥 Agar Section Full hai (>=10), to button HTML empty string hoga (Gayab)
+        const uploadButtonHTML = isFull ? '' : `
+            <div class="mt-auto pt-2 border-t border-white/5">
+                <input type="file" id="file-input-${section.id}" 
+                       class="hidden" multiple 
+                       data-folder-id="${section.folderId || ''}"
+                       onchange="triggerUpload('${section.id}')">
+                
+                <button id="upload-btn-${section.id}" 
+                        onclick="document.getElementById('file-input-${section.id}').click()" 
+                        class="w-full py-2.5 rounded-lg border border-white/10 bg-white/5 hover:bg-white/10 text-gray-300 hover:text-white text-xs font-medium transition flex items-center justify-center gap-2 group">
+                    <i class="fa-solid fa-cloud-arrow-up group-hover:-translate-y-0.5 transition-transform"></i>
+                    Upload File
                 </button>
             </div>
         `;
 
-        grid.appendChild(card);
+        // 5. Final Card Assembly
+        const sectionHtml = `
+        <div class="bg-[#111] rounded-xl border border-white/10 p-4 flex flex-col h-[340px] relative group hover:border-white/20 transition-all duration-300 shadow-lg">
+            
+            ${headerHtml}
+
+            <div class="flex-1 overflow-y-auto custom-scroll space-y-1 mb-2">
+                ${filesHtml}
+            </div>
+
+            ${uploadButtonHTML}
+
+        </div>`;
+
+        container.innerHTML += sectionHtml;
     });
 }
 
