@@ -947,10 +947,10 @@ async function loadProjectFromFirestore(projId) {
         }
     }
 // ==========================================
-// 📦 RENDER SECTIONS (FIXED: Auto-Hide Button & Clean Code)
+// 📦 RENDER SECTIONS (UPGRADED: Positive Vibe UI & Auto-Hide Button)
 // ==========================================
 function renderSections() {
-    // Note: ID 'sections-container' check karlena, agar HTML me 'sectionsGrid' hai to wo use karna
+    // Note: checks both IDs to be safe
     const container = document.getElementById('sections-container') || document.getElementById('sectionsGrid');
     if (!container) return;
     
@@ -968,10 +968,21 @@ function renderSections() {
         const count = files.length;
         const isFull = count >= FILES_PER_SECTION; // Limit Check
         
-        // 1. Status Circle Color Logic
-        let statusColor = "border-gray-600 text-gray-400"; 
-        if (count > 0 && count < FILES_PER_SECTION) statusColor = "border-green-500 text-green-500 shadow-[0_0_10px_rgba(34,197,94,0.4)]";
-        if (isFull) statusColor = "border-red-500 text-red-500 shadow-[0_0_10px_rgba(239,68,68,0.4)]";
+        // 1. ✨ STATUS CIRCLE LOGIC (UPGRADED: Positive Vibe)
+        // Default (Empty): Grey Ring
+        let statusClasses = "border-2 border-gray-600 text-gray-400"; 
+        let statusContent = count;
+
+        // In Progress (1-9 files): Green Ring
+        if (count > 0 && count < FILES_PER_SECTION) {
+            statusClasses = "border-2 border-emerald-500 text-emerald-500 shadow-[0_0_10px_rgba(16,185,129,0.3)]";
+        }
+        
+        // Full (10 files): Solid Green Circle with Checkmark
+        if (isFull) {
+            statusClasses = "bg-emerald-500 border-2 border-emerald-500 text-black shadow-[0_0_20px_rgba(16,185,129,0.6)] scale-110 transition-transform";
+            statusContent = '<i class="fa-solid fa-check text-xs font-bold"></i>'; // Tick Icon
+        }
 
         // 2. Generate Files HTML
         let filesHtml = '';
@@ -984,6 +995,7 @@ function renderSections() {
                 let icon = '<i class="fa-regular fa-file text-gray-400"></i>';
                 if(file.type && file.type.includes('pdf')) icon = '<i class="fa-solid fa-file-pdf text-red-400"></i>';
                 else if(file.type && file.type.includes('image')) icon = '<i class="fa-solid fa-file-image text-blue-400"></i>';
+                else if(file.type && file.type.includes('video')) icon = '<i class="fa-solid fa-file-video text-purple-400"></i>';
                 
                 const fileUrl = file.url || file.viewLink || '#';
 
@@ -1000,7 +1012,7 @@ function renderSections() {
                     </a>
                     
                     ${isEditMode ? 
-                        `<button onclick="deleteFile('${section.id}', '${file.id}')" class="w-6 h-6 rounded-full hover:bg-red-500/20 text-red-500 flex items-center justify-center transition ml-2">
+                        `<button onclick="deleteFile('${section.id}', '${file.id}')" class="w-6 h-6 rounded-full hover:bg-red-500/20 text-red-500 flex items-center justify-center transition ml-2 flex-shrink-0">
                             <i class="fa-solid fa-xmark text-xs"></i>
                          </button>` 
                         : ''
@@ -1029,8 +1041,8 @@ function renderSections() {
                         <h3 class="text-sm font-bold text-white uppercase tracking-wider truncate max-w-[150px]">${section.name}</h3>
                         <p class="text-[10px] text-gray-500 mt-0.5">${count}/${FILES_PER_SECTION} Files</p>
                     </div>
-                    <div class="w-7 h-7 rounded-full border-2 ${statusColor} flex items-center justify-center text-[10px] font-bold">
-                       ${isFull ? '!' : count}
+                    <div class="w-7 h-7 rounded-full flex items-center justify-center text-[10px] font-bold ${statusClasses}">
+                       ${statusContent}
                     </div>
                 </div>`;
         }
